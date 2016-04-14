@@ -1,0 +1,205 @@
+//
+//  MPTableView.h
+//  mushu
+//
+//  Created by Charles on 15/6/19.
+//  Copyright (c) 2015年 PBA. All rights reserved.
+//
+
+#import "MPTableViewCell.h"
+
+@class MPTableView, MPIndexPath;
+
+@protocol MPTableViewDelegate <UIScrollViewDelegate>
+@optional
+
+// Display customization
+
+- (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didEndDisplayingCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+
+- (void)MPTableView:(MPTableView *)tableView willDisplayHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView willDisplayFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView didEndDisplayingHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView didEndDisplayingFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+
+// custom animations for updating. cell will be nil while it is ouside of the display area.
+- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView willDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView willDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView willDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+
+// Called before the user changes the selection. Return a new indexPath, or nil, to change the proposed selection.
+- (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
+- (MPIndexPath *)MPTableView:(MPTableView *)tableView willDeselectRowAtIndexPath:(MPIndexPath *)indexPath;
+
+// Called after the user changes the selection.
+
+- (void)MPTableView:(MPTableView *)tableView didSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didDeselectRowAtIndexPath:(MPIndexPath *)indexPath;
+
+- (BOOL)MPTableView:(MPTableView *)tableView shouldHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didUnhighlightRowAtIndexPath:(MPIndexPath *)indexPath;
+
+@end
+
+UIKIT_EXTERN NSString *const MPTableViewSelectionDidChangeNotification;
+
+#pragma mark -
+
+@protocol MPTableViewDataSource <NSObject>
+@required
+
+- (NSUInteger)MPTableView:(MPTableView *)tableView numberOfRowsInSection:(NSUInteger)section;
+
+- (MPTableViewCell *)MPTableView:(MPTableView *)tableView cellForRowAtIndexPath:(MPIndexPath *)indexPath;
+
+@optional
+- (NSUInteger)numberOfSectionsInMPTableView:(MPTableView *)tableView; // Default is 1 if not implemented
+
+// Variable height support
+- (CGFloat)MPTableView:(MPTableView *)tableView heightForIndexPath:(MPIndexPath *)indexPath;
+- (CGFloat)MPTableView:(MPTableView *)tableView heightForHeaderInSection:(NSUInteger)section;
+- (CGFloat)MPTableView:(MPTableView *)tableView heightForFooterInSection:(NSUInteger)section;
+
+// custom view for header. will be adjusted to default or specified header height. Implementers should *always* try to reuse sectionViews by setting each sectionView's reuseIdentifier and querying for available reusable sectionViews with dequeueReusableViewWithIdentifier:
+
+- (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section;
+- (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForFooterInSection:(NSUInteger)section;
+
+@end
+
+#pragma mark -
+
+typedef NS_ENUM(NSUInteger, MPTableViewStyle) {
+    MPTableViewStylePlain, MPTableViewStyleGrouped
+};
+
+typedef NS_ENUM(NSInteger, MPTableViewScrollPosition) {
+    MPTableViewScrollPositionNone,
+    MPTableViewScrollPositionTop,
+    MPTableViewScrollPositionMiddle,
+    MPTableViewScrollPositionBottom
+};
+
+typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
+    MPTableViewRowAnimationFade,
+    MPTableViewRowAnimationRight, // slide in from right (or out to right)
+    MPTableViewRowAnimationLeft,
+    MPTableViewRowAnimationTop,
+    MPTableViewRowAnimationBottom,
+    MPTableViewRowAnimationMiddle,
+    MPTableViewRowAnimationNone,
+    MPTableViewRowAnimationCustom, // custom animations in insertion or deletion
+    MPTableViewRowAnimationRandom = 100
+};
+
+UIKIT_EXTERN const CGFloat MPTableViewDefaultSectionHeaderHeight;
+UIKIT_EXTERN const CGFloat MPTableViewDefaultSectionFooterHeight;
+
+@interface MPTableView : UIScrollView
+
+- (instancetype)initWithFrame:(CGRect)frame style:(MPTableViewStyle)style NS_DESIGNATED_INITIALIZER;// must specify style at creation. -initWithFrame: calls this with UITableViewStylePlain
+
+- (instancetype)initWithCoder:(NSCoder *)aDecoder NS_DESIGNATED_INITIALIZER;
+
+@property (nonatomic, readonly) MPTableViewStyle style;
+@property (nonatomic, weak) id<MPTableViewDataSource> dataSource;
+@property (nonatomic, weak) id<MPTableViewDelegate> delegate;
+@property (nonatomic) NSUInteger numberOfSections;
+
+@property (nonatomic) CGFloat rowHeight; // will return the default value if unset
+@property (nonatomic) CGFloat sectionHeaderHeight;
+@property (nonatomic) CGFloat sectionFooterHeight;
+
+@property (nonatomic, readonly) MPIndexPath *beginIndexPath; // displaying
+@property (nonatomic, readonly) MPIndexPath *endIndexPath;
+
+- (CGRect)rectForSection:(NSInteger)section;                                    // includes header, footer and all rows
+- (CGRect)rectForHeaderInSection:(NSInteger)section;
+- (CGRect)rectForFooterInSection:(NSInteger)section;
+- (CGRect)rectForRowAtIndexPath:(MPIndexPath *)indexPath;
+
+- (MPIndexPath *)indexPathForRowAtPoint:(CGPoint)point;
+
+- (NSUInteger)numberOfRowsInSection:(NSInteger)section;
+
+- (MPTableViewCell *)cellForRowAtIndexPath:(MPIndexPath *)indexPath;
+
+- (MPIndexPath *)indexPathForCell:(MPTableViewCell *)cell;                      // returns nil if cell is not visible
+
+- (NSArray *)visibleCells;
+
+- (NSArray *)indexPathsForVisibleRows;
+
+@property (nonatomic, assign) CGFloat contentInsetTop; // default is 0, usually is using navigationBar's height. In the UITableView, sectionView suspends by contentInset.top and cannot be customized
+@property (nonatomic, assign) CGFloat contentInsetBottom;
+
+@property (nonatomic, strong) UIView *tableHeaderView;
+@property (nonatomic, strong) UIView *tableFooterView;
+
+@property (nonatomic, strong) UIView *backgroundView; // will be placed as a subview of the table view behind all cells and headers/footers.
+
+
+@property (nonatomic, assign) BOOL enableCachesReload; // default is NO, when reloading tableview, without clear reusable views and cache all displayed views to reuse(It is best to make sure that tableview will reload with the same cells/reusableViews);
+- (void)clearReusableCells;
+- (void)clearReusableSectionViews;
+
+- (void)reloadData;
+- (void)reloadDataAsyncWithCompleter:(void(^)())completer; //
+
+@property (nonatomic) BOOL allowsSelection;  // default is YES.
+@property (nonatomic) BOOL allowsMultipleSelection; // default is NO.
+
+@property (nonatomic, readonly) MPIndexPath *indexPathForSelectedRow; // returns nil or index path representing section and row of selection.
+@property (nonatomic, readonly) NSArray *indexPathsForSelectedRows; // returns nil or a set of index paths representing the sections and rows of the selection.
+
+- (void)scrollToRowAtIndexPath:(MPIndexPath *)indexPath atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated;
+- (void)scrollToNearestSelectedRowAtScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated; // scroll to a selected row which closest to the top
+
+- (void)selectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated scrollPosition:(MPTableViewScrollPosition)scrollPosition;
+
+- (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated;
+
+@property(readonly, getter=isUpdating) BOOL updating; // animating
+
+- (void)beginUpdates; // allow multiple insert/delete of rows and sections to be animated simultaneously. Nestable
+- (void)endUpdates; // only call insert/delete/reload calls or sections inside an update block.  otherwise things like row count, etc. may be invalid.
+
+// indexPaths/sections must not be duplicated
+
+- (void)deleteSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation;
+- (void)insertSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation;
+- (void)reloadSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation;
+- (void)moveSection:(NSUInteger)section toSection:(NSUInteger)newSection;
+
+- (void)deleteRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
+- (void)insertRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
+- (void)reloadRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
+- (void)moveRowAtIndexPath:(MPIndexPath *)indexPath toIndexPath:(MPIndexPath *)newIndexPath;
+
+- (id)dequeueReusableCellWithIdentifier:(NSString *)identifier;
+
+// like dequeueReusableCellWithIdentifier:, but for headers/footers
+- (id)dequeueReusableViewWithIdentifier:(NSString *)identifier;
+
+- (void)registerClass:(Class)cellClass forCellReuseIdentifier:(NSString *)identifier;
+- (void)registerNib:(UINib *)nib forCellReuseIdentifier:(NSString *)identifier;
+- (void)registerClass:(Class)reusableViewClass forReusableViewReuseIdentifier:(NSString *)identifier;
+- (void)registerNib:(UINib *)nib forReusableViewReuseIdentifier:(NSString *)identifier;
+
+@end
+
+#pragma mark -
+
+@interface MPIndexPath (MPTableView)
+
+- (NSInteger)section;
+- (NSInteger)row;
++ (MPIndexPath *)indexPathForRow:(NSInteger)row inSection:(NSInteger)section;
+- (NSComparisonResult)compare:(MPIndexPath *)indexPath;
+
+@end
