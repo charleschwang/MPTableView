@@ -15,10 +15,15 @@ const CGFloat MPTableViewCellDefaultCellHeight = 44.;
 
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier {
     if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen]bounds].size.width, MPTableViewCellDefaultCellHeight)]) {
+        [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = identifier;
         self.clipsToBounds = YES;
     }
     return self;
+}
+
+- (void)setAutoresizingMask:(UIViewAutoresizing)autoresizingMask {
+    // ...
 }
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -27,6 +32,7 @@ const CGFloat MPTableViewCellDefaultCellHeight = 44.;
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
+        [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = NSStringFromClass([self class]);
         self.clipsToBounds = YES;
     }
