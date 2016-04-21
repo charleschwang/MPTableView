@@ -8,7 +8,7 @@
 
 #import "MPTableViewSupport.h"
 
-UIKIT_EXTERN const CGFloat MPTableViewCellDefaultCellHeight;
+UIKIT_EXTERN const CGFloat MPTableViewDefaultCellHeight;
 
 @interface MPTableReusableView : UIView
 

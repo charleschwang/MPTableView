@@ -9,12 +9,12 @@
 #import "MPTableViewCell.h"
 #import <c++/v1/map>
 
-const CGFloat MPTableViewCellDefaultCellHeight = 44.;
+const CGFloat MPTableViewDefaultCellHeight = 44.;
 
 @implementation MPTableReusableView
 
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier {
-    if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen]bounds].size.width, MPTableViewCellDefaultCellHeight)]) {
+    if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen]bounds].size.width, MPTableViewDefaultCellHeight)]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = identifier;
         self.clipsToBounds = YES;
@@ -55,21 +55,53 @@ const CGFloat MPTableViewCellDefaultCellHeight = 44.;
 
 #pragma mark -
 
+static CGColor *
+_CGColorMPSelectionDefault() {
+    static CGColor *selectionCGColor;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        CGFloat color[4] = {0.85, 0.85, 0.85, 1.0};
+        selectionCGColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), color);
+    });
+    return selectionCGColor;
+}
+
+static UIColor *
+_UIColorMPSelectionDefault() {
+    static UIColor *selectionColor;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        selectionColor = [UIColor colorWithCGColor:_CGColorMPSelectionDefault()];
+    });
+    return selectionColor;
+}
+
+static CGColor *
+_CGColorClearColor() {
+    static CGColor *CGColor;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        CGFloat color[4] = {0, 0, 0, 0};
+        CGColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), color);
+    });
+    return CGColor;
+}
+
 @implementation MPTableViewCell {
     CALayer *_fadeAnimationLayer;
-    std::map<NSUInteger, UIColor *> *_cachedSubviewColorsMap;
+    std::map<NSUInteger, UIColor *> _cachedSubviewColorsMap;
 }
 
 - (void)_initializeData {
-    _cachedSubviewColorsMap = new std::map<NSUInteger, UIColor *>;
+    _cachedSubviewColorsMap = std::map<NSUInteger, UIColor *>();
     _highlighted = NO;
     _selected = NO;
     
     _fadeAnimationLayer = [CALayer new];
-    CGFloat color[4] = {0.85, 0.85, 0.85, 1.0};
-    _selectionColor = [UIColor colorWithCGColor:_fadeAnimationLayer.backgroundColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), color)];
+    _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionDefault();
+    _selectionColor = _UIColorMPSelectionDefault();
     _fadeAnimationLayer.hidden = YES;
-    [self.layer addSublayer:_fadeAnimationLayer];
+    [self.layer insertSublayer:_fadeAnimationLayer atIndex:0];
 }
 
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier {
@@ -87,7 +119,7 @@ const CGFloat MPTableViewCellDefaultCellHeight = 44.;
 }
 
 - (void)dealloc {
-    delete _cachedSubviewColorsMap;
+    _cachedSubviewColorsMap.clear();
 }
 
 - (void)setFrame:(CGRect)frame {
@@ -98,12 +130,21 @@ const CGFloat MPTableViewCellDefaultCellHeight = 44.;
     }
 }
 
+- (void)willRemoveSubview:(UIView *)subview {
+    if (_selected || _highlighted) {
+        std::map<NSUInteger, UIColor *>::iterator iter = _cachedSubviewColorsMap.find((NSUInteger)subview);
+        if (iter != _cachedSubviewColorsMap.end() && _UIColorEqualToClearColor([subview backgroundColor])) {
+            [subview setBackgroundColor:iter->second];
+        }
+    }
+    [super willRemoveSubview:subview];
+}
+
 - (void)setSelectionColor:(UIColor *)selectionColor {
     if (!(_selectionColor = selectionColor)) {
-        CGFloat color[4] = {0.0, 0.0, 0.0, 0.0};
-        _fadeAnimationLayer.backgroundColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), color);
+        _fadeAnimationLayer.backgroundColor = _CGColorClearColor();
         if (!_selected && !_highlighted) {
-            _cachedSubviewColorsMap->clear();
+            _cachedSubviewColorsMap.clear();
         }
     } else {
         _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
@@ -145,7 +186,7 @@ const CGFloat MPTableViewCellDefaultCellHeight = 44.;
         if (enable) {
             return;
         } else {
-            if (_cachedSubviewColorsMap->size() == 0) {
+            if (_cachedSubviewColorsMap.size() == 0) {
                 return;
             }
         }
@@ -161,16 +202,16 @@ const CGFloat MPTableViewCellDefaultCellHeight = 44.;
     }
     [self _setSubviewsColorWithHighlighted:enable];
     
-    if (!_selectionColor && _cachedSubviewColorsMap->size()) {
-        _cachedSubviewColorsMap->clear();
+    if (!_selectionColor && _cachedSubviewColorsMap.size()) {
+        _cachedSubviewColorsMap.clear();
     }
 }
 
 - (void)_setSubviewsColorWithHighlighted:(BOOL)highlighted {
-    if (!highlighted && _cachedSubviewColorsMap->size() == 0) {
+    if (!highlighted && _cachedSubviewColorsMap.size() == 0) {
         return;
     }
-    _setSubviewsHighlightedAndCachedColorIfNeeded(self.subviews, highlighted, _cachedSubviewColorsMap);
+    _setSubviewsHighlightedAndCachedColorIfNeeded(self.subviews, highlighted, &_cachedSubviewColorsMap);
 }
 
 static bool
@@ -186,22 +227,18 @@ _UIColorEqualToClearColor(UIColor *color) {
 static void
 _setSubviewsHighlightedAndCachedColorIfNeeded(NSArray *subviews, bool highlighted, std::map<NSUInteger, UIColor *> *cacheColorsMap) {
     for (id subview in subviews) {
+        if ([subview respondsToSelector:@selector(setHighlighted:)]) {
+            [subview setHighlighted:highlighted];
+        }
         if (highlighted) {
             cacheColorsMap->insert(std::pair<NSUInteger, UIColor *>((NSUInteger)subview, [subview backgroundColor]));
             [subview setBackgroundColor:[UIColor clearColor]];
         } else {
-            UIColor *cacheColor = cacheColorsMap->at((NSUInteger)subview);
-            if (cacheColor) {
-                if (_UIColorEqualToClearColor([subview backgroundColor])) { // clearColor
-                    [subview setBackgroundColor:cacheColor];
-                }
+            std::map<NSUInteger, UIColor *>::iterator iter = cacheColorsMap->find((NSUInteger)subview);
+            if (iter != cacheColorsMap->end() && _UIColorEqualToClearColor([subview backgroundColor])) {
+                [subview setBackgroundColor:iter->second];
             }
         }
-        
-        if ([subview respondsToSelector:@selector(setHighlighted:)] && ![subview isKindOfClass:[UIButton class]]) {
-            [subview setHighlighted:highlighted];
-        }
-        
         _setSubviewsHighlightedAndCachedColorIfNeeded([subview subviews], highlighted, cacheColorsMap);
     }
 }

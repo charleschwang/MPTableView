@@ -215,13 +215,13 @@ public:
 
 @implementation MPTableViewUpdateManager {
     NSMutableIndexSet *_existingUpdatePartsIndexs;
-    map<NSInteger, MPTableViewSectionIndex> *_moveOutSectionsMap;    
+    map<NSInteger, MPTableViewSectionIndex> _moveOutSectionsMap;
 }
 
 - (instancetype)init {
     if (self = [super init]) {
         _existingUpdatePartsIndexs = [NSMutableIndexSet indexSet];
-        _moveOutSectionsMap = new map<NSInteger, MPTableViewSectionIndex>();
+        _moveOutSectionsMap = map<NSInteger, MPTableViewSectionIndex>();
     }
     return self;
 }
@@ -242,7 +242,7 @@ public:
 
 - (void)resetManager {
     _updateVec->clear();
-    _moveOutSectionsMap->clear();
+    _moveOutSectionsMap.clear();
     [_existingUpdatePartsIndexs removeAllIndexes];
     [_existingIndexs removeAllIndexes];
     _differ = 0;
@@ -254,7 +254,7 @@ public:
     [_existingUpdatePartsIndexs removeAllIndexes];
     _existingUpdatePartsIndexs = nil;
     
-    delete _moveOutSectionsMap;
+    _moveOutSectionsMap.clear();
 }
 
 - (BOOL)addMoveOutSection:(NSUInteger)section {
@@ -293,7 +293,7 @@ public:
     MPTableViewSectionIndex sectionIndex = MPTableViewSectionIndex();
     sectionIndex.section = _sections[originSection];
     sectionIndex.originIndex = originSection;
-    _moveOutSectionsMap->insert(pair<NSInteger, MPTableViewSectionIndex>(section, sectionIndex));
+    _moveOutSectionsMap.insert(pair<NSInteger, MPTableViewSectionIndex>(section, sectionIndex));
     return YES;
 }
 
@@ -476,7 +476,7 @@ public:
             if (node.updateType == MPTableViewUpdateInsert) {
                 insertSection = [self.delegate updateMakeSectionAt:node.index];
             } else {
-                insertSection = (_moveOutSectionsMap->at(node.index)).section;
+                insertSection = (_moveOutSectionsMap.at(node.index)).section;
                 insertSection.section = node.index;
             }
             CGFloat currBeginPos;
@@ -491,7 +491,7 @@ public:
             [_sections insertObject:insertSection atIndex:node.index];
             offset += insertSection.endPos - insertSection.beginPos;
             if (node.updateType == MPTableViewUpdateMoveIn) {
-                MPTableViewSectionIndex sectionIndex = _moveOutSectionsMap->at(node.index);
+                MPTableViewSectionIndex sectionIndex = _moveOutSectionsMap.at(node.index);
                 for (NSInteger k = 0; k < insertSection.numberOfRows; k++) {
                     [self.delegate updateSection:node.index moveInCellAtIndex:k withOriginIndexPath:[MPIndexPath indexPathForRow:k inSection:sectionIndex.originIndex]];
                 }
@@ -584,18 +584,18 @@ public:
 
 @implementation MPTableViewUpdatePart {
     @package
-    map<NSUInteger, MPTableViewHeightIndexPath> *_moveOutHeightsMap;
+    map<NSUInteger, MPTableViewHeightIndexPath> _moveOutHeightsMap;
 }
 
 - (instancetype)init {
     if (self = [super init]) {
-        _moveOutHeightsMap = new map<NSUInteger, MPTableViewHeightIndexPath>();
+        _moveOutHeightsMap = map<NSUInteger, MPTableViewHeightIndexPath>();
     }
     return self;
 }
 
 - (void)dealloc {
-    delete _moveOutHeightsMap;
+    _moveOutHeightsMap.clear();
 }
 
 + (MPTableViewUpdatePart *)partWithIndexCount:(NSInteger)indexCount {
@@ -636,7 +636,7 @@ public:
     MPTableViewHeightIndexPath indexPathHeight = MPTableViewHeightIndexPath();
     indexPathHeight.indexPath = originIndexPath;
     indexPathHeight.height = height;
-    _moveOutHeightsMap->insert(pair<NSUInteger, MPTableViewHeightIndexPath>(row, indexPathHeight));
+    _moveOutHeightsMap.insert(pair<NSUInteger, MPTableViewHeightIndexPath>(row, indexPathHeight));
     return YES;
 }
 
@@ -830,12 +830,12 @@ public:
             if (node.updateType == MPTableViewUpdateInsert) {
                 cellHeight = [updateDelegate updateSection:newSection cellHeightAtIndex:node.index];
             } else {
-                cellHeight = (part->_moveOutHeightsMap->at(node.index)).height;
+                cellHeight = (part->_moveOutHeightsMap.at(node.index)).height;
             }
             [self insertRowAt:node.index withHeight:cellHeight];
             offset += cellHeight;
             if (node.updateType == MPTableViewUpdateMoveIn) {
-                [updateDelegate updateSection:newSection moveInCellAtIndex:node.index withOriginIndexPath:(part->_moveOutHeightsMap->at(node.index)).indexPath];
+                [updateDelegate updateSection:newSection moveInCellAtIndex:node.index withOriginIndexPath:(part->_moveOutHeightsMap.at(node.index)).indexPath];
             } else {
                 if (callback) {
                     [updateDelegate updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil];

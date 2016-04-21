@@ -18,7 +18,7 @@
         _reserved = 0;
         _reservedStep = 1;
         _length = 0;
-        _semaphore_lock = dispatch_semaphore_create(0);
+        _semaphore_lock = dispatch_semaphore_create(1);
     }
     return self;
 }
@@ -83,7 +83,8 @@
 }
 
 - (id)copyWithZone:(NSZone *)zone {
-    MPIndexPath *copyObj = [[self class]allocWithZone:zone];
+    MPIndexPath *copyObj = [[self class] allocWithZone:zone];
+    copyObj->_semaphore_lock = dispatch_semaphore_create(1);
     copyObj->_indexes = (NSInteger *)malloc(sizeof(NSInteger) * (_length + _reserved));
     memcpy(copyObj->_indexes, _indexes, _length + _reserved * sizeof(NSInteger));
     copyObj->_reserved = _reserved;

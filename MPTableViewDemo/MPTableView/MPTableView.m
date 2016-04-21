@@ -14,11 +14,11 @@ static NSRange
 MPSubtractionRange(NSRange subtrahend, NSRange minuend) {
     if (subtrahend.length == minuend.length) {
         return NSMakeRange(0, 0);
-    }
-    if (minuend.length == 0) {
+    } else if (minuend.length == 0) {
         return subtrahend;
+    } else {
+        return NSMakeRange((subtrahend.location == minuend.location) ? NSMaxRange(minuend) - 1: subtrahend.location, subtrahend.length - minuend.length + 1);
     }
-    return NSMakeRange((subtrahend.location == minuend.location) ? NSMaxRange(minuend) - 1: subtrahend.location, subtrahend.length - minuend.length + 1);
 }
 
 NS_INLINE BOOL
@@ -233,8 +233,6 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
 #pragma mark -
 NSString *const MPTableViewSelectionDidChangeNotification = @"MPTableViewSelectionDidChangeNotification";
 
-const CGFloat MPTableViewDefaultSectionHeaderHeight = 30.;
-const CGFloat MPTableViewDefaultSectionFooterHeight = 30.;
 const CGFloat MPTableViewRowAnimationDuration = 0.3;
 
 #define _ReloadDataAsync_Exception_Value -7883507
@@ -257,8 +255,8 @@ const CGFloat MPTableViewRowAnimationDuration = 0.3;
     
     BOOL _layoutSubviewsLock;
     
+    BOOL _needPrepareCheck;
     NSInteger _currSuspendHeaderSection, _currSuspendFooterSection; //
-    NSInteger _currPrepareHeaderSection, _currPrepareFooterSection;
     
     NSUInteger _numberOfSections;
     NSMutableDictionary *_displayedCellsDic, *_displayedSectionViewsDic; //
@@ -275,7 +273,6 @@ const CGFloat MPTableViewRowAnimationDuration = 0.3;
     NSMutableDictionary *_insertCellsDic;
     NSMutableDictionary *_insertSectionViewsDic;
     NSInteger _lastSuspendHeaderSection, _lastSuspendFooterSection;
-    NSInteger _lastPrepareHeaderSection, _lastPrepareFooterSection;
     
     NSMutableArray *_deleteViewsList;
     NSMutableDictionary *_moveOutViewsDic;
@@ -318,9 +315,6 @@ const CGFloat MPTableViewRowAnimationDuration = 0.3;
 }
 @dynamic delegate, dataSource;
 
-#define MPTableViewContentOffsetBegin (self.contentOffset.y - _contentDrawArea.beginPos)
-#define MPTableViewContentOffsetEnd (self.contentOffset.y + self.frame.size.height - _contentDrawArea.beginPos)
-
 #define MPTableViewContentBegin (_currDrawArea.beginPos + _contentDrawArea.beginPos)
 #define MPTableViewContentEnd (_currDrawArea.endPos + _contentDrawArea.beginPos)
 
@@ -353,15 +347,15 @@ const CGFloat MPTableViewRowAnimationDuration = 0.3;
     
     [self _lockLayoutSubviews];
     [self addSubview:_contentWrapperView = [UIView new]];
-    _contentWrapperView.autoresizesSubviews = NO; // @required
+    [self sendSubviewToBack:_contentWrapperView];
+    _contentWrapperView.autoresizesSubviews = NO; // @optional
     
     _numberOfSections = 1;
     
-    _rowHeight = MPTableViewCellDefaultCellHeight;
-    _sectionHeaderHeight = MPTableViewDefaultSectionHeaderHeight;
-    _sectionFooterHeight = MPTableViewDefaultSectionFooterHeight;
+    _rowHeight = MPTableViewDefaultCellHeight;
+    _sectionHeaderHeight = 35.;
+    _sectionFooterHeight = 35.;
     
-    _contentInsetBottom = _contentInsetTop = 0;
     _allowsSelection = YES;
     
     [self _resetContentIndexPaths];
@@ -525,20 +519,20 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)setRowHeight:(CGFloat)rowHeight {
-    if (!_respond_heightForIndexPath && rowHeight > 0) {
-        _rowHeight = rowHeight;
+    if (!_respond_heightForIndexPath && rowHeight >= 0) {
+        _rowHeight = (rowHeight);
     }
 }
 
 - (void)setSectionHeaderHeight:(CGFloat)sectionHeaderHeight {
-    if (!_respond_heightForHeaderInSection && sectionHeaderHeight > 0) {
-        _sectionHeaderHeight = sectionHeaderHeight;
+    if (!_respond_heightForHeaderInSection && sectionHeaderHeight >= 0) {
+        _sectionHeaderHeight = (sectionHeaderHeight);
     }
 }
 
 - (void)setSectionFooterHeight:(CGFloat)sectionFooterHeight {
-    if (!_respond_heightForFooterInSection && sectionFooterHeight > 0) {
-        _sectionFooterHeight = sectionFooterHeight;
+    if (!_respond_heightForFooterInSection && sectionFooterHeight >= 0) {
+        _sectionFooterHeight = (sectionFooterHeight);
     }
 }
 
@@ -553,14 +547,14 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     tableHeaderView.frame = frame;
     [self addSubview:_tableHeaderView = tableHeaderView];
     
-    if (_contentDrawArea.beginPos == tableHeaderView.frame.size.height) {
+    if (_contentDrawArea.beginPos == frame.size.height) {
         return;
     }
     CGFloat contentHeight = _contentDrawArea.endPos - _contentDrawArea.beginPos;
-    _contentDrawArea.beginPos = tableHeaderView.frame.size.height;
+    _contentDrawArea.beginPos = frame.size.height;
     _contentDrawArea.endPos = _contentDrawArea.beginPos + contentHeight;
     
-    [self _setContentAreaHeight:_contentDrawArea.endPos + self.tableFooterView.frame.size.height];
+    [self _setContentAreaHeight:_contentDrawArea.endPos + (self.tableFooterView.frame.size.height)];
     if (contentHeight > 0) {
         [self _resetContentIndexPaths];
         [self _cacheDisplayingCells];
@@ -580,7 +574,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     frame.size.width = self.frame.size.width;
     tableFooterView.frame = frame;
     [self addSubview:_tableFooterView = tableFooterView];
-    [self _setContentAreaHeight:_contentDrawArea.endPos + self.tableFooterView.frame.size.height];
+    [self _setContentAreaHeight:_contentDrawArea.endPos + frame.size.height];
 }
 
 - (void)setBackgroundView:(UIView *)backgroundView {
@@ -589,22 +583,12 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     frame.size = self.contentSize;
     backgroundView.frame = frame;
     
-    [self addSubview:_backgroundView = backgroundView];
-    [self sendSubviewToBack:_backgroundView];
+    [self insertSubview:_backgroundView = backgroundView belowSubview:_contentWrapperView];
 }
 
-- (void)setContentInsetTop:(CGFloat)contentInsetTop {
-    if (contentInsetTop < 0) {
-        contentInsetTop = 0;
-    }
-    _contentInsetTop = contentInsetTop;
-}
-
-- (void)setContentInsetBottom:(CGFloat)contentInsetBottom {
-    if (contentInsetBottom < 0) {
-        contentInsetBottom = 0;
-    }
-    _contentInsetBottom = contentInsetBottom;
+- (void)setContentInset:(UIEdgeInsets)contentInset {
+    _needPrepareCheck = self.style == MPTableViewStylePlain && (contentInset.top != 0 || contentInset.bottom != 0);
+    [super setContentInset:contentInset];
 }
 
 - (MPTableViewCell *)cellForRowAtIndexPath:(MPIndexPath *)indexPath {
@@ -630,7 +614,11 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (NSArray *)indexPathsForVisibleRows {
-    return _displayedCellsDic.allKeys;
+    NSMutableArray *indexPaths = [NSMutableArray array];
+    for (MPIndexPath *indexPath in _displayedCellsDic.allKeys) {
+        [indexPaths addObject:[indexPath copy]];
+    }
+    return indexPaths;
 }
 
 - (MPIndexPath *)beginIndexPath {
@@ -716,7 +704,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     if (point.y < _contentDrawArea.beginPos || point.y > _contentDrawArea.endPos) {
         return nil;
     } else {
-        MPIndexPath *indexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:point.y]];
+        MPIndexPath *indexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:(point.y)]];
         if (indexPath.row == MPSectionTypeHeader || indexPath.row == MPSectionTypeFooter) {
             return nil;
         } else {
@@ -737,7 +725,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     CGFloat _contentOffsetY = 0;
     switch (scrollPosition) {
         case MPTableViewScrollPositionTop: {
-            _contentOffsetY = [section rowPositionBeginAt:indexPath.row] - self.contentInsetTop;
+            _contentOffsetY = [section rowPositionBeginAt:indexPath.row] - self.contentInset.top;
             if (_respond_viewForHeaderInSection && self.style == MPTableViewStylePlain) {
                 _contentOffsetY -= section.headerHeight;
             }
@@ -750,7 +738,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         }
             break;
         case MPTableViewScrollPositionBottom: {
-            _contentOffsetY = [section rowPositionEndAt:indexPath.row] - self.frame.size.height + self.contentInsetBottom;
+            _contentOffsetY = [section rowPositionEndAt:indexPath.row] - self.frame.size.height + self.contentInset.bottom;
             if (_respond_viewForFooterInSection && self.style == MPTableViewStylePlain) {
                 _contentOffsetY += section.footerHeight;
             }
@@ -783,13 +771,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     [self scrollToRowAtIndexPath:indexPath atScrollPosition:scrollPosition animated:animated];
     MPTableViewCell *cell = [_displayedCellsDic objectForKey:indexPath];
     if (_respond_willSelectCellAtIndexPath) {
-        [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:indexPath];
+        [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:[indexPath copy]];
     }
     if (cell) {
         [cell setSelected:YES];
     }
     if (_respond_didSelectCellAtIndexPath) {
-        [_mpDelegate MPTableView:self didSelectCell:cell atIndexPath:indexPath];
+        [_mpDelegate MPTableView:self didSelectCell:cell atIndexPath:[indexPath copy]];
     }
 }
 
@@ -812,13 +800,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
     MPTableViewCell *selectedCell = [_displayedCellsDic objectForKey:indexPath];
     if (_respond_willDeselectRowAtIndexPath) {
-        [_mpDelegate MPTableView:self willDeselectRowAtIndexPath:indexPath];
+        [_mpDelegate MPTableView:self willDeselectRowAtIndexPath:[indexPath copy]];
     }
     if (selectedCell) {
         [selectedCell setSelected:NO animated:animated];
     }
     if (_respond_didDeselectRowAtIndexPath) {
-        [_mpDelegate MPTableView:self didDeselectRowAtIndexPath:indexPath];
+        [_mpDelegate MPTableView:self didDeselectRowAtIndexPath:[indexPath copy]];
     }
     [_selectedIndexPaths removeObject:indexPath];
 }
@@ -1080,14 +1068,11 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (void)_startUpdateAnimation {
     _lastSuspendFooterSection = _lastSuspendHeaderSection = NSNotFound;
-    _lastPrepareHeaderSection = _lastPrepareFooterSection = NSNotFound;
     
     NSAssert([_updateManager formatNodesStable], @"updating error");
     
     self.userInteractionEnabled = NO;
     [self _lockLayoutSubviews];
-    
-    _currDrawArea.endPos = MPTableViewContentOffsetEnd; // _currDrawArea use to be clipping unnecessary animated views, so make it as big as possible
     
     CGFloat offset = [_updateManager startUpdate];
     
@@ -1119,13 +1104,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     
     MPTableViewSection *lastSection = _sectionsAreaList.lastObject;
     _contentDrawArea.endPos = lastSection.endPos + _contentDrawArea.beginPos;/* _footerView may be nil */
-    if (_currDrawArea.beginPos > _contentDrawArea.endPos - _contentDrawArea.beginPos) {
-        _currDrawArea.beginPos = _contentDrawArea.endPos - _contentDrawArea.beginPos;
-    }
-    if (_currDrawArea.endPos > _contentDrawArea.endPos - _contentDrawArea.beginPos) {
-        _currDrawArea.endPos = _contentDrawArea.endPos - _contentDrawArea.beginPos;
-    }
-    [self _setContentAreaHeight:_contentDrawArea.endPos + self.tableFooterView.frame.size.height];
+
+    [self _setContentAreaHeight:_contentDrawArea.endPos + (self.tableFooterView.frame.size.height)];
     
     if (self.numberOfSections <= 0) {
         _beginIndexPath = indexPathStruct(NSIntegerMax, MPSectionTypeFooter);
@@ -1205,10 +1185,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 - (CGFloat)updateSection:(NSInteger)section cellHeightAtIndex:(NSInteger)index {
     CGFloat cellHeight;
     if (_respond_heightForIndexPath) {
-        cellHeight = [self.dataSource MPTableView:self heightForIndexPath:[MPIndexPath indexPathForRow:index inSection:section]];
-        NSAssert(cellHeight > 0, @"cell height");
+        cellHeight = ([self.dataSource MPTableView:self heightForIndexPath:[MPIndexPath indexPathForRow:index inSection:section]]);
+        NSAssert(cellHeight >= 0, @"cell height");
     } else {
-        cellHeight = MPTableViewCellDefaultCellHeight;
+        cellHeight = MPTableViewDefaultCellHeight;
     }
     return cellHeight;
 }
@@ -1413,7 +1393,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (BOOL)_needSuspendingSection:(MPTableViewSection *)section withType:(MPSectionType)type {
     if (type == MPSectionTypeHeader) {
-        if (section.beginPos <= _currDrawArea.beginPos + self.contentInsetTop && section.endPos >= _currDrawArea.beginPos + self.contentInsetTop) {
+        CGFloat beginPos = _currDrawArea.beginPos + self.contentInset.top;
+        if (section.beginPos <= beginPos && section.endPos >= beginPos) {
             if (_lastSuspendHeaderSection == NSNotFound) {
                 _lastSuspendHeaderSection = _currSuspendHeaderSection;
             }
@@ -1423,7 +1404,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             return NO;
         }
     } else {
-        if (section.beginPos <= _currDrawArea.endPos - self.contentInsetBottom && section.endPos >= _currDrawArea.endPos - self.contentInsetBottom) {
+        if (section.beginPos <= _currDrawArea.endPos - self.contentInset.bottom && section.endPos >= _currDrawArea.endPos - self.contentInset.bottom) {
             if (_lastSuspendFooterSection == NSNotFound) {
                 _lastSuspendFooterSection = _currSuspendFooterSection;
             }
@@ -1434,8 +1415,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         }
     }
 }
-
-- (void)_updateResetSectionView:(UIView *)sectionView withType:(MPSectionType)type inSection:(MPTableViewSection *)section {
+// ...
+- (void)_updateOptimizeSectionView:(UIView *)sectionView withType:(MPSectionType)type inSection:(MPTableViewSection *)section {
     CGFloat originY;
     if (type == MPSectionTypeHeader) {
         if (section.beginPos < _currDrawArea.beginPos) {
@@ -1468,18 +1449,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 _lastSuspendHeaderSection = index;
                 _currSuspendHeaderSection = NSNotFound;
             }
-            if (_lastPrepareHeaderSection == NSNotFound && _currPrepareHeaderSection == index) {
-                _lastPrepareHeaderSection = index;
-                _currPrepareHeaderSection = NSNotFound;
-            }
         } else {
             if (_lastSuspendFooterSection == NSNotFound && _currSuspendFooterSection == index) {
                 _lastSuspendFooterSection = index;
                 _currSuspendFooterSection = NSNotFound;
-            }
-            if (_lastPrepareFooterSection == NSNotFound && _currPrepareFooterSection) {
-                _lastPrepareFooterSection = index;
-                _currPrepareFooterSection = NSNotFound;
             }
         }
     }
@@ -1531,21 +1504,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else if ([self _needPrepareSuspendViewAt:insertSection withType:type]) {
             isPrepareSuspending = YES;
             isDisplayingDefault = NO;
-            if (type == MPSectionTypeHeader) {
-                if (isPrepareSuspending) {
-                    if (_lastPrepareHeaderSection == NSNotFound) {
-                        _lastPrepareHeaderSection = _currPrepareHeaderSection;
-                    }
-                    _currPrepareHeaderSection = index;
-                }
-            } else {
-                if (isPrepareSuspending) {
-                    if (_lastSuspendFooterSection == NSNotFound) {
-                        _lastSuspendFooterSection = _currPrepareFooterSection;
-                    }
-                    _currPrepareFooterSection = index;
-                }
-            }
         }
     }
     
@@ -1603,18 +1561,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 _lastSuspendHeaderSection = index;
                 _currSuspendHeaderSection = NSNotFound;
             }
-            if (_lastPrepareHeaderSection == NSNotFound && _currPrepareHeaderSection == index) {
-                _lastPrepareHeaderSection = index;
-                _currPrepareHeaderSection = NSNotFound;
-            }
         } else {
             if (_lastSuspendFooterSection == NSNotFound && _currSuspendFooterSection == index) {
                 _lastSuspendFooterSection = index;
                 _currSuspendFooterSection = NSNotFound;
-            }
-            if (_lastPrepareFooterSection == NSNotFound && _currPrepareFooterSection == index) {
-                _lastPrepareFooterSection = index;
-                _currPrepareFooterSection = NSNotFound;
             }
         }
     }
@@ -1647,21 +1597,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else if ([self _needPrepareSuspendViewAt:section withType:type]) {
             isPrepareSuspending = YES;
             isDisplayingDefault = NO;
-            if (type == MPSectionTypeHeader) {
-                if (isPrepareSuspending) {
-                    if (_lastPrepareHeaderSection == NSNotFound) {
-                        _lastPrepareHeaderSection = _currPrepareHeaderSection;
-                    }
-                    _currPrepareHeaderSection = index;
-                }
-            } else {
-                if (isPrepareSuspending) {
-                    if (_lastSuspendFooterSection == NSNotFound) {
-                        _lastSuspendFooterSection = _currPrepareFooterSection;
-                    }
-                    _currPrepareFooterSection = index;
-                }
-            }
         }
     }
     
@@ -1751,33 +1686,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         }
         if ([self _needPrepareSuspendViewAt:section withType:type]) {
             isPrepareSuspending = YES;
-            if (type == MPSectionTypeHeader) {
-                if (isPrepareSuspending) {
-                    if (_lastPrepareHeaderSection == NSNotFound) {
-                        _lastPrepareHeaderSection = _currPrepareHeaderSection;
-                    }
-                    _currPrepareHeaderSection = currIndex;
-                }
-            } else {
-                if (isPrepareSuspending) {
-                    if (_lastSuspendFooterSection == NSNotFound) {
-                        _lastSuspendFooterSection = _currPrepareFooterSection;
-                    }
-                    _currPrepareFooterSection = currIndex;
-                }
-            }
-        } else {
-            if (type == MPSectionTypeHeader) {
-                if (_lastPrepareHeaderSection == NSNotFound && _currPrepareHeaderSection == originIndex) {
-                    _lastPrepareHeaderSection = originIndex;
-                    _currPrepareHeaderSection = NSNotFound;
-                }
-            } else {
-                if (_lastPrepareFooterSection == NSNotFound && _currPrepareFooterSection == originIndex) {
-                    _lastPrepareFooterSection = _currPrepareFooterSection;
-                    _currPrepareFooterSection = NSNotFound;
-                }
-            }
         }
     }
     CGFloat originY;
@@ -1868,7 +1776,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (void)_resetContentIndexPaths {
     _currSuspendFooterSection = _currSuspendHeaderSection = NSNotFound;
-    _currPrepareHeaderSection = _currPrepareFooterSection = NSNotFound;
     
     _beginIndexPath = indexPathStruct(NSIntegerMax, MPSectionTypeFooter);
     _endIndexPath = indexPathStruct(NSIntegerMin, MPSectionTypeHeader);
@@ -2050,7 +1957,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 - (void)_setVerticalContentHeight:(CGFloat)step {
     CGFloat contentSizeHeight = 0;
     if (self.tableHeaderView) {
-        contentSizeHeight = _contentDrawArea.beginPos = self.tableHeaderView.frame.size.height;
+        contentSizeHeight = _contentDrawArea.beginPos = (self.tableHeaderView.frame.size.height);
     }
     contentSizeHeight = _contentDrawArea.endPos = _contentDrawArea.beginPos + step;
     if (self.tableFooterView) {
@@ -2087,19 +1994,14 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)_getDisplayingArea {
-    _currDrawArea.beginPos = MPTableViewContentOffsetBegin;
-    _currDrawArea.endPos = MPTableViewContentOffsetEnd;
-    if (_currDrawArea.endPos > _contentDrawArea.endPos - _contentDrawArea.beginPos) {
-        _currDrawArea.endPos = _contentDrawArea.endPos - _contentDrawArea.beginPos;
-    }
-    if (_currDrawArea.beginPos < 0) {
-        _currDrawArea.beginPos = 0;
-    }
+    _currDrawArea.beginPos = self.contentOffset.y - _contentDrawArea.beginPos;
+    _currDrawArea.endPos = self.contentOffset.y + self.frame.size.height - _contentDrawArea.beginPos;
 }
 
 - (NSInteger)_sectionIndexAtContentOffset:(CGFloat)target {
+    NSInteger __count = _sectionsAreaList.count;
     NSInteger __start = 0;
-    NSInteger __end = _sectionsAreaList.count - 1;
+    NSInteger __end = __count - 1;
     NSInteger __middle = 0;
     while (__start <= __end) {
         __middle = (__start + __end) / 2;
@@ -2112,10 +2014,16 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             return __middle;
         }
     }
-    return 0;
+    return __count - 1; // floating-point precision, target > _sectionsAreaList.lastObject.endPos
 }
 
 - (MPIndexPathStruct)_indexPathAtContentOffset:(CGFloat)target {
+    if (target > _contentDrawArea.endPos - _contentDrawArea.beginPos) {
+        target = _contentDrawArea.endPos - _contentDrawArea.beginPos;
+    }
+    if (target < 0) {
+        target = 0;
+    }
     NSInteger sectionIndex = [self _sectionIndexAtContentOffset:target];
     MPTableViewSection *section = _sectionsAreaList[sectionIndex];
     NSInteger row = [section rowAtContentOffset:target];
@@ -2132,7 +2040,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 - (void)_addSectionViewToWrapperViewIfNeeded:(MPTableReusableView *)sectionView {
     [sectionView prepareForDisplaying];
     if (![sectionView superview] || sectionView.superview != _contentWrapperView) {
-        [self addSubview:sectionView];
+        [self insertSubview:sectionView aboveSubview:_contentWrapperView];
     }
 }
 
@@ -2167,23 +2075,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-- (BOOL)_sectionPrepareOrSuspendAtIndexPath:(MPIndexPath *)indexPath {
-    if (self.style == MPTableViewStylePlain) {
-        if (indexPath.row == MPSectionTypeHeader) {
-            if (indexPath.section == _currPrepareHeaderSection || indexPath.section == _currSuspendHeaderSection) {
-                return YES;
-            }
-        } else {
-            if (indexPath.section == _currPrepareFooterSection || indexPath.section == _currSuspendFooterSection) {
-                return YES;
-            }
-        }
-        return NO;
-    } else {
-        return NO;
-    }
-}
-
 - (void)_cacheSectionView:(MPTableReusableView *)sectionView {
     if (sectionView.identifier) {
         NSMutableSet *queue = [_reusableReusableViewsDic objectForKey:sectionView.identifier];
@@ -2198,10 +2089,24 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
+- (BOOL)_isSuspendingAtIndexPath:(MPIndexPath *)indexPath {
+    if (indexPath.row == MPSectionTypeHeader) {
+        return indexPath.section == _currSuspendHeaderSection;
+    } else {
+        return indexPath.section == _currSuspendFooterSection;
+    }
+}
+
 - (void)_clipSectionViewsBetween:(MPIndexPathStruct)beginIndexPathStruct and:(MPIndexPathStruct)endIndexPathStruct {
     NSArray *indexPaths = _displayedSectionViewsDic.allKeys;
     for (MPIndexPath *indexPath in indexPaths) {
-        if (([indexPath compareIndexPathAt:beginIndexPathStruct] == NSOrderedAscending || [indexPath compareIndexPathAt:endIndexPathStruct] == NSOrderedDescending) && ![self _sectionPrepareOrSuspendAtIndexPath:indexPath]) {
+        if ([self _isSuspendingAtIndexPath:indexPath]) {
+            continue;
+        }
+        if ([self _prepareSuspendViewIfNeededAtIndexPath:indexPath]) {
+            continue;
+        }
+        if ([indexPath compareIndexPathAt:beginIndexPathStruct] == NSOrderedAscending || [indexPath compareIndexPathAt:endIndexPathStruct] == NSOrderedDescending) {
             MPTableReusableView *sectionView = [_displayedSectionViewsDic objectForKey:indexPath];
             [self _cacheSectionView:sectionView];
             [_displayedSectionViewsDic removeObjectForKey:indexPath];
@@ -2216,21 +2121,19 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)_updateDisplayingArea {
-    if (_currDrawArea.beginPos >= _currDrawArea.endPos) {
+    if (_contentDrawArea.beginPos >= _contentDrawArea.endPos) {
         return;
     }
     [self _lockLayoutSubviews];
     MPIndexPathStruct beginIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
     MPIndexPathStruct endIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.endPos];
     if (self.style == MPTableViewStylePlain) {
-        [self _suspendSectionHeaderIfNeedAt:beginIndexPathStruct];
-        [self _suspendSectionFooterIfNeedAt:endIndexPathStruct];
+        [self _suspendSectionHeaderIfNeededAt:beginIndexPathStruct];
+        [self _suspendSectionFooterIfNeededAt:endIndexPathStruct];
     }
     if (!MPEqualIndexPaths(_beginIndexPath, beginIndexPathStruct) || !MPEqualIndexPaths(_endIndexPath, endIndexPathStruct)) {
         
         [self _clipCellsBetween:beginIndexPathStruct and:endIndexPathStruct];
-        
-        [self _clipSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
         
         for (NSInteger i = beginIndexPathStruct.section; i <= endIndexPathStruct.section; i++) {
             MPTableViewSection *section = _sectionsAreaList[i];
@@ -2249,8 +2152,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                     startCellIndex = beginIndexPathStruct.row;
                     needSectionHeader = NO;
                 }
-                if (self.style == MPTableViewStylePlain) {
-                    [self _makePrepareSuspendViewInSection:section withType:MPSectionTypeHeader];
+                if (beginIndexPathStruct.section != _currSuspendHeaderSection) {
+                    [self _makePrepareSuspendViewInSection:_sectionsAreaList[beginIndexPathStruct.section] withType:MPSectionTypeHeader];
                 }
             }
             
@@ -2265,18 +2168,16 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                     endCellIndex = endIndexPathStruct.row + 1;
                     needSectionFooter = NO;
                 }
-                if (self.style == MPTableViewStylePlain) {
-                    [self _makePrepareSuspendViewInSection:section withType:MPSectionTypeFooter];
+                if (endIndexPathStruct.section != _currSuspendFooterSection) {
+                    [self _makePrepareSuspendViewInSection:_sectionsAreaList[endIndexPathStruct.section] withType:MPSectionTypeFooter];
                 }
             }
-            
             if (needSectionHeader && section.headerHeight) {
                 [self _displayingSectionViewAtIndexPath:[MPIndexPath indexPathForRow:MPSectionTypeHeader inSection:i]];
             }
             if (needSectionFooter && section.footerHeight) {
                 [self _displayingSectionViewAtIndexPath:[MPIndexPath indexPathForRow:MPSectionTypeFooter inSection:i]];
             }
-            
             if (startCellIndex == NSNotFound || endCellIndex == NSNotFound || section.numberOfRows == 0) {
                 continue;
             }
@@ -2295,6 +2196,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 }
             }
         }
+        
+        [self _clipSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
+        
         _beginIndexPath = beginIndexPathStruct;
         _endIndexPath = endIndexPathStruct;
     }
@@ -2371,13 +2275,14 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)_displayingSectionViewAtIndexPath:(MPIndexPath *)indexPath {
+    MPTableReusableView *sectionView = nil;
     if (self.style == MPTableViewStylePlain) {
         if (![_displayedSectionViewsDic objectForKey:indexPath]) {
-            [self _drawSctionViewAtIndexPath:indexPath];
+            sectionView = [self _drawSctionViewAtIndexPath:indexPath];
         }
     } else {
         if ([indexPath compareIndexPathAt:_beginIndexPath] == NSOrderedAscending || [indexPath compareIndexPathAt:_endIndexPath] == NSOrderedDescending) {
-            [self _drawSctionViewAtIndexPath:indexPath];
+            sectionView = [self _drawSctionViewAtIndexPath:indexPath];
         }
     }
 }
@@ -2394,14 +2299,19 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (BOOL)_needPrepareSuspendViewAt:(MPTableViewSection *)section withType:(MPSectionType)type {
+    if (!_needPrepareCheck) {
+        return NO;
+    }
     if (type == MPSectionTypeHeader) {
-        if (self.contentInsetTop != 0 && section.beginPos <= _currDrawArea.beginPos && _currDrawArea.beginPos <= section.endPos - section.footerHeight) {
+        CGFloat beginPos = _currDrawArea.beginPos + self.contentInset.top;
+        if (self.contentInset.top != 0 && section.endPos <= beginPos && section.endPos - section.footerHeight >= _currDrawArea.beginPos) {
             return YES;
         } else {
             return NO;
         }
     } else {
-        if (self.contentInsetBottom != 0 && section.endPos >= _currDrawArea.endPos && _currDrawArea.endPos >= section.beginPos + section.headerHeight) {
+        CGFloat endPos = _currDrawArea.endPos - self.contentInset.bottom;
+        if (self.contentInset.bottom != 0 && section.beginPos >= endPos && section.beginPos + section.headerHeight <= _currDrawArea.endPos) {
             return YES;
         } else {
             return NO;
@@ -2417,58 +2327,45 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-- (void)_resetPrepareSuspendViewWithType:(MPSectionType)type {
-    if (type == MPSectionTypeHeader) {
-        if (_currPrepareHeaderSection != NSNotFound && _currPrepareHeaderSection != _currSuspendHeaderSection) {
-            UIView *prepareView = [_displayedSectionViewsDic objectForKey:[MPIndexPath indexPathForRow:MPSectionTypeHeader inSection:_currPrepareHeaderSection]];
-            if (prepareView) {
-                CGRect frame = prepareView.frame;
-                MPTableViewSection *section = _sectionsAreaList[_currPrepareHeaderSection];
+- (BOOL)_prepareSuspendViewIfNeededAtIndexPath:(MPIndexPath *)indexPath {
+    if (!_needPrepareCheck) {
+        return NO;
+    }
+    MPTableReusableView *prepareView = [_displayedSectionViewsDic objectForKey:indexPath];
+    MPTableViewSection *section = _sectionsAreaList[indexPath.section];
+    if ([self _needPrepareSuspendViewAt:section withType:indexPath.row]) {
+        CGRect frame = [self _prepareSuspendViewFrameAt:section withType:indexPath.row];
+        if (frame.origin.y != prepareView.frame.origin.y) {
+            prepareView.frame = frame;
+        }
+        return YES;
+    } else {
+        CGRect frame = prepareView.frame;
+        frame.origin.y -= _contentDrawArea.beginPos;
+        if (indexPath.row == MPSectionTypeHeader) {
+            if (frame.origin.y != section.beginPos) {
                 frame.origin.y = section.beginPos + _contentDrawArea.beginPos;
                 prepareView.frame = frame;
             }
-            _currPrepareHeaderSection = NSNotFound;
-        }
-    } else {
-        if (_currPrepareFooterSection != NSNotFound && _currPrepareFooterSection != _currSuspendFooterSection) {
-            UIView *prepareView = [_displayedSectionViewsDic objectForKey:[MPIndexPath indexPathForRow:MPSectionTypeFooter inSection:_currPrepareFooterSection]];
-            if (prepareView) {
-                CGRect frame = prepareView.frame;
-                MPTableViewSection *section = _sectionsAreaList[_currPrepareFooterSection];
-                frame.origin.y = section.endPos - section.footerHeight + _contentDrawArea.beginPos;
+        } else {
+            if (frame.origin.y != section.endPos - section.footerHeight) {
+                frame.origin.y = section.endPos + _contentDrawArea.beginPos;
                 prepareView.frame = frame;
             }
-            _currPrepareFooterSection = NSNotFound;
         }
+        return NO;
     }
 }
 
 - (void)_makePrepareSuspendViewInSection:(MPTableViewSection *)section withType:(MPSectionType)type {
-    if (![self _needPrepareSuspendViewAt:section withType:type]) {
-        [self _resetPrepareSuspendViewWithType:type];
+    if ([self _needPrepareSuspendViewAt:section withType:type] == NO) {
         return;
-    }
-    if (type == MPSectionTypeHeader) {
-        if (_currPrepareHeaderSection == section.section) {
-            return;
-        } else {
-            [self _resetPrepareSuspendViewWithType:MPSectionTypeHeader];
-            _currPrepareHeaderSection = section.section;
-        }
-    } else {
-        if (_currPrepareFooterSection == section.section) {
-            return;
-        } else {
-            [self _resetPrepareSuspendViewWithType:MPSectionTypeFooter];
-            _currPrepareFooterSection = section.section;
-        }
     }
     MPIndexPath *indexPath = [MPIndexPath indexPathForRow:type inSection:section.section];
     MPTableReusableView *prepareView = [_displayedSectionViewsDic objectForKey:indexPath];
-    if (prepareView) {
-        return;
+    if (!prepareView) {
+        prepareView = [self _getSectionViewFromDelegateAtIndexPath:indexPath];
     }
-    prepareView = [self _getSectionViewFromDelegateAtIndexPath:indexPath];
     if (prepareView) {
         prepareView.frame = [self _prepareSuspendViewFrameAt:section withType:type];
         [self _addSectionViewToWrapperViewIfNeeded:prepareView];
@@ -2476,26 +2373,36 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-- (void)_suspendSectionHeaderIfNeedAt:(MPIndexPathStruct) beginIndexPath {
+- (void)_suspendSectionHeaderIfNeededAt:(MPIndexPathStruct) beginIndexPath {
     MPTableViewSection *section;
-    if (self.contentInsetTop != 0) {
-        section = _sectionsAreaList[[self _sectionIndexAtContentOffset:_currDrawArea.beginPos + self.contentInsetTop]];
+    if (self.contentInset.top != 0) {
+        CGFloat target = _currDrawArea.beginPos + self.contentInset.top;
+        if (target > _contentDrawArea.endPos - _contentDrawArea.beginPos) {
+            target = _contentDrawArea.endPos - _contentDrawArea.beginPos;
+        }
+        if (target < 0) {
+            target = 0;
+        }
+        section = _sectionsAreaList[[self _sectionIndexAtContentOffset:target]];
     } else {
         section = _sectionsAreaList[beginIndexPath.section];
     }
     if (section.headerHeight) {
-        BOOL isResetPreSuspend = beginIndexPath.row != MPSectionTypeFooter;
-        if (self.contentInsetTop != 0) {
+        BOOL isResetPreSuspend;
+        if (self.contentInset.top != 0) {
             isResetPreSuspend = YES;
+        } else {
+            isResetPreSuspend = beginIndexPath.row != MPSectionTypeFooter;
         }
         if (_currSuspendHeaderSection != section.section && isResetPreSuspend) {
             beginIndexPath.row = MPSectionTypeHeader;
             MPIndexPath *indexPath = [MPIndexPath indexPathForRow:MPSectionTypeHeader inSection:_currSuspendHeaderSection];
+            _currSuspendHeaderSection = section.section;
             UIView *lastSuspendHeader = [_displayedSectionViewsDic objectForKey:indexPath];
             if (lastSuspendHeader) {
                 MPTableViewSection *lastSection = _sectionsAreaList[indexPath.section];
                 CGRect frame = lastSuspendHeader.frame;
-                if (self.contentInsetTop != 0 && lastSection.beginPos <= _currDrawArea.beginPos && lastSection.endPos >= _currDrawArea.beginPos) { // prepare suspending
+                if ([self _needPrepareSuspendViewAt:lastSection withType:MPSectionTypeHeader]) { // prepare suspending
                     frame.origin.y = lastSection.endPos - lastSection.footerHeight - lastSection.headerHeight;
                 } else {
                     frame.origin.y = lastSection.beginPos;
@@ -2503,7 +2410,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 frame.origin.y += _contentDrawArea.beginPos;
                 lastSuspendHeader.frame = frame;
             }
-            _currSuspendHeaderSection = section.section;
         } else if (_currSuspendHeaderSection != NSNotFound) {
             section = _sectionsAreaList[_currSuspendHeaderSection];
         } else {
@@ -2524,7 +2430,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 - (void)_suspendingSectionHeader:(UIView *)suspendHeader inArea:(MPTableViewSection *)section {
     if (suspendHeader) {
         CGRect frame = suspendHeader.frame;
-        frame.origin.y = MPTableViewContentOffsetBegin + self.contentInsetTop;
+        frame.origin.y = _currDrawArea.beginPos + self.contentInset.top;
         if (CGRectGetMaxY(frame) > section.endPos - section.footerHeight) {
             if (frame.origin.y != section.endPos - section.footerHeight - frame.size.height) {
                 frame.origin.y = section.endPos - section.footerHeight - frame.size.height;
@@ -2540,26 +2446,33 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-- (void)_suspendSectionFooterIfNeedAt:(MPIndexPathStruct) endIndexPath {
+- (void)_suspendSectionFooterIfNeededAt:(MPIndexPathStruct) endIndexPath {
     MPTableViewSection *section = _sectionsAreaList[endIndexPath.section];
-    if (self.contentInsetBottom != 0) {
-        section = _sectionsAreaList[[self _sectionIndexAtContentOffset:_currDrawArea.endPos - self.contentInsetBottom]];
+    if (self.contentInset.bottom != 0) {
+        CGFloat target = _currDrawArea.endPos - self.contentInset.bottom;
+        if (target > _contentDrawArea.endPos - _contentDrawArea.beginPos) {
+            target = _contentDrawArea.endPos - _contentDrawArea.beginPos;
+        }
+        section = _sectionsAreaList[[self _sectionIndexAtContentOffset:target]];
     } else {
         section = _sectionsAreaList[endIndexPath.section];
     }
     if (section.footerHeight) {
-        BOOL isResetPreSuspend = endIndexPath.row != MPSectionTypeHeader;
-        if (self.contentInsetBottom != 0) {
+        BOOL isResetPreSuspend;
+        if (self.contentInset.bottom != 0) {
             isResetPreSuspend = YES;
+        } else {
+            isResetPreSuspend = endIndexPath.row != MPSectionTypeHeader;
         }
         if (_currSuspendFooterSection != section.section && isResetPreSuspend) {
             endIndexPath.row = MPSectionTypeFooter;
             MPIndexPath *indexPath = [MPIndexPath indexPathForRow:MPSectionTypeFooter inSection:_currSuspendFooterSection];
+            _currSuspendFooterSection = section.section;
             UIView *lastSuspendFooter = [_displayedSectionViewsDic objectForKey:indexPath];
             if (lastSuspendFooter) {
                 MPTableViewSection *lastSection = _sectionsAreaList[indexPath.section];
                 CGRect frame = lastSuspendFooter.frame;
-                if (self.contentInsetBottom != 0 && lastSection.beginPos <= _currDrawArea.endPos && lastSection.endPos >= _currDrawArea.endPos) {
+                if ([self _needPrepareSuspendViewAt:lastSection withType:MPSectionTypeFooter]) {
                     frame.origin.y = lastSection.beginPos + lastSection.headerHeight;
                 } else {
                     frame.origin.y = lastSection.endPos - lastSection.footerHeight;
@@ -2567,7 +2480,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 frame.origin.y += _contentDrawArea.beginPos;
                 lastSuspendFooter.frame = frame;
             }
-            _currSuspendFooterSection = section.section;
         } else if (_currSuspendFooterSection != NSNotFound) {
             section = _sectionsAreaList[_currSuspendFooterSection];
         } else {
@@ -2588,7 +2500,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 - (void)_suspendingSectionFooter:(UIView *)suspendFooter inArea:(MPTableViewSection *)section {
     if (suspendFooter) {
         CGRect frame = suspendFooter.frame;
-        frame.origin.y = MPTableViewContentOffsetEnd - frame.size.height - self.contentInsetBottom;
+        frame.origin.y = _currDrawArea.endPos - frame.size.height - self.contentInset.bottom;
         if (frame.origin.y < section.beginPos + section.headerHeight) {
             if (frame.origin.y != section.beginPos + section.headerHeight) {
                 frame.origin.y = section.beginPos + section.headerHeight;
@@ -2616,21 +2528,26 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     [super touchesBegan:touches withEvent:event];
+    if ([self isDecelerating] || [self isDragging]) {
+        return;
+    }
     
     UITouch *touch = touches.anyObject;
     CGFloat touchPosition = [touch locationInView:self].y;
-    if (touchPosition >= _contentDrawArea.beginPos && touchPosition <= _contentDrawArea.endPos && _allowsSelection) {
+    if (_allowsSelection && touchPosition >= _contentDrawArea.beginPos && touchPosition <= _contentDrawArea.endPos) {
+        
         MPIndexPath *highlightedIndexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:touchPosition - _contentDrawArea.beginPos]];
-        if (![_selectedIndexPaths containsObject:highlightedIndexPath]) {
+        MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath = highlightedIndexPath];
+        if (![cell isHighlighted]) {
             if (_respond_shouldHighlightRowAtIndexPath) {
-                [_mpDelegate MPTableView:self shouldHighlightRowAtIndexPath:highlightedIndexPath];
+                [_mpDelegate MPTableView:self shouldHighlightRowAtIndexPath:[highlightedIndexPath copy]];
             }
-            MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath = highlightedIndexPath];
             [cell setHighlighted:YES];
-            if (_respond_didHighlightRowAtIndexPath) {
-                [_mpDelegate MPTableView:self didHighlightRowAtIndexPath:highlightedIndexPath];
-            }
         }
+        if (_respond_didHighlightRowAtIndexPath) {
+            [_mpDelegate MPTableView:self didHighlightRowAtIndexPath:[highlightedIndexPath copy]];
+        }
+        
         if (_allowsMultipleSelection) {
             _highlightedIndexPath = highlightedIndexPath;
         }
@@ -2650,22 +2567,18 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     [super touchesEnded:touches withEvent:event];
     
     if (_highlightedIndexPath && _allowsSelection) {
-        if ([_selectedIndexPaths containsObject:_highlightedIndexPath]) {
-            if (_allowsMultipleSelection) {
-                [self _deselectRowAtIndexPath:_highlightedIndexPath animated:NO];
-            }
+        MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath];
+        if (_allowsMultipleSelection && [_selectedIndexPaths containsObject:_highlightedIndexPath]) {
+            [self _deselectRowAtIndexPath:_highlightedIndexPath animated:NO];
         } else {
-            if (!_allowsMultipleSelection) {
+            if (!_allowsMultipleSelection && ![_selectedIndexPaths containsObject:_highlightedIndexPath]) {
                 [self _deselectRowAtIndexPath:_selectedIndexPaths.anyObject animated:NO];
             }
             [_selectedIndexPaths addObject:_highlightedIndexPath];
-            MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath];
             if (_respond_willSelectCellAtIndexPath) {
                 [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:[_highlightedIndexPath copy]];
             }
             [cell setSelected:YES];
-            [cell setHighlighted:NO];
-            _highlightedIndexPath = nil;
             if (_respond_didUnhighlightRowAtIndexPath) {
                 [_mpDelegate MPTableView:self didUnhighlightRowAtIndexPath:[_highlightedIndexPath copy]];
             }
@@ -2674,6 +2587,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
             [[NSNotificationCenter defaultCenter] postNotificationName:MPTableViewSelectionDidChangeNotification object:nil];
         }
+        [cell setHighlighted:NO];
+        _highlightedIndexPath = nil;
     }
 }
 

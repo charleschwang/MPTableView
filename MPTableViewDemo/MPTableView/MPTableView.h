@@ -97,9 +97,6 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationRandom = 100
 };
 
-UIKIT_EXTERN const CGFloat MPTableViewDefaultSectionHeaderHeight;
-UIKIT_EXTERN const CGFloat MPTableViewDefaultSectionFooterHeight;
-
 @interface MPTableView : UIScrollView
 
 - (instancetype)initWithFrame:(CGRect)frame style:(MPTableViewStyle)style NS_DESIGNATED_INITIALIZER;// must specify style at creation. -initWithFrame: calls this with UITableViewStylePlain
@@ -135,9 +132,6 @@ UIKIT_EXTERN const CGFloat MPTableViewDefaultSectionFooterHeight;
 
 - (NSArray *)indexPathsForVisibleRows;
 
-@property (nonatomic, assign) CGFloat contentInsetTop; // default is 0, usually is using navigationBar's height. In the UITableView, sectionView suspends by contentInset.top and cannot be customized
-@property (nonatomic, assign) CGFloat contentInsetBottom;
-
 @property (nonatomic, strong) UIView *tableHeaderView;
 @property (nonatomic, strong) UIView *tableFooterView;
 
@@ -164,7 +158,7 @@ UIKIT_EXTERN const CGFloat MPTableViewDefaultSectionFooterHeight;
 
 - (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated;
 
-@property(readonly, getter=isUpdating) BOOL updating; // animating
+- (BOOL)isUpdating; // animating
 
 - (void)beginUpdates; // allow multiple insert/delete of rows and sections to be animated simultaneously. Nestable
 - (void)endUpdates; // only call insert/delete/reload calls or sections inside an update block.  otherwise things like row count, etc. may be invalid.

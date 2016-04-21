@@ -29,9 +29,6 @@
     self.tableView = [[MPTableView alloc]initWithFrame:(CGRect){0, 0, self.view.frame.size.width, self.view.frame.size.height} style:MPTableViewStylePlain];
     [self.view addSubview:self.tableView];
     
-    self.tableView.contentInsetTop = self.navigationController.navigationBar.frame.size.height + [UIApplication sharedApplication].statusBarFrame.size.height;
-    self.tableView.contentInsetBottom = self.tabBarController.tabBar.frame.size.height;
-    
     [self.tableView registerClass:[MyDemoCell class] forCellReuseIdentifier:@"MyDemoCell"];
     [self.tableView registerNib:[UINib nibWithNibName:@"MySectionView" bundle:nil] forReusableViewReuseIdentifier:@"MySectionView"];
     
@@ -133,7 +130,7 @@
     CGSize labelSize = [@"Goliath online. Acknowledged HQ." boundingRectWithSize:CGSizeMake(tableView.frame.size.width, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
     labelSize = [@"Battlecruiser operational. Receiving transmission. Good day, commander." boundingRectWithSize:CGSizeMake(tableView.frame.size.width, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
     
-    return MPTableViewDefaultSectionHeaderHeight + (temp - 10);
+    return 35. + (temp - 10);
 }
 
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section {
@@ -142,10 +139,9 @@
     return sectionView;
 }
 
-// MPTableViewDefaultSectionFooterHeight
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForFooterInSection:(NSUInteger)section {
     MySectionView *sectionView = [tableView dequeueReusableViewWithIdentifier:@"MySectionView"];
-    sectionView.label_title.text = @"...end...";
+    sectionView.label_title.text = [NSString stringWithFormat:@"...end...%zd", section];
     return sectionView;
 }
 
@@ -155,7 +151,7 @@
 
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForIndexPath:(MPIndexPath *)indexPath {
     NSInteger temp = arc4random() % 20;
-    return MPTableViewDefaultSectionHeaderHeight + (temp - 10);
+    return MPTableViewDefaultCellHeight + (temp - 10);
 }
 
 - (MPTableViewCell *)MPTableView:(MPTableView *)tableView cellForRowAtIndexPath:(MPIndexPath *)indexPath {
