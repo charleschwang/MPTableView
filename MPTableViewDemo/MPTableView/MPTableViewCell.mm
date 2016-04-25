@@ -32,11 +32,17 @@ const CGFloat MPTableViewDefaultCellHeight = 44.;
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
+        self.identifier = [aDecoder decodeObjectForKey:@"_identifier"];
+        
         [super setAutoresizingMask:UIViewAutoresizingNone];
-        self.identifier = NSStringFromClass([self class]);
         self.clipsToBounds = YES;
     }
     return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)aCoder {
+    [aCoder encodeObject:_identifier forKey:@"_identifier"];
+    [super encodeWithCoder:aCoder];
 }
 
 - (void)setIdentifier:(NSString *)identifier {
@@ -116,6 +122,14 @@ _CGColorClearColor() {
         [self _initializeData];
     }
     return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)aCoder {
+    self.highlighted = self.selected = NO;
+    [self setSelectionColor:nil];
+    [_fadeAnimationLayer removeFromSuperlayer];
+    
+    [super encodeWithCoder:aCoder];
 }
 
 - (void)dealloc {

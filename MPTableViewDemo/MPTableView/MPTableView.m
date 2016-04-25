@@ -335,9 +335,28 @@ const CGFloat MPTableViewRowAnimationDuration = 0.3;
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
         _style = MPTableViewStylePlain;
+        _registerCellsNibDic = [aDecoder decodeObjectForKey:@"_registerCellsNibDic"];
+        _registerReusableViewsNibDic = [aDecoder decodeObjectForKey:@"_registerReusableViewsNibDic"];
         [self _initializeData];
     }
     return self;
+}
+
+- (void)encodeWithCoder:(NSCoder *)aCoder {
+    _enableCachesReload = NO;
+    [self _clear];
+    [_sectionsAreaList removeAllObjects];
+    
+    [_tableHeaderView removeFromSuperview];
+    [_tableFooterView removeFromSuperview];
+    [_contentWrapperView removeFromSuperview];
+    [_backgroundView removeFromSuperview];
+    [super setContentSize:CGSizeZero];
+    
+    [aCoder encodeObject:_registerCellsNibDic forKey:@"_registerCellsNibDic"];
+    [aCoder encodeObject:_registerReusableViewsNibDic forKey:@"_registerReusableViewsNibDic"];
+    
+    [super encodeWithCoder:aCoder];
 }
 
 - (void)_initializeData {
@@ -554,7 +573,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     _contentDrawArea.beginPos = frame.size.height;
     _contentDrawArea.endPos = _contentDrawArea.beginPos + contentHeight;
     
-    [self _setContentAreaHeight:_contentDrawArea.endPos + (self.tableFooterView.frame.size.height)];
+    [self setContentSize:CGSizeMake(self.frame.size.width, _contentDrawArea.endPos + self.tableFooterView.frame.size.height)];
     if (contentHeight > 0) {
         [self _resetContentIndexPaths];
         [self _cacheDisplayingCells];
@@ -574,7 +593,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     frame.size.width = self.frame.size.width;
     tableFooterView.frame = frame;
     [self addSubview:_tableFooterView = tableFooterView];
-    [self _setContentAreaHeight:_contentDrawArea.endPos + frame.size.height];
+    [self setContentSize:CGSizeMake(self.frame.size.width, _contentDrawArea.endPos + frame.size.height)];
 }
 
 - (void)setBackgroundView:(UIView *)backgroundView {
@@ -1105,7 +1124,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     MPTableViewSection *lastSection = _sectionsAreaList.lastObject;
     _contentDrawArea.endPos = lastSection.endPos + _contentDrawArea.beginPos;/* _footerView may be nil */
 
-    [self _setContentAreaHeight:_contentDrawArea.endPos + (self.tableFooterView.frame.size.height)];
+    [self setContentSize:CGSizeMake(self.frame.size.width, _contentDrawArea.endPos + self.tableFooterView.frame.size.height)];
     
     if (self.numberOfSections <= 0) {
         _beginIndexPath = indexPathStruct(NSIntegerMax, MPSectionTypeFooter);
@@ -1969,11 +1988,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         }
         self.tableFooterView.frame = frame;
     }
-    [self _setContentAreaHeight:contentSizeHeight];
-}
-
-- (void)_setContentAreaHeight:(CGFloat)height {
-    [self setContentSize:CGSizeMake(self.frame.size.width, height)];
+    [self setContentSize:CGSizeMake(self.frame.size.width, contentSizeHeight)];
 }
 
 #pragma mark -layoutSubviews
