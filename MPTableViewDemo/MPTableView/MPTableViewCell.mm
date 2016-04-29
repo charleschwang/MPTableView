@@ -257,28 +257,4 @@ _setSubviewsHighlightedAndCachedColorIfNeeded(NSArray *subviews, bool highlighte
     }
 }
 
-//static void
-//_setSubviewsHighlightedAndCachedColorIfNeeded(NSArray *subviews, bool highlighted, NSMutableDictionary *cacheColorsDic, MPIndexPath *indexPath) {
-//    NSUInteger _count = subviews.count;
-//    for (NSInteger i = 0; i < _count; i++) {
-//        id subview = subviews[i];
-//        
-//        MPIndexPath *newIndexPath = [indexPath copy];
-//        [newIndexPath addIndex:i];
-//        
-//        if (highlighted) {
-//            [cacheColorsDic setObject:[subview backgroundColor] forKey:newIndexPath];
-//            [subview setBackgroundColor:[UIColor clearColor]];
-//        } else {
-//            [subview setBackgroundColor:[cacheColorsDic objectForKey:newIndexPath]];
-//        }
-//        
-//        if ([subview respondsToSelector:@selector(setHighlighted:)] && ![subview isKindOfClass:[UIButton class]]) {
-//            [subview setHighlighted:highlighted];
-//        }
-//        
-//        _setSubviewsHighlightedAndCachedColorIfNeeded([subview subviews], highlighted, cacheColorsDic, indexPath);
-//    }
-//}
-
 @end

@@ -6,7 +6,8 @@
 //  Copyright (c) 2015年 PBA. All rights reserved.
 //
 
-#import "MPTableViewSupport.h"
+#import <UIKit/UIKit.h>
+#import "MPIndexPath.h"
 
 UIKIT_EXTERN const CGFloat MPTableViewDefaultCellHeight;
 

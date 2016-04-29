@@ -61,18 +61,17 @@ typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
 - (void)updateSection:(NSInteger)originSection deleteCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition;
 - (void)updateSection:(NSInteger)section insertCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition;
 
-- (void)updateSection:(NSInteger)originSection moveOutCellAtIndex:(NSInteger)index;
-- (void)updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index withOriginIndexPath:(MPIndexPath *)originIndexPath;
+- (void)updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index fromOriginIndexPath:(MPIndexPath *)originIndexPath;
 
 - (void)updateSection:(NSInteger)section originSection:(NSInteger)originSection exchangeCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withOffset:(CGFloat)cellOffset;
 
+- (void)updateSection:(NSInteger)section originSection:(NSInteger)originSection exchangeCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex; // selectedIndexPaths change
 
 //
 - (void)updateDeleteSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withDeleteSection:(MPTableViewSection *)deleteSection;
 - (void)updateInsertSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection;
 
-- (void)updateMoveOutSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type;
-- (void)updateMoveInSectionViewAtIndex:(NSInteger)index withOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type;
+- (void)updateMoveInSectionViewAtIndex:(NSInteger)index fromOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type;
 
 - (void)updateExchangeSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type withSectionOffset:(CGFloat)sectionOffset;
 

@@ -62,27 +62,29 @@ MPCompareIndexPath(MPIndexPathStruct first, MPIndexPathStruct second) {
 
 @implementation MPIndexPath (MPTableView)
 
-+ (MPIndexPath* )indexPathForRow:(NSInteger)row inSection:(NSInteger)section {
++ (MPIndexPath *)indexPathForRow:(NSInteger)row inSection:(NSInteger)section {
     NSInteger indexes[2] = {section, row};
     MPIndexPath *indexPath = [MPIndexPath indexPathWithIndexes:indexes length:2];
     return indexPath;
 }
 
 - (NSInteger)section {
+    NSParameterAssert(_length == 2);
+
     return _indexes[0];
 }
 
 - (NSInteger)row {
+    NSParameterAssert(_length == 2);
+
     return _indexes[1];
 }
 
 - (void)setSection:(NSInteger)section {
-    NSParameterAssert(_length == 2);
     _indexes[0] = section;
 }
 
 - (void)setRow:(NSInteger)row {
-    NSParameterAssert(_length == 2);
     _indexes[1] = row;
 }
 
@@ -106,6 +108,15 @@ MPCompareIndexPath(MPIndexPathStruct first, MPIndexPathStruct second) {
 }
 
 @end
+
+#pragma mark -
+@interface MPTableReusableView (MPTableReusableView_internal)
+
+@property (nonatomic, copy, readwrite) NSString *identifier;
+
+@end
+
+#pragma mark -
 
 static MPTableViewRowAnimation
 MPTableViewGetRandomRowAnimation() {
@@ -223,14 +234,6 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
     view.frame = frame;
 }
 
-#pragma mark -MPTableReusableView private
-@interface MPTableReusableView (MPTableReusableView_internal)
-
-@property (nonatomic, copy, readwrite) NSString *identifier;
-
-@end
-
-#pragma mark -
 NSString *const MPTableViewSelectionDidChangeNotification = @"MPTableViewSelectionDidChangeNotification";
 
 const CGFloat MPTableViewRowAnimationDuration = 0.3;
@@ -275,9 +278,9 @@ const CGFloat MPTableViewRowAnimationDuration = 0.3;
     NSInteger _lastSuspendHeaderSection, _lastSuspendFooterSection;
     
     NSMutableArray *_deleteViewsList;
-    NSMutableDictionary *_moveOutViewsDic;
     
     NSMutableArray *_updateAnimationBlocks;
+    NSMutableSet *_updateExchangedSelectedIndexPaths;
     //
     BOOL
     _respond_willDisplayCellForRowAtIndexPath,
@@ -397,8 +400,8 @@ const CGFloat MPTableViewRowAnimationDuration = 0.3;
     _deleteViewsList = [NSMutableArray array];
     _insertCellsDic = [NSMutableDictionary dictionary];
     _insertSectionViewsDic = [NSMutableDictionary dictionary];
-    _moveOutViewsDic = [NSMutableDictionary dictionary];
     _updateAnimationBlocks = [NSMutableArray array];
+    _updateExchangedSelectedIndexPaths = [NSMutableSet set];
 }
 
 - (void)dealloc {
@@ -508,9 +511,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 - (void)setFrame:(CGRect)frame {
     if ([super frame].size.width != frame.size.width) {
         [self _lockLayoutSubviews];
-        CGSize contentSize = self.contentSize;
-        contentSize.width = frame.size.width;
-        self.contentSize = contentSize;
+        
+        _MP_SetViewWidth(self.tableHeaderView, frame.size.width);
+        _MP_SetViewWidth(self.tableFooterView, frame.size.height);
 
         for (MPTableViewCell *cell in _displayedCellsDic.allValues) {
             _MP_SetViewWidth(cell, frame.size.width);
@@ -518,6 +521,11 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         for (UIView *sectionView in _displayedSectionViewsDic.allValues) {
             _MP_SetViewWidth(sectionView, frame.size.width);
         }
+        
+        CGSize contentSize = self.contentSize;
+        contentSize.width = frame.size.width;
+        self.contentSize = contentSize;
+        
         [self _unlockLayoutSubviews];
     }
     [super setFrame:frame];
@@ -633,11 +641,11 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (NSArray *)indexPathsForVisibleRows {
-    NSMutableArray *indexPaths = [NSMutableArray array];
-    for (MPIndexPath *indexPath in _displayedCellsDic.allKeys) {
-        [indexPaths addObject:[indexPath copy]];
-    }
-    return indexPaths;
+//    NSMutableArray *indexPaths = [NSMutableArray array];
+//    for (MPIndexPath *indexPath in _displayedCellsDic.allKeys) {
+//        [indexPaths addObject:[indexPath copy]];
+//    }
+    return _displayedCellsDic.allKeys;
 }
 
 - (MPIndexPath *)beginIndexPath {
@@ -778,7 +786,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (void)setAllowsMultipleSelection:(BOOL)allowsMultipleSelection {
     _allowsMultipleSelection = allowsMultipleSelection;
-    _allowsSelection = YES;
+    if (_allowsMultipleSelection) {
+        _allowsSelection = YES;
+    }
 }
 
 - (MPIndexPath *)indexPathForSelectedRow {
@@ -790,13 +800,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     [self scrollToRowAtIndexPath:indexPath atScrollPosition:scrollPosition animated:animated];
     MPTableViewCell *cell = [_displayedCellsDic objectForKey:indexPath];
     if (_respond_willSelectCellAtIndexPath) {
-        [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:[indexPath copy]];
+        [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:indexPath];
     }
     if (cell) {
         [cell setSelected:YES];
     }
     if (_respond_didSelectCellAtIndexPath) {
-        [_mpDelegate MPTableView:self didSelectCell:cell atIndexPath:[indexPath copy]];
+        [_mpDelegate MPTableView:self didSelectCell:cell atIndexPath:indexPath];
     }
 }
 
@@ -819,15 +829,17 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
     MPTableViewCell *selectedCell = [_displayedCellsDic objectForKey:indexPath];
     if (_respond_willDeselectRowAtIndexPath) {
-        [_mpDelegate MPTableView:self willDeselectRowAtIndexPath:[indexPath copy]];
+        [_mpDelegate MPTableView:self willDeselectRowAtIndexPath:indexPath];
     }
     if (selectedCell) {
         [selectedCell setSelected:NO animated:animated];
     }
     if (_respond_didDeselectRowAtIndexPath) {
-        [_mpDelegate MPTableView:self didDeselectRowAtIndexPath:[indexPath copy]];
+        [_mpDelegate MPTableView:self didDeselectRowAtIndexPath:indexPath];
     }
     [_selectedIndexPaths removeObject:indexPath];
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:MPTableViewSelectionDidChangeNotification object:self];
 }
 
 - (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated {
@@ -842,14 +854,21 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)deleteSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation {
+    NSParameterAssert(_mpDataSource);
     NSAssert(![_updateManager isUpdating], @"updating error");
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
     }
     
+    NSUInteger count = _sectionsAreaList.count;
     [sections enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL *stop) {
-        NSAssert(idx < _sectionsAreaList.count, @"delete section overflow");
+        NSAssert(idx < count, @"delete section overflow");
         NSAssert([_updateManager addDeleteSection:idx withAnimation:animation], @"update section");
+        for (MPIndexPath *selectedIndexPath in _selectedIndexPaths.allObjects) {
+            if (selectedIndexPath.section == idx) {
+                [_selectedIndexPaths removeObject:selectedIndexPath];
+            }
+        }
     }];
     
     if (![self _isLayoutSubviewsLock]) {
@@ -858,6 +877,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)insertSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation {
+    NSParameterAssert(_mpDataSource);
     NSAssert(![_updateManager isUpdating], @"updating error");
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -873,6 +893,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)reloadSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation {
+    NSParameterAssert(_mpDataSource);
     NSAssert(![_updateManager isUpdating], @"updating error");
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -888,19 +909,23 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)moveSection:(NSUInteger)section toSection:(NSUInteger)newSection {
+    NSParameterAssert(_mpDataSource);
+    NSParameterAssert(section != newSection);
     NSAssert(![_updateManager isUpdating], @"updating error");
     
     NSAssert(section < _numberOfSections, @"move section overflow");
     
-    NSAssert([_updateManager addMoveOutSection:section], @" update indexPath");
+    NSAssert([_updateManager addMoveOutSection:section], @"update indexPath");
     
-    NSAssert([_updateManager addMoveInSection:newSection withOriginIndex:section], @" move section");
+    NSAssert([_updateManager addMoveInSection:newSection withOriginIndex:section], @"move section");
+    
     if (![self _isLayoutSubviewsLock]) {
         [self _startUpdateAnimation];
     }
 }
 
 - (void)deleteRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation {
+    NSParameterAssert(_mpDataSource);
     NSAssert(![_updateManager isUpdating], @"updating error");
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -910,7 +935,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         NSParameterAssert(indexPath.row >= 0 && indexPath.section >= 0);
         NSAssert(indexPath.section < _numberOfSections, @"delete section overflow");
         NSAssert(indexPath.row < [self numberOfRowsInSection:indexPath.section], @"delete row overflow");
-        NSAssert([_updateManager addDeleteIndexPath:indexPath withAnimation:animation], @" update indexPath");
+        NSAssert([_updateManager addDeleteIndexPath:indexPath withAnimation:animation], @"update indexPath");
+        if ([_selectedIndexPaths containsObject:indexPath]) {
+            [_selectedIndexPaths removeObject:indexPath];
+        }
     }
     if (![self _isLayoutSubviewsLock]) {
         [self _startUpdateAnimation];
@@ -918,6 +946,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)insertRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation {
+    NSParameterAssert(_mpDataSource);
     NSAssert(![_updateManager isUpdating], @"updating error");
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -926,7 +955,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     for (MPIndexPath *indexPath in indexPaths) {
         NSParameterAssert(indexPath.row >= 0 && indexPath.section >= 0);
         NSAssert(indexPath.section < _numberOfSections, @"insert section overflow");
-        NSAssert([_updateManager addInsertIndexPath:indexPath withAnimation:animation], @" update indexPath");
+        NSAssert([_updateManager addInsertIndexPath:indexPath withAnimation:animation], @"update indexPath");
     }
     if (![self _isLayoutSubviewsLock]) {
         [self _startUpdateAnimation];
@@ -934,6 +963,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)reloadRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation {
+    NSParameterAssert(_mpDataSource);
     NSAssert(![_updateManager isUpdating], @"updating error");
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -943,7 +973,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         NSParameterAssert(indexPath.row >= 0 && indexPath.section >= 0);
         NSAssert(indexPath.section < _numberOfSections, @"reload section overflow");
         NSAssert(indexPath.row < [self numberOfRowsInSection:indexPath.section], @"reload row overflow");
-        NSAssert([_updateManager addReloadIndexPath:indexPath withAnimation:animation], @" update indexPath");
+        NSAssert([_updateManager addReloadIndexPath:indexPath withAnimation:animation], @"update indexPath");
     }
     
     if (![self _isLayoutSubviewsLock]) {
@@ -952,6 +982,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)moveRowAtIndexPath:(MPIndexPath *)indexPath toIndexPath:(MPIndexPath *)newIndexPath {
+    NSParameterAssert(_mpDataSource);
+    NSParameterAssert([indexPath compare:newIndexPath] != NSOrderedSame);
     NSAssert(![_updateManager isUpdating], @"updating error");
     
     NSParameterAssert(indexPath.row >= 0 && indexPath.section >= 0);
@@ -959,7 +991,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     NSAssert(indexPath.section < _numberOfSections, @"move section overflow");
     NSAssert(indexPath.row < [self numberOfRowsInSection:indexPath.section], @"move row overflow");
     
-    NSAssert([_updateManager addMoveOutIndexPath:indexPath], @" update indexPath");
+    NSAssert([_updateManager addMoveOutIndexPath:indexPath], @"update indexPath");
     
     NSAssert([_updateManager addMoveInIndexPath:newIndexPath withHeight:[self _cellFrameAtIndexPath:indexPath].size.height withOriginIndexPath:indexPath], @" update indexPath");
     
@@ -969,6 +1001,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)beginUpdates {
+    NSParameterAssert(_mpDataSource);
     NSAssert(![_updateManager isUpdating], @"updating error");
     [self _lockLayoutSubviews];
 }
@@ -1115,18 +1148,23 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     [_deleteViewsList makeObjectsPerformSelector:@selector(removeFromSuperview)];
     [_deleteViewsList removeAllObjects];
     
-    [_moveOutViewsDic removeAllObjects];
     [_displayedCellsDic addEntriesFromDictionary:_insertCellsDic];
     [_insertCellsDic removeAllObjects];
     [_displayedSectionViewsDic addEntriesFromDictionary:_insertSectionViewsDic];
     [_insertSectionViewsDic removeAllObjects];
+    [_selectedIndexPaths unionSet:_updateExchangedSelectedIndexPaths];
+    [_updateExchangedSelectedIndexPaths removeAllObjects];
     
-    MPTableViewSection *lastSection = _sectionsAreaList.lastObject;
-    _contentDrawArea.endPos = lastSection.endPos + _contentDrawArea.beginPos;/* _footerView may be nil */
+    if (_sectionsAreaList.count) {
+        MPTableViewSection *lastSection = _sectionsAreaList.lastObject;
+        _contentDrawArea.endPos = lastSection.endPos + _contentDrawArea.beginPos;/* _footerView may be nil */
+    } else {
+        _contentDrawArea.endPos = _contentDrawArea.beginPos;
+    }
 
     [self setContentSize:CGSizeMake(self.frame.size.width, _contentDrawArea.endPos + self.tableFooterView.frame.size.height)];
     
-    if (self.numberOfSections <= 0) {
+    if (_contentDrawArea.beginPos >= _contentDrawArea.endPos) {
         _beginIndexPath = indexPathStruct(NSIntegerMax, MPSectionTypeFooter);
         _endIndexPath = indexPathStruct(NSIntegerMin, MPSectionTypeHeader);
     } else {
@@ -1197,33 +1235,31 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-#define MPTableViewUpdateDisplayCheck (frame.origin.y > MPTableViewContentEnd || CGRectGetMaxY(frame) < MPTableViewContentBegin)
+#define MPTableViewUpdateOutOfDisplayArea (frame.origin.y > MPTableViewContentEnd || CGRectGetMaxY(frame) < MPTableViewContentBegin)
 
 #pragma mark -cell update
 
 - (CGFloat)updateSection:(NSInteger)section cellHeightAtIndex:(NSInteger)index {
     CGFloat cellHeight;
     if (_respond_heightForIndexPath) {
-        cellHeight = ([self.dataSource MPTableView:self heightForIndexPath:[MPIndexPath indexPathForRow:index inSection:section]]);
+        cellHeight = ([_mpDataSource MPTableView:self heightForIndexPath:[MPIndexPath indexPathForRow:index inSection:section]]);
         NSAssert(cellHeight >= 0, @"cell height");
     } else {
         cellHeight = MPTableViewDefaultCellHeight;
     }
+    
     return cellHeight;
 }
 
 - (void)updateSection:(NSInteger)originSection deleteCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition {
     MPIndexPath *indexPath = [MPIndexPath indexPathForRow:index inSection:originSection];
     
-    if ([_selectedIndexPaths containsObject:indexPath]) {
-        [_selectedIndexPaths removeObject:indexPath];
-    }
-    
     if ([indexPath compareIndexPathAt:_beginIndexPath] == NSOrderedAscending || [indexPath compareIndexPathAt:_endIndexPath] == NSOrderedDescending) {
         return ;
     }
     
     MPTableViewCell *cell = [_displayedCellsDic objectForKey:indexPath];
+    
     if (_respond_willDeleteCellForRowAtIndexPath) {
         [_mpDelegate MPTableView:self willDeleteCell:cell forRowAtIndexPath:indexPath];
     }
@@ -1243,6 +1279,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         }
         cell.frame = optimizeFrame;
     };
+    
     [_updateAnimationBlocks addObject:animationBlock];
     [_deleteViewsList addObject:cell];
     [_displayedCellsDic removeObjectForKey:indexPath];
@@ -1252,10 +1289,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     MPIndexPath *indexPath = [MPIndexPath indexPathForRow:index inSection:section];
     
     CGRect frame = [self _cellFrameAtIndexPath:indexPath];
-    if (MPTableViewUpdateDisplayCheck) { //
+    if (MPTableViewUpdateOutOfDisplayArea) { //
         return ;
     } else {
         MPTableViewCell *cell = [self _getCellFromDataSourceAtIndexPath:indexPath];
+        
+        [cell setSelected:[_selectedIndexPaths containsObject:indexPath]];
+        
         cell.frame = frame;
         CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, animation, sectionPosition, _contentDrawArea.beginPos);
         if (sectionPosition) {
@@ -1271,6 +1311,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         if (_respond_willInsertCellForRowAtIndexPath) {
             [_mpDelegate MPTableView:self willInsertCell:cell forRowAtIndexPath:indexPath];
         }
+        
         void (^animationBlock)() = ^{
             [self _addCellToWrapperViewIfNeeded:cell];
             MPTableViewDisplayViewFrameWithRowAnimation(cell, frame, animation, sectionPosition);
@@ -1280,32 +1321,21 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-- (void)updateSection:(NSInteger)originSection moveOutCellAtIndex:(NSInteger)index {
-    MPIndexPath *indexPath = [MPIndexPath indexPathForRow:index inSection:originSection];
-    MPTableViewCell *cell = [_displayedCellsDic objectForKey:indexPath];
-    if (cell) {
-        [_moveOutViewsDic setObject:cell forKey:indexPath];
-        [_displayedCellsDic removeObjectForKey:indexPath];
-    }
-}
-
-- (void)updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index withOriginIndexPath:(MPIndexPath *)originIndexPath {
+- (void)updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index fromOriginIndexPath:(MPIndexPath *)originIndexPath {
     MPIndexPath *indexPath = [MPIndexPath indexPathForRow:index inSection:section];
     
     if ([_selectedIndexPaths containsObject:originIndexPath]) {
         [_selectedIndexPaths removeObject:originIndexPath];
-        [_selectedIndexPaths addObject:indexPath];
+        [_updateExchangedSelectedIndexPaths addObject:indexPath];
     }
     
-    MPTableViewCell *cell = [_moveOutViewsDic objectForKey:originIndexPath];
-    if (!cell) { // if the moving cell is from other sections, we must bring it to here now——because there was no animation on - (void)updateSection:(NSInteger)originSection moveOutCellAtIndex:(NSInteger)index so that the move—out cell may stand still...
-        cell = [_displayedCellsDic objectForKey:originIndexPath];
-        if (cell) {
-            [_displayedCellsDic removeObjectForKey:originIndexPath];
-        }
+    MPTableViewCell *cell = [_displayedCellsDic objectForKey:originIndexPath];
+    if (cell) {
+        [_displayedCellsDic removeObjectForKey:originIndexPath];
     }
+    
     CGRect frame = [self _cellFrameAtIndexPath:indexPath];
-    if (MPTableViewUpdateDisplayCheck) {
+    if (MPTableViewUpdateOutOfDisplayArea) {
         if (cell) {
             frame = cell.frame;
             if ([indexPath compare:originIndexPath] == NSOrderedAscending) { //
@@ -1313,9 +1343,11 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             } else {
                 frame.origin.y = MPTableViewContentEnd + 1;
             }
+            
             if (_respond_didEndDisplayingCellForRowAtIndexPath) {
                 [_mpDelegate MPTableView:self didEndDisplayingCell:cell forRowAtIndexPath:indexPath];
             }
+            
             void (^animationBlock)() = ^{
                 cell.frame = frame;
             };
@@ -1332,10 +1364,14 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 frame.origin.y = MPTableViewContentBegin - frame.size.height - 1;
             }
             if (_respond_willInsertCellForRowAtIndexPath) {
-                [_mpDelegate MPTableView:self willDisplayCell:cell forRowAtIndexPath:indexPath];
+                [_mpDelegate MPTableView:self willInsertCell:cell forRowAtIndexPath:indexPath];
             }
             cell.frame = frame;
+            if ([_updateExchangedSelectedIndexPaths containsObject:indexPath]) {
+                [cell setSelected:YES];
+            }
         }
+        
         void (^animationBlock)() = ^{
             [self _addCellToWrapperViewIfNeeded:cell];
             [_contentWrapperView bringSubviewToFront:cell];
@@ -1353,11 +1389,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     BOOL indexPathChanged = NO;
     if (originIndex != currIndex || section != originSection) {
         indexPathChanged = YES;
-        
-        if ([_selectedIndexPaths containsObject:indexPath]) {
-            [_selectedIndexPaths removeObject:indexPath];
-            [_selectedIndexPaths addObject:[MPIndexPath indexPathForRow:currIndex inSection:section]];
-        }
     }
 
     MPTableViewCell *cell;
@@ -1366,13 +1397,18 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         indexPath.row = currIndex;
         indexPath.section = section;
         CGRect frame = [self _cellFrameAtIndexPath:indexPath];
-        if (MPTableViewUpdateDisplayCheck) {
+        if (MPTableViewUpdateOutOfDisplayArea) {
             return ;
         } else {
             cell = [self _getCellFromDataSourceAtIndexPath:indexPath];
             if (_respond_willInsertCellForRowAtIndexPath) {
-                [_mpDelegate MPTableView:self willDisplayCell:cell forRowAtIndexPath:indexPath];
+                [_mpDelegate MPTableView:self willInsertCell:cell forRowAtIndexPath:indexPath];
             }
+            
+            if ([_updateExchangedSelectedIndexPaths containsObject:indexPath]) {
+                [cell setSelected:YES];
+            }
+            
             originY = frame.origin.y;
             [self _updateSetInsertView:cell startFrame:frame withOffset:cellOffset];
             [_insertCellsDic setObject:cell forKey:indexPath];
@@ -1387,11 +1423,25 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             [_insertCellsDic setObject:cell forKey:indexPath];
         }
     }
+    
     void (^animationBlock)() = ^{
         [self _addCellToWrapperViewIfNeeded:cell];
         [self _updateOffsetView:cell toOriginY:originY];
     };
     [_updateAnimationBlocks addObject:animationBlock];
+}
+
+- (void)updateSection:(NSInteger)section originSection:(NSInteger)originSection exchangeCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex {
+    if (section == originSection && originIndex == currIndex) {
+        return;
+    }
+    for (const MPIndexPath *indexPath in _selectedIndexPaths) {
+        if (indexPath.section == originSection && indexPath.row == originIndex) {
+            [_selectedIndexPaths removeObject:indexPath];
+            [_updateExchangedSelectedIndexPaths addObject:[MPIndexPath indexPathForRow:currIndex inSection:section]];
+            break;
+        }
+    }
 }
 
 #pragma mark -sectionView
@@ -1450,6 +1500,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             originY = section.endPos - section.footerHeight;
         }
     }
+    
     if (sectionView) {
         CGRect frame = sectionView.frame;
         frame.origin.y = originY + _contentDrawArea.beginPos;
@@ -1465,19 +1516,21 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     if (self.style == MPTableViewStylePlain) {
         if (type == MPSectionTypeHeader) {
             if (_lastSuspendHeaderSection == NSNotFound && _currSuspendHeaderSection == index) {
-                _lastSuspendHeaderSection = index;
+                _lastSuspendHeaderSection = _currSuspendHeaderSection;
                 _currSuspendHeaderSection = NSNotFound;
             }
         } else {
             if (_lastSuspendFooterSection == NSNotFound && _currSuspendFooterSection == index) {
-                _lastSuspendFooterSection = index;
+                _lastSuspendFooterSection = _currSuspendFooterSection;
                 _currSuspendFooterSection = NSNotFound;
             }
         }
     }
+    
     if (!sectionView) {
         return;
     }
+    
     if (type == MPSectionTypeHeader) {
         if (_respond_willDeleteHeaderViewForSection) {
             [_mpDelegate MPTableView:self willDeleteHeaderView:sectionView forSection:index];
@@ -1493,6 +1546,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             [_mpDelegate MPTableView:self didEndDisplayingFooterView:sectionView forSection:index];
         }
     }
+    
     void (^animationBlock)() = ^{
         CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, animation, deleteSection, _contentDrawArea.beginPos);
         if (optimizeFrame.origin.y > MPTableViewContentEnd) {
@@ -1512,7 +1566,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     MPIndexPath *indexPath = [MPIndexPath indexPathForRow:type inSection:index];
     CGRect frame = [self _sectionViewFrameAtIndexPath:indexPath];
     
-    BOOL isDisplayingDefault = !MPTableViewUpdateDisplayCheck;
+    BOOL isDisplayingDefault = !MPTableViewUpdateOutOfDisplayArea;
     BOOL isSuspending = NO;
     BOOL isPrepareToSuspend = NO;
     
@@ -1552,6 +1606,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [_mpDelegate MPTableView:self willInsertFooterView:sectionView forSection:index];
             }
         }
+        
         void (^animationBlock)() = ^{
             [self _addSectionViewToWrapperViewIfNeeded:sectionView];
             MPTableViewDisplayViewFrameWithRowAnimation(sectionView, frame, animation, insertSection);
@@ -1570,41 +1625,17 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-- (void)updateMoveOutSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type {
-    MPIndexPath *indexPath = [MPIndexPath indexPathForRow:type inSection:index];
-    
-    UIView *sectionView = [_displayedSectionViewsDic objectForKey:indexPath];
-    if (self.style == MPTableViewStylePlain) {
-        if (type == MPSectionTypeHeader) {
-            if (_lastSuspendHeaderSection == NSNotFound && _currSuspendHeaderSection == index) {
-                _lastSuspendHeaderSection = index;
-                _currSuspendHeaderSection = NSNotFound;
-            }
-        } else {
-            if (_lastSuspendFooterSection == NSNotFound && _currSuspendFooterSection == index) {
-                _lastSuspendFooterSection = index;
-                _currSuspendFooterSection = NSNotFound;
-            }
-        }
-    }
-    if (sectionView) {
-        [_moveOutViewsDic setObject:sectionView forKey:indexPath];
-        [_displayedSectionViewsDic removeObjectForKey:indexPath];
-    }
-}
-
-- (void)updateMoveInSectionViewAtIndex:(NSInteger)index withOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type {
+- (void)updateMoveInSectionViewAtIndex:(NSInteger)index fromOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type {
     MPIndexPath *indexPath = [MPIndexPath indexPathForRow:type inSection:index];
     MPIndexPath *originIndexPath = [MPIndexPath indexPathForRow:type inSection:originIndex];
-    MPTableReusableView *sectionView = [_moveOutViewsDic objectForKey:originIndexPath];
-    if (!sectionView) {
-        sectionView = [_displayedSectionViewsDic objectForKey:originIndexPath];
-        if (sectionView) {
-            [_displayedSectionViewsDic removeObjectForKey:originIndexPath];
-        }
+    
+    MPTableReusableView *sectionView = [_displayedSectionViewsDic objectForKey:originIndexPath];
+    if (sectionView) {
+        [_displayedSectionViewsDic removeObjectForKey:originIndexPath];
     }
+    
     CGRect frame = [self _sectionViewFrameAtIndexPath:indexPath];
-    BOOL isDisplayingDefault = !MPTableViewUpdateDisplayCheck;
+    BOOL isDisplayingDefault = !MPTableViewUpdateOutOfDisplayArea;
     BOOL isSuspending = NO;
     BOOL isPrepareToSuspend = NO;
     
@@ -1613,9 +1644,23 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         if ([self _needSuspendingSection:section withType:type]) {
             isSuspending = YES;
             isDisplayingDefault = NO;
-        } else if ([self _needPrepareToSuspendViewAt:section withType:type]) {
-            isPrepareToSuspend = YES;
-            isDisplayingDefault = NO;
+        } else {
+            if (type == MPSectionTypeHeader) {
+                if (_lastSuspendHeaderSection == NSNotFound && _currSuspendHeaderSection == originIndex) {
+                    _lastSuspendHeaderSection = _currSuspendHeaderSection;
+                    _currSuspendHeaderSection = NSNotFound;
+                }
+            } else {
+                if (_lastSuspendFooterSection == NSNotFound && _currSuspendFooterSection == originIndex) {
+                    _lastSuspendFooterSection = _currSuspendFooterSection;
+                    _currSuspendFooterSection = NSNotFound;
+                }
+            }
+            
+            if ([self _needPrepareToSuspendViewAt:section withType:type]) {
+                isPrepareToSuspend = YES;
+                isDisplayingDefault = NO;
+            }
         }
     }
     
@@ -1627,12 +1672,14 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             } else {
                 frame.origin.y = MPTableViewContentEnd + 1;
             }
+            
             if (type == MPSectionTypeHeader && _respond_didEndDisplayingHeaderViewForSection) {
                 [_mpDelegate MPTableView:self didEndDisplayingHeaderView:sectionView forSection:originIndex];
             }
             if (type == MPSectionTypeFooter && _respond_didEndDisplayingFooterViewForSection) {
                 [_mpDelegate MPTableView:self didEndDisplayingFooterView:sectionView forSection:originIndex];
             }
+            
             void (^animationBlock)() = ^{
                 sectionView.frame = frame;
             };
@@ -1653,6 +1700,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
             sectionView.frame = frame;
         }
+        
         void (^animationBlock)() = ^{
             [self _addSectionViewToWrapperViewIfNeeded:sectionView];
             [self bringSubviewToFront:sectionView];
@@ -1690,7 +1738,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else {
             if (type == MPSectionTypeHeader) {
                 if (_lastSuspendHeaderSection == NSNotFound && _currSuspendHeaderSection == originIndex) {
-                    _lastSuspendHeaderSection = originIndex;
+                    _lastSuspendHeaderSection = _currSuspendHeaderSection;
                     _currSuspendHeaderSection = NSNotFound;
                 }
             } else {
@@ -1699,16 +1747,18 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                     _currSuspendFooterSection = NSNotFound;
                 }
             }
-        }
-        if ([self _needPrepareToSuspendViewAt:section withType:type]) {
-            isPrepareToSuspend = YES;
+            
+            if ([self _needPrepareToSuspendViewAt:section withType:type]) {
+                isPrepareToSuspend = YES;
+            }
         }
     }
+    
     CGFloat originY;
     if (!sectionView) {
         indexPath.section = currIndex;
         CGRect frame = [self _sectionViewFrameAtIndexPath:indexPath];
-        if (MPTableViewUpdateDisplayCheck && (_currSuspendHeaderSection != currIndex && !isSuspending && !isPrepareToSuspend)) {
+        if (MPTableViewUpdateOutOfDisplayArea && !isSuspending && !isPrepareToSuspend) {
             return ;
         } else {
             sectionView = [self _getSectionViewFromDelegateAtIndexPath:indexPath];
@@ -1851,12 +1901,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     if ([NSRunLoop currentRunLoop] != [NSRunLoop mainRunLoop]) {
         return [self performSelectorOnMainThread:@selector(reloadData) withObject:nil waitUntilDone:YES];
     }
+    [self _lockLayoutSubviews];
     [self _clear];
     CGFloat height = [self _initializeViewsPositionWithNewSections:nil];
     [self _setVerticalContentHeight:height];
     [self _unlockLayoutSubviews];
+    [self _getDisplayingArea];
     if (self.numberOfSections) {
-        [self _getDisplayingArea];
         [self _updateDisplayingArea];
     }
 }
@@ -1870,24 +1921,21 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             [self reloadDataAsyncWithCompleter:completer];
         });
     }
+    [self _lockLayoutSubviews];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSMutableArray *newSections = [NSMutableArray array];
         CGFloat height = [self _initializeViewsPositionWithNewSections:newSections];
-        if (height == _ReloadDataAsync_Exception_Value) {
-            return ;
-        }
-        _updateManager.sections = newSections;
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (_mpDataSource && self.numberOfSections) {
-                [self _clear];
+            [self _clear];
+            _updateManager.sections = _sectionsAreaList = newSections;
+            [self _unlockLayoutSubviews];
+            if (height != _ReloadDataAsync_Exception_Value && [self superview]) {
                 [self _setVerticalContentHeight:height];
-                [self _unlockLayoutSubviews];
-                _sectionsAreaList = newSections;
                 [self _getDisplayingArea];
                 [self _updateDisplayingArea];
-                if (completer) {
-                    completer();
-                }
+            }
+            if (completer) {
+                completer();
             }
         });
     });
@@ -1958,6 +2006,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         
         step = [self _initializeSection:section withOffset:step];
         if (step == _ReloadDataAsync_Exception_Value) {
+            [newSections removeAllObjects];
             break;
         }
         if (i >= sectionsCount) {
@@ -2240,6 +2289,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                     if (!cell) {
                         continue;
                     }
+                    if ([_selectedIndexPaths containsObject:indexPath]) {
+                        [cell setSelected:YES];
+                    }
                     cell.frame = [self _cellFrameAtIndexPath:indexPath];
                     [self _addCellToWrapperViewIfNeeded:cell];
                     [_displayedCellsDic setObject:cell forKey:indexPath];
@@ -2256,13 +2308,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (MPTableViewCell *)_getCellFromDataSourceAtIndexPath:(MPIndexPath *)indexPath {
     MPTableViewCell *cell = [_mpDataSource MPTableView:self cellForRowAtIndexPath:indexPath];
-    if (cell) {
-        if (_respond_willDisplayCellForRowAtIndexPath) {
-            [_mpDelegate MPTableView:self willDisplayCell:cell forRowAtIndexPath:indexPath];
-        }
-        if ([_selectedIndexPaths containsObject:indexPath]) {
-            [cell setSelected:YES];
-        }
+    NSParameterAssert(cell);
+    if (_respond_willDisplayCellForRowAtIndexPath) {
+        [_mpDelegate MPTableView:self willDisplayCell:cell forRowAtIndexPath:indexPath];
     }
     return cell;
 }
@@ -2286,19 +2334,15 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     if (indexPath.row == MPSectionTypeHeader) {
         if (_respond_viewForHeaderInSection) {
             sectionView = [_mpDataSource MPTableView:self viewForHeaderInSection:indexPath.section];
-            if (sectionView) {
-                if (_respond_willDisplayHeaderViewForSection) {
-                    [_mpDelegate MPTableView:self willDisplayHeaderView:sectionView forSection:indexPath.section];
-                }
+            if (sectionView && _respond_willDisplayHeaderViewForSection) {
+                [_mpDelegate MPTableView:self willDisplayHeaderView:sectionView forSection:indexPath.section];
             }
         }
     } else{
         if (_respond_viewForFooterInSection) {
             sectionView = [_mpDataSource MPTableView:self viewForFooterInSection:indexPath.section];
-            if (sectionView) {
-                if (_respond_willDisplayFooterViewForSection) {
-                    [_mpDelegate MPTableView:self willDisplayFooterView:sectionView forSection:indexPath.section];
-                }
+            if (sectionView && _respond_willDisplayFooterViewForSection) {
+                [_mpDelegate MPTableView:self willDisplayFooterView:sectionView forSection:indexPath.section];
             }
         }
     }
@@ -2543,7 +2587,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     [super touchesBegan:touches withEvent:event];
-    if ([self isDecelerating] || [self isDragging]) {
+    if ([self isDecelerating] || [self isDragging] || _contentDrawArea.beginPos >= _contentDrawArea.endPos) {
         return;
     }
     
@@ -2553,18 +2597,17 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         
         MPIndexPath *highlightedIndexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:touchPosition - _contentDrawArea.beginPos]];
         MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath = highlightedIndexPath];
+        if (!cell) {
+            return;
+        }
+        if (_respond_shouldHighlightRowAtIndexPath) {
+            [_mpDelegate MPTableView:self shouldHighlightRowAtIndexPath:[highlightedIndexPath copy]];
+        }
         if (![cell isHighlighted]) {
-            if (_respond_shouldHighlightRowAtIndexPath) {
-                [_mpDelegate MPTableView:self shouldHighlightRowAtIndexPath:[highlightedIndexPath copy]];
-            }
             [cell setHighlighted:YES];
         }
         if (_respond_didHighlightRowAtIndexPath) {
             [_mpDelegate MPTableView:self didHighlightRowAtIndexPath:[highlightedIndexPath copy]];
-        }
-        
-        if (_allowsMultipleSelection) {
-            _highlightedIndexPath = highlightedIndexPath;
         }
     }
 }
@@ -2573,7 +2616,12 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     [super touchesMoved:touches withEvent:event];
     if (_highlightedIndexPath) {
         MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath];
-        [cell setHighlighted:NO];
+        if ([cell isHighlighted]) {
+            [cell setHighlighted:NO];
+        }
+        if (_respond_didUnhighlightRowAtIndexPath) {
+            [_mpDelegate MPTableView:self didUnhighlightRowAtIndexPath:[_highlightedIndexPath copy]];
+        }
         _highlightedIndexPath = nil;
     }
 }
@@ -2583,6 +2631,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     
     if (_highlightedIndexPath && _allowsSelection) {
         MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath];
+        if (!cell) {
+            return;
+        }
         if (_allowsMultipleSelection && [_selectedIndexPaths containsObject:_highlightedIndexPath]) {
             [self _deselectRowAtIndexPath:_highlightedIndexPath animated:NO];
         } else {
@@ -2594,15 +2645,16 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:[_highlightedIndexPath copy]];
             }
             [cell setSelected:YES];
-            if (_respond_didUnhighlightRowAtIndexPath) {
-                [_mpDelegate MPTableView:self didUnhighlightRowAtIndexPath:[_highlightedIndexPath copy]];
-            }
             if (_respond_didSelectCellAtIndexPath) {
                 [_mpDelegate MPTableView:self didSelectCell:cell atIndexPath:[_highlightedIndexPath copy]];
             }
-            [[NSNotificationCenter defaultCenter] postNotificationName:MPTableViewSelectionDidChangeNotification object:nil];
         }
-        [cell setHighlighted:NO];
+        if ([cell isHighlighted]) {
+            [cell setHighlighted:NO];
+        }
+        if (_respond_didUnhighlightRowAtIndexPath) {
+            [_mpDelegate MPTableView:self didUnhighlightRowAtIndexPath:[_highlightedIndexPath copy]];
+        }
         _highlightedIndexPath = nil;
     }
 }
@@ -2611,7 +2663,12 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     [super touchesCancelled:touches withEvent:event];
     if (_highlightedIndexPath) {
         MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath];
-        [cell setHighlighted:NO];
+        if ([cell isHighlighted]) {
+            [cell setHighlighted:NO];
+        }
+        if (_respond_didUnhighlightRowAtIndexPath) {
+            [_mpDelegate MPTableView:self didUnhighlightRowAtIndexPath:[_highlightedIndexPath copy]];
+        }
         _highlightedIndexPath = nil;
     }
 }

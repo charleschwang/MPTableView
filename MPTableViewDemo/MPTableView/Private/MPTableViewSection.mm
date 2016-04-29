@@ -76,7 +76,7 @@ _mpUpdateSort(const MPTableViewUpdateNode _first_, const MPTableViewUpdateNode _
 
 template <class _Vec_update>
 void
-_mpUpdateMove(vector<_Vec_update> *__vector, NSInteger __preIndex, NSInteger __currIndex) {
+_MPUpdateMove(vector<_Vec_update> *__vector, NSInteger __preIndex, NSInteger __currIndex) {
     assert(__preIndex < __vector->size() && __currIndex < __vector->size());
     NSInteger __begin;
     NSInteger __middle;
@@ -121,7 +121,7 @@ _converge(vector<_Vec_update> *__updateVec) {
                         _cellNode->index++;
                         __step++;
                     } else { //
-                        _mpUpdateMove(__updateVec, i, __backTracking);
+                        _MPUpdateMove(__updateVec, i, __backTracking);
                         __backTracking++;
                         break;
                     }
@@ -135,7 +135,7 @@ _converge(vector<_Vec_update> *__updateVec) {
                 _Vec_update *_backTrackingNode = &(*__updateVec)[__backTracking];
                 if (MPTableViewUpdateTypeUnstable(_backTrackingNode->updateType)) {
                     if (_cellNode->index <= _backTrackingNode->index) { // stable <= unstable
-                        _mpUpdateMove(__updateVec, i, __backTracking);
+                        _MPUpdateMove(__updateVec, i, __backTracking);
                         __step++;
                         NSInteger temp = ++__backTracking;
                         do {
@@ -493,10 +493,10 @@ public:
             if (node.updateType == MPTableViewUpdateMoveIn) {
                 MPTableViewSectionIndex sectionIndex = _moveOutSectionsMap.at(node.index);
                 for (NSInteger k = 0; k < insertSection.numberOfRows; k++) {
-                    [self.delegate updateSection:node.index moveInCellAtIndex:k withOriginIndexPath:[MPIndexPath indexPathForRow:k inSection:sectionIndex.originIndex]];
+                    [self.delegate updateSection:node.index moveInCellAtIndex:k fromOriginIndexPath:[MPIndexPath indexPathForRow:k inSection:sectionIndex.originIndex]];
                 }
-                [self.delegate updateMoveInSectionViewAtIndex:node.index withOriginIndex:sectionIndex.originIndex withType:MPSectionTypeHeader];
-                [self.delegate updateMoveInSectionViewAtIndex:node.index withOriginIndex:sectionIndex.originIndex withType:MPSectionTypeFooter];
+                [self.delegate updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeHeader];
+                [self.delegate updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeFooter];
             } else {
                 if ([self.delegate updateNeedToAnimateSection:insertSection updateType:MPTableViewUpdateInsert andOffset:offset]) {
                     for (NSInteger k = 0; k < insertSection.numberOfRows; k++) {
@@ -515,13 +515,7 @@ public:
             [_sections removeObjectAtIndex:node.index];
             // node.index - step - 1 == node.originIndex
             if ([self.delegate updateNeedToAnimateSection:deleteSection updateType:MPTableViewUpdateDelete andOffset:offset]) {
-                if (node.updateType == MPTableViewUpdateMoveOut) {
-                    for (NSInteger k = 0; k < deleteSection.numberOfRows; k++) {
-                        [self.delegate updateSection:node.originIndex moveOutCellAtIndex:k];
-                    }
-                    [self.delegate updateMoveOutSectionViewAtIndex:node.originIndex withType:MPSectionTypeHeader];
-                    [self.delegate updateMoveOutSectionViewAtIndex:node.originIndex withType:MPSectionTypeFooter];
-                } else {
+                if (node.updateType == MPTableViewUpdateDelete) {
                     for (NSInteger k = 0; k < deleteSection.numberOfRows; k++) {
                         [self.delegate updateSection:node.originIndex deleteCellAtIndex:k withAnimation:node.animation isSectionAnimation:deleteSection];
                     }
@@ -820,7 +814,10 @@ public:
                 (*_rowPositionVec)[j] += offset;
             }
             NSInteger callBackIndex = j - step - 1;
-            if (callback && (isInsert || callBackIndex < node.originIndex)) {  
+            
+            [updateDelegate updateSection:newSection originSection:originSection exchangeCellAtIndex:callBackIndex toIndex:j - 1];
+            
+            if (callback && (isInsert || callBackIndex < node.originIndex)) {
                 [updateDelegate updateSection:newSection originSection:originSection exchangeCellAtIndex:callBackIndex toIndex:j - 1 withOffset:offset];
             }
         }
@@ -835,7 +832,7 @@ public:
             [self insertRowAt:node.index withHeight:cellHeight];
             offset += cellHeight;
             if (node.updateType == MPTableViewUpdateMoveIn) {
-                [updateDelegate updateSection:newSection moveInCellAtIndex:node.index withOriginIndexPath:(part->_moveOutHeightsMap.at(node.index)).indexPath];
+                [updateDelegate updateSection:newSection moveInCellAtIndex:node.index fromOriginIndexPath:(part->_moveOutHeightsMap.at(node.index)).indexPath];
             } else {
                 if (callback) {
                     [updateDelegate updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil];
@@ -849,9 +846,7 @@ public:
             [self removeRowPositionAt:node.index];
             // node.index - step - 1 == node.originIndex
             if (callback) {
-                if (node.updateType == MPTableViewUpdateMoveOut) {
-                    [updateDelegate updateSection:originSection moveOutCellAtIndex:node.originIndex];
-                } else {
+                if (node.updateType == MPTableViewUpdateDelete) {
                     [updateDelegate updateSection:originSection deleteCellAtIndex:node.originIndex withAnimation:node.animation isSectionAnimation:nil];
                 }
             }
@@ -873,6 +868,9 @@ public:
         if (offset != 0) {
             (*_rowPositionVec)[i] += offset;
         }
+        
+        [updateDelegate updateSection:newSection originSection:originSection exchangeCellAtIndex:i - step - 1 toIndex:i - 1];
+        
         if (callback) {
             [updateDelegate updateSection:newSection originSection:originSection exchangeCellAtIndex:i - step - 1 toIndex:i - 1 withOffset:offset];
         }
@@ -895,6 +893,9 @@ public:
     
     for (NSUInteger i = 0; i < _numberOfRows; i++) {
         (*_rowPositionVec)[i + 1] += offset;
+        
+        [updateDelegate updateSection:newSection originSection:originSection exchangeCellAtIndex:i toIndex:i];
+        
         if (callback) {
             [updateDelegate updateSection:newSection originSection:originSection exchangeCellAtIndex:i toIndex:i withOffset:offset];
         }
