@@ -20,8 +20,6 @@ _NSIntegerMalloc(size_t size) {
     dispatch_semaphore_t _semaphore_lock;
 }
 
-- (void)_initInternal;
-
 @end
 
 @implementation MPIndexPath
@@ -86,8 +84,7 @@ _NSIntegerMalloc(size_t size) {
 }
 
 - (id)mutableCopyWithZone:(NSZone *)zone {
-    MPMutableIndexPath *mutableCopyObj = [MPMutableIndexPath allocWithZone:zone];
-    [mutableCopyObj _initInternal];
+    MPMutableIndexPath *mutableCopyObj = [[MPMutableIndexPath allocWithZone:zone] init];
     [mutableCopyObj addIndexPaths:self];
     return mutableCopyObj;
 }
@@ -139,15 +136,11 @@ _NSIntegerMalloc(size_t size) {
     return indexPath;
 }
 
-- (void)_initInternal {
-    _reservedStep = 2;
-    _reserved = 0;
-    _semaphore_lock = dispatch_semaphore_create(1);
-}
-
 - (instancetype)init {
     if (self = [super init]) {
-        [self _initInternal];
+        _reservedStep = 2;
+        _reserved = 0;
+        _semaphore_lock = dispatch_semaphore_create(1);
     }
     return self;
 }
