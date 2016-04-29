@@ -1952,6 +1952,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else {
             height = self.sectionHeaderHeight;
         }
+        NSAssert(height >= 0, @"section header height");
         section.headerHeight = height;
         step += height;
     }
@@ -1967,7 +1968,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             } else {
                 cellHeight = self.rowHeight;
             }
-            NSAssert(cellHeight > 0, @"cell height");
+            NSAssert(cellHeight >= 0, @"cell height");
             [section addRowWithPosition:step += cellHeight];
         }
     }
@@ -1980,6 +1981,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else {
             height = self.sectionFooterHeight;
         }
+        NSAssert(height >= 0, @"section footer height");
         section.footerHeight = height;
         step += height;
     }

@@ -16,7 +16,7 @@
 
 @property (readonly) NSUInteger length;
 
-+ (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSInteger)length;
++ (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length;
 - (NSInteger)indexAtPosition:(NSUInteger)position;
 - (NSInteger *)indexsAtRange:(NSRange)range;
 
@@ -28,8 +28,8 @@
 + (instancetype)indexPathWithIndexPath:(MPIndexPath *)indexPath;
 
 - (void)addIndexPaths:(MPIndexPath *)indexPath;
-- (void)addIndexes:(const NSInteger [])indexes length:(NSInteger)length;
-- (void)removeLastIndexes:(NSInteger)length;
+- (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length;
+- (void)removeLastIndexes:(NSUInteger)length;
 
 - (void)addIndex:(NSInteger)index;
 - (void)removeLastIndex;

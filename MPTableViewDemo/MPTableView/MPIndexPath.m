@@ -33,7 +33,9 @@ _NSIntegerMalloc(size_t size) {
     return self;
 }
 
-+ (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSInteger)length {
++ (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
+    NSParameterAssert(indexes && length);
+    
     MPIndexPath *indexPath = [[self class] new];
     indexPath->_length = length;
     size_t size = length * sizeof(NSInteger);
@@ -129,7 +131,9 @@ _NSIntegerMalloc(size_t size) {
     return mutableIndexPath;
 }
 
-+ (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSInteger)length {
++ (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
+    NSParameterAssert(indexes && length);
+    
     MPMutableIndexPath *indexPath = [MPMutableIndexPath indexPath];
     [indexPath addIndexes:indexes length:length];
     return indexPath;
@@ -174,7 +178,7 @@ _NSIntegerMalloc(size_t size) {
     dispatch_semaphore_signal(_semaphore_lock);
 }
 
-- (void)addIndexes:(const NSInteger [])indexes length:(NSInteger)length {
+- (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
     dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
     
     if (length > _length + _reserved) {
@@ -191,11 +195,10 @@ _NSIntegerMalloc(size_t size) {
     dispatch_semaphore_signal(_semaphore_lock);
 }
 
-- (void)removeLastIndexes:(NSInteger)length {
-    if (length < 0 || length > _length) {
-        return;
-    }
+- (void)removeLastIndexes:(NSUInteger)length {
     dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
+    
+    NSParameterAssert(length <= _length);
     
     memset(_indexes + (_length -= length), 0, length * sizeof(NSInteger));
     _reserved += length;
@@ -218,13 +221,12 @@ _NSIntegerMalloc(size_t size) {
 }
 
 - (void)removeLastIndex {
-    if (_length <= 0) {
-        return;
-    }
     dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
     
-    _indexes[--_length] = 0;
-    _reserved++;
+    if (_length > 0) {
+        _indexes[--_length] = 0;
+        _reserved++;
+    }
     
     dispatch_semaphore_signal(_semaphore_lock);
 }
