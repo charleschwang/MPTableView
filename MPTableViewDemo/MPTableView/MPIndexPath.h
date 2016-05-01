@@ -18,7 +18,7 @@
 
 + (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length;
 - (NSInteger)indexAtPosition:(NSUInteger)position;
-- (NSInteger *)indexsAtRange:(NSRange)range;
+- (NSInteger *)indexsInRange:(NSRange)range;
 
 @end
 

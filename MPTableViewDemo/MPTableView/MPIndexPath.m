@@ -43,19 +43,19 @@ _NSIntegerMalloc(size_t size) {
 }
 
 - (NSInteger)indexAtPosition:(NSUInteger)position {
-    if (position >= _length) {
-        return NSNotFound;
-    }
+    NSParameterAssert(position < _length);
     return _indexes[position];
 }
 
-- (NSInteger *)indexsAtRange:(NSRange)range {
-    if (!range.length || NSMaxRange(range) > _length) {
+- (NSInteger *)indexsInRange:(NSRange)range {
+    NSParameterAssert(NSMaxRange(range) <= _length);
+    if (!range.length) {
         return NULL;
+    } else {
+        size_t size = range.length * sizeof(NSInteger);
+        NSInteger *indexs = _NSIntegerMalloc(size);
+        return memmove(indexs, _indexes + range.location, size);
     }
-    size_t size = range.length * sizeof(NSInteger);
-    NSInteger *indexs = _NSIntegerMalloc(size);
-    return memmove(indexs, _indexes + range.location, size);
 }
 
 - (NSUInteger)length {
@@ -77,15 +77,19 @@ _NSIntegerMalloc(size_t size) {
 - (id)copyWithZone:(NSZone *)zone {
     MPIndexPath *copyObj = [MPIndexPath allocWithZone:zone];
     copyObj->_length = _length;
-    size_t size = _length * sizeof(NSInteger);
-    copyObj->_indexes = _NSIntegerMalloc(size);
-    memmove(copyObj->_indexes, _indexes, size);
+    if (_length) {
+        size_t size = _length * sizeof(NSInteger);
+        copyObj->_indexes = _NSIntegerMalloc(size);
+        memmove(copyObj->_indexes, _indexes, size);
+    }
     return copyObj;
 }
 
 - (id)mutableCopyWithZone:(NSZone *)zone {
     MPMutableIndexPath *mutableCopyObj = [[MPMutableIndexPath allocWithZone:zone] init];
-    [mutableCopyObj addIndexPaths:self];
+    if (_length) {
+        [mutableCopyObj addIndexPaths:self];
+    }
     return mutableCopyObj;
 }
 
@@ -178,7 +182,7 @@ _NSIntegerMalloc(size_t size) {
         if (_reserved <= 0) {
             _reserved = _reservedStep;
         }
-        [self _reserve:_length + _reserved];
+        [self _reserve:_length + length + _reserved];
     }
     NSInteger *dest = _indexes + _length;
     memmove(dest, indexes, length * sizeof(NSInteger));
@@ -222,6 +226,38 @@ _NSIntegerMalloc(size_t size) {
     }
     
     dispatch_semaphore_signal(_semaphore_lock);
+}
+
+- (NSInteger *)indexsInRange:(NSRange)range {
+    NSInteger *indexs = NULL;
+    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
+    indexs = [super indexsInRange:range];
+    dispatch_semaphore_signal(_semaphore_lock);
+    return indexs;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    MPIndexPath *copyObj = nil;
+    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
+    copyObj = [super copyWithZone:zone];
+    dispatch_semaphore_signal(_semaphore_lock);
+    return copyObj;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    MPMutableIndexPath *mutableCopyObj = nil;
+    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
+    mutableCopyObj = [super mutableCopyWithZone:zone];
+    dispatch_semaphore_signal(_semaphore_lock);
+    return mutableCopyObj;
+}
+
+- (NSString*)description {
+    NSString *description;
+    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
+    description = [super description];
+    dispatch_semaphore_signal(_semaphore_lock);
+    return description;
 }
 
 @end
