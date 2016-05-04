@@ -93,7 +93,6 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationBottom,
     MPTableViewRowAnimationMiddle,
     MPTableViewRowAnimationNone,
-    MPTableViewRowAnimationCustom, // custom animations in insertion or deletion
     MPTableViewRowAnimationRandom = 100
 };
 

@@ -161,22 +161,26 @@ _NSIntegerMalloc(size_t size) {
 - (void)addIndexPaths:(MPIndexPath *)indexPath {
     dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
     
-    if ([indexPath length] > _length + _reserved) {
-        if (_reserved <= 0) {
-            _reserved = _reservedStep;
+    if ([indexPath length]) {
+        if ([indexPath length] > _length + _reserved) {
+            if (_reserved <= 0) {
+                _reserved = _reservedStep;
+            }
+            [self _reserve:_length + [indexPath length] + _reserved];
         }
-        [self _reserve:_length + [indexPath length] + _reserved];
+        NSInteger *dest = _indexes + _length;
+        memmove(dest, indexPath->_indexes, [indexPath length] * sizeof(NSInteger));
+        
+        _length += [indexPath length];
     }
-    NSInteger *dest = _indexes + _length;
-    memmove(dest, indexPath->_indexes, [indexPath length] * sizeof(NSInteger));
-    
-    _length += [indexPath length];
     
     dispatch_semaphore_signal(_semaphore_lock);
 }
 
 - (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
     dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
+    
+    NSParameterAssert(indexes && length);
     
     if (length > _length + _reserved) {
         if (_reserved <= 0) {
