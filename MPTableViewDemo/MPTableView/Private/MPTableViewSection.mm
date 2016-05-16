@@ -62,13 +62,15 @@ public:
     NSInteger index, originIndex;
 };
 
+typedef vector<MPTableViewUpdateNode> MPTableViewUpdateNodesVec;
+
 NS_INLINE bool
 _mpUpdateSort(const MPTableViewUpdateNode _first_, const MPTableViewUpdateNode _second_) {
     return _first_.index < _second_.index;
 }
 
 //NS_INLINE void
-//_mpUpdateSwap(vector<MPTableViewUpdateNode> *__vec, NSInteger __first, NSInteger __second) {
+//_mpUpdateSwap(MPTableViewUpdateNodesVec *__vec, NSInteger __first, NSInteger __second) {
 //    MPTableViewUpdateNode temp = __vec->at(__first);
 //    __vec->at(__first) = __vec->at(__second);
 //    __vec->at(__second) = temp;
@@ -97,54 +99,54 @@ _MPUpdateMove(vector<_Vec_update> *__vector, NSInteger __preIndex, NSInteger __c
 
 template <class _Vec_update>
 void
-_converge(vector<_Vec_update> *__updateVec) {
-    sort(__updateVec->begin(), __updateVec->end(), _mpUpdateSort);
+_converge(vector<_Vec_update> *__updateNodesVec) {
+    sort(__updateNodesVec->begin(), __updateNodesVec->end(), _mpUpdateSort);
     NSInteger __backTracking = 0;
     NSInteger __step = 0;
-    NSUInteger __count = __updateVec->size();
+    NSUInteger __count = __updateNodesVec->size();
     
     // make no duplicate nodes
-    for (NSInteger i = 0; i < __count; i++) {
-        _Vec_update *_cellNode = &(*__updateVec)[i];
+    for (NSInteger i = 0; i < __count; ++i) {
+        _Vec_update *_cellNode = &(*__updateNodesVec)[i];
         if (_cellNode->updateType == MPTableViewUpdateAdjust) {
             continue;
         }
         if (MPTableViewUpdateTypeUnstable(_cellNode->updateType)) { // unstable
             _cellNode->index += __step;
             if (_cellNode->updateType != MPTableViewUpdateReload) {
-                __step--;
+                --__step;
             }
             while (__backTracking < i) {
-                _Vec_update *_backTrackingNode = &(*__updateVec)[__backTracking];
+                _Vec_update *_backTrackingNode = &(*__updateNodesVec)[__backTracking];
                 if (MPTableViewUpdateTypeStable(_backTrackingNode->updateType)) { //
                     if (_cellNode->index >= _backTrackingNode->index) { // unstable >= stable
-                        _cellNode->index++;
-                        __step++;
+                        ++_cellNode->index;
+                        ++__step;
                     } else { //
-                        _MPUpdateMove(__updateVec, i, __backTracking);
-                        __backTracking++;
+                        _MPUpdateMove(__updateNodesVec, i, __backTracking);
+                        ++__backTracking;
                         break;
                     }
-                    __backTracking++;
+                    ++__backTracking;
                 } else {
                     break;
                 }
             }
         } else { // stable
             while (__backTracking < i) {
-                _Vec_update *_backTrackingNode = &(*__updateVec)[__backTracking];
+                _Vec_update *_backTrackingNode = &(*__updateNodesVec)[__backTracking];
                 if (MPTableViewUpdateTypeUnstable(_backTrackingNode->updateType)) {
                     if (_cellNode->index <= _backTrackingNode->index) { // stable <= unstable
-                        _MPUpdateMove(__updateVec, i, __backTracking);
-                        __step++;
+                        _MPUpdateMove(__updateNodesVec, i, __backTracking);
+                        ++__step;
                         NSInteger temp = ++__backTracking;
                         do {
-                            _cellNode = &(*__updateVec)[temp++];
-                            _cellNode->index++;
+                            _cellNode = &(*__updateNodesVec)[temp++];
+                            ++_cellNode->index;
                         } while (temp <= i);
                         break;
                     }
-                    __backTracking++;
+                    ++__backTracking;
                 } else {
                     break;
                 }
@@ -153,51 +155,57 @@ _converge(vector<_Vec_update> *__updateVec) {
     }
 }
 
-NS_INLINE vector<MPTableViewUpdateNode>::iterator
-__rowReverseFindInsert(vector<MPTableViewUpdateNode>::iterator __first, vector<MPTableViewUpdateNode>::iterator __last) {
-    for (; __first != __last; ++__first) {
-        if (MPTableViewUpdateTypeStable(__first->updateType)) {
-            return __first;
+static bool
+_updateNodesReverseBoundCheck(MPTableViewUpdateNodesVec *_updateNodesVec, NSUInteger _count, bool _isStable) {
+    MPTableViewUpdateNodesVec::reverse_iterator _rlast = _updateNodesVec->rend();
+    for (MPTableViewUpdateNodesVec::reverse_iterator _rfirst = _updateNodesVec->rbegin(); _rfirst != _rlast; ++_rfirst) {
+        if (_isStable) {
+            if (MPTableViewUpdateTypeStable(_rfirst->updateType)) {
+                return _rfirst->index < _count;
+            }
+        } else {
+            if (MPTableViewUpdateTypeUnstable(_rfirst->updateType)) {
+                return _rfirst->originIndex < _count;
+            }
         }
     }
-    return __last;
+    return YES;
 }
 
 @implementation MPTableViewUpdateBase {
 @public
-    vector<MPTableViewUpdateNode> *_updateVec;
+    MPTableViewUpdateNodesVec *_updateNodesVec;
 }
 
 - (instancetype)init {
     if (self = [super init]) {
-        _existingIndexs = [NSMutableIndexSet indexSet];
+        _existingStableIndexs = [NSMutableIndexSet indexSet];
+        _existingUnstableIndexs = [NSMutableIndexSet indexSet];
         _differ = 0;
-        _maxIndexCount = NSNotFound;
-        _updateVec = new vector<MPTableViewUpdateNode>();
+        _newCount = NSNotFound;
+        _originCount = NSNotFound;
+        _updateNodesVec = new MPTableViewUpdateNodesVec();
     }
     return self;
 }
 
 - (BOOL)formatNodesStable {
-    if (_updateVec->size() == 0) {
+    if (_updateNodesVec->size() == 0) {
         return YES;
     }
-    _converge(_updateVec);
+    _converge(_updateNodesVec);
     
-    vector<MPTableViewUpdateNode>::iterator lastInsertNode = __rowReverseFindInsert(_updateVec->begin(), _updateVec->end());
-    if (lastInsertNode != _updateVec->end() && lastInsertNode->index + _differ > self.maxIndexCount) {
+    if (self.originCount + _differ != self.newCount) {
         return NO;
-    }
-    if (self.originCount + _differ != self.maxIndexCount) {
-        return NO;
-    } else {
-        return YES;
+    } else {        
+        return _updateNodesReverseBoundCheck(_updateNodesVec, self.originCount, NO) && _updateNodesReverseBoundCheck(_updateNodesVec, self.newCount, YES);
     }
 }
 
 - (void)dealloc {
-    delete _updateVec;
-    _existingIndexs = nil;
+    delete _updateNodesVec;
+    _updateNodesVec = NULL;
+    _existingUnstableIndexs = _existingStableIndexs = nil;
 }
 
 @end
@@ -208,6 +216,7 @@ class MPTableViewSectionIndex {
 public:
     MPTableViewSection *section;
     NSInteger originIndex;
+    
     ~MPTableViewSectionIndex() {
         section = nil;
     }
@@ -215,12 +224,14 @@ public:
 
 @implementation MPTableViewUpdateManager {
     NSMutableIndexSet *_existingUpdatePartsIndexs;
+    
     map<NSInteger, MPTableViewSectionIndex> _moveOutSectionsMap;
 }
 
 - (instancetype)init {
     if (self = [super init]) {
         _existingUpdatePartsIndexs = [NSMutableIndexSet indexSet];
+        
         _moveOutSectionsMap = map<NSInteger, MPTableViewSectionIndex>();
     }
     return self;
@@ -233,21 +244,31 @@ public:
     return result;
 }
 
-- (NSUInteger)maxIndexCount {
-    if ([super maxIndexCount] == NSNotFound) {
-        [super setMaxIndexCount:_delegate.numberOfSections];
+- (NSUInteger)newCount {
+    if ([super newCount] == NSNotFound) { // @optional
+        [super setNewCount:[_delegate numberOfSections]];
     }
-    return [super maxIndexCount];
+    return [super newCount];
+}
+
+- (NSUInteger)originCount {
+    if ([super originCount] == NSNotFound) {
+        [super setOriginCount:_sections.count];
+    }
+    return [super originCount];
 }
 
 - (void)resetManager {
-    _updateVec->clear();
+    _updateNodesVec->clear();
     _moveOutSectionsMap.clear();
+    
+    [_existingStableIndexs removeAllIndexes];
+    [_existingUnstableIndexs removeAllIndexes];
     [_existingUpdatePartsIndexs removeAllIndexes];
-    [_existingIndexs removeAllIndexes];
+    
     _differ = 0;
     _isUpdating = NO;
-    self.maxIndexCount = NSNotFound;
+    self.originCount = self.newCount = NSNotFound;
 }
 
 - (void)dealloc {
@@ -258,37 +279,34 @@ public:
 }
 
 - (BOOL)addMoveOutSection:(NSUInteger)section {
-    if (section >= _sections.count) {
-        return NO;
-    }
-    if ([_existingIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
+    if ([_existingUnstableIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:section];
-        _differ--;
+        [_existingUnstableIndexs addIndex:section];
+        --_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = section;
     node.updateType = MPTableViewUpdateMoveOut;
     node.originIndex = section;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     return YES;
 }
 
 - (BOOL)addMoveInSection:(NSUInteger)section withOriginIndex:(NSInteger)originSection {
-    if ([_existingIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
+    if ([_existingStableIndexs containsIndex:section]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:section];
-        _differ++;
+        [_existingStableIndexs addIndex:section];
+        ++_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = section;
     node.updateType = MPTableViewUpdateMoveIn;
     node.originIndex = section;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     
     MPTableViewSectionIndex sectionIndex = MPTableViewSectionIndex();
     sectionIndex.section = _sections[originSection];
@@ -298,14 +316,11 @@ public:
 }
 
 - (BOOL)addDeleteSection:(NSUInteger)section withAnimation:(MPTableViewRowAnimation)animation {
-    if (section >= _sections.count) {
-        return NO;
-    }
-    if ([_existingIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
+    if ([_existingUnstableIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:section];
-        _differ--;
+        [_existingUnstableIndexs addIndex:section];
+        --_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = section;
@@ -313,16 +328,16 @@ public:
     node.animation = animation;
     node.originIndex = section;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     return YES;
 }
 
 - (BOOL)addInsertSection:(NSUInteger)section withAnimation:(MPTableViewRowAnimation)animation {
-    if ([_existingIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
+    if ([_existingStableIndexs containsIndex:section]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:section];
-        _differ++;
+        [_existingStableIndexs addIndex:section];
+        ++_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = section;
@@ -330,18 +345,15 @@ public:
     node.animation = animation;
     node.originIndex = section;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     return YES;
 }
 
 - (BOOL)addReloadSection:(NSUInteger)section withAnimation:(MPTableViewRowAnimation)animation {
-    if (section >= _sections.count) {
-        return NO;
-    }
-    if ([_existingIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
+    if ([_existingUnstableIndexs containsIndex:section] || [_existingUpdatePartsIndexs containsIndex:section]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:section];
+        [_existingUnstableIndexs addIndex:section];
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = section;
@@ -349,7 +361,7 @@ public:
     node.animation = animation;
     node.originIndex = section;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     return YES;
 }
 
@@ -358,7 +370,7 @@ public:
     MPTableViewSection *section = _sections[index];
     MPTableViewUpdatePart *part = section.updatePart;
     if (!part) {
-        part = [MPTableViewUpdatePart partWithIndexCount:[_delegate.dataSource MPTableView:_delegate numberOfRowsInSection:index]];
+        part = [MPTableViewUpdatePart new];
         part.originCount = section.numberOfRows;
         section.updatePart = part;
         [_existingUpdatePartsIndexs addIndex:index];
@@ -367,93 +379,51 @@ public:
 }
 
 - (BOOL)addMoveOutIndexPath:(MPIndexPath *)indexPath {
-    if (indexPath.section >= _sections.count || [_existingIndexs containsIndex:indexPath.section]) {
+    if ([_existingUnstableIndexs containsIndex:indexPath.section]) {
         return NO;
     }
     MPTableViewUpdatePart *part = [self getPartAt:indexPath.section];
-    MPTableViewSection *currSection = _sections[indexPath.section];
-    if (indexPath.row >= currSection.numberOfRows) {
-        return NO;
-    } else {
-        return [part addMoveOutRow:indexPath.row];
-    }
+    return [part addMoveOutRow:indexPath.row];
 }
 
 - (BOOL)addMoveInIndexPath:(MPIndexPath *)indexPath withHeight:(CGFloat)height withOriginIndexPath:(MPIndexPath *)originIndexPath {
-    if ([_existingIndexs containsIndex:indexPath.section]) {
+    if ([_existingUnstableIndexs containsIndex:indexPath.section]) {
         return NO;
     }
     MPTableViewUpdatePart *part = [self getPartAt:indexPath.section];
-    MPTableViewSection *currSection = _sections[indexPath.section];
-    if (indexPath.row >= currSection.numberOfRows) {
-        return NO;
-    } else {
-        return [part addMoveInRow:indexPath.row withHeight:height withOriginIndexPath:originIndexPath];
-    }
+    return [part addMoveInRow:indexPath.row withHeight:height withOriginIndexPath:originIndexPath];
 }
 
 - (BOOL)addDeleteIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
-    if (indexPath.section >= _sections.count || [_existingIndexs containsIndex:indexPath.section]) {
+    if ([_existingUnstableIndexs containsIndex:indexPath.section]) {
         return NO;
     }
     MPTableViewUpdatePart *part = [self getPartAt:indexPath.section];
-    MPTableViewSection *currSection = _sections[indexPath.section];
-    if (indexPath.row >= currSection.numberOfRows) {
-        return NO;
-    } else {
-        return [part addDeleteRow:indexPath.row withAnimation:animation];
-    }
+    return [part addDeleteRow:indexPath.row withAnimation:animation];
 }
 
 - (BOOL)addInsertIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
-    if ([_existingIndexs containsIndex:indexPath.section]) {
+    if ([_existingUnstableIndexs containsIndex:indexPath.section]) {
         return NO;
     }
     MPTableViewUpdatePart *part = [self getPartAt:indexPath.section];
-    MPTableViewSection *currSection = _sections[indexPath.section];
-    if (indexPath.row >= currSection.numberOfRows) {
-        return NO;
-    } else {
-        return [part addInsertRow:indexPath.row withAnimation:animation];
-    }
+    return [part addInsertRow:indexPath.row withAnimation:animation];
 }
 
 - (BOOL)addReloadIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
-    if (indexPath.section >= _sections.count || [_existingIndexs containsIndex:indexPath.section]) {
+    if ([_existingUnstableIndexs containsIndex:indexPath.section]) {
         return NO;
     }
     MPTableViewUpdatePart *part = [self getPartAt:indexPath.section];
-    MPTableViewSection *currSection = _sections[indexPath.section];
-    if (indexPath.row >= currSection.numberOfRows) {
-        return NO;
-    } else {
-        return [part addReloadRow:indexPath.row withAnimation:animation];
-    }
-}
-
-- (BOOL)formatNodesStable {
-    __block BOOL result = YES;
-    [_existingUpdatePartsIndexs enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL *stop) {
-        MPTableViewSection *section = _sections[idx];
-        if (![section.updatePart formatNodesStable]) {
-            result = NO;
-            *stop = YES;
-        }
-    }];
-    if (result) {
-        self.originCount = _sections.count;
-        return [super formatNodesStable];
-    } else {
-        return NO;
-    }
+    return [part addReloadRow:indexPath.row withAnimation:animation];
 }
 
 - (CGFloat)startUpdate {
     _isUpdating = YES;
     CGFloat offset = 0;
-    NSUInteger sectionCount = _sections.count;
+    NSUInteger sectionCount = self.originCount;
     
-    vector<MPTableViewUpdateNode> *nodes = _updateVec;
+    MPTableViewUpdateNodesVec *nodes = _updateNodesVec;
     NSInteger index = 0, step = 0;
     NSUInteger indexCount = nodes->size();
     for (NSInteger i = 0; i < indexCount; i++) {
@@ -465,6 +435,10 @@ public:
                 isNeedCallback = isNeedCallback && section.section < node.originIndex;
             }
             if (section.updatePart) {
+                [section updatePart].newCount = [_delegate.dataSource MPTableView:_delegate numberOfRowsInSection:j];
+                
+                NSAssert([section.updatePart formatNodesStable], @"check for update indexpaths");
+                
                 offset = [section updateUsingPartWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
             } else {
                 [section updateWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
@@ -558,6 +532,10 @@ public:
         }
         BOOL isNeedCallback = [self.delegate updateNeedToAnimateSection:section updateType:MPTableViewUpdateAdjust andOffset:offset];
         if (section.updatePart) {
+            [section updatePart].newCount = [_delegate.dataSource MPTableView:_delegate numberOfRowsInSection:j];
+            
+            NSAssert([section.updatePart formatNodesStable], @"check for update indexpaths");
+            
             offset = [section updateUsingPartWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
         } else {
             [section updateWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
@@ -592,40 +570,34 @@ public:
     _moveOutHeightsMap.clear();
 }
 
-+ (MPTableViewUpdatePart *)partWithIndexCount:(NSInteger)indexCount {
-    MPTableViewUpdatePart *part = [MPTableViewUpdatePart new];
-    part.maxIndexCount = indexCount;
-    return part;
-}
-
 - (BOOL)addMoveOutRow:(NSUInteger)row {
-    if ([_existingIndexs containsIndex:row]) {
+    if ([_existingUnstableIndexs containsIndex:row]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:row];
-        _differ--;
+        [_existingUnstableIndexs addIndex:row];
+        --_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = row;
     node.updateType = MPTableViewUpdateMoveOut;
     node.originIndex = row;
     
-    _updateVec->push_back(node);    
+    _updateNodesVec->push_back(node);
     return YES;
 }
 
 - (BOOL)addMoveInRow:(NSUInteger)row withHeight:(CGFloat)height withOriginIndexPath:(MPIndexPath *)originIndexPath {
-    if ([_existingIndexs containsIndex:row]) {
+    if ([_existingStableIndexs containsIndex:row]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:row];
-        _differ++;
+        [_existingStableIndexs addIndex:row];
+        ++_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.originIndex = node.index = row;
     
     node.updateType = MPTableViewUpdateMoveIn;
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     
     MPTableViewHeightIndexPath indexPathHeight = MPTableViewHeightIndexPath();
     indexPathHeight.indexPath = originIndexPath;
@@ -635,11 +607,11 @@ public:
 }
 
 - (BOOL)addDeleteRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation {
-    if ([_existingIndexs containsIndex:row]) {
+    if ([_existingUnstableIndexs containsIndex:row]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:row];
-        _differ--;
+        [_existingUnstableIndexs addIndex:row];
+        --_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = row;
@@ -647,16 +619,16 @@ public:
     node.animation = animation;
     node.originIndex = row;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     return YES;
 }
 
 - (BOOL)addInsertRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation {
-    if ([_existingIndexs containsIndex:row]) {
+    if ([_existingStableIndexs containsIndex:row]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:row];
-        _differ++;
+        [_existingStableIndexs addIndex:row];
+        ++_differ;
     }
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = row;
@@ -664,26 +636,26 @@ public:
     node.animation = animation;
     node.originIndex = row;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     return YES;
 }
 
 - (BOOL)addReloadRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation {
-    if ([_existingIndexs containsIndex:row]) {
+    if ([_existingUnstableIndexs containsIndex:row]) {
         return NO;
     } else {
-        [_existingIndexs addIndex:row];
+        [_existingUnstableIndexs addIndex:row];
     }
-    
     MPTableViewUpdateNode node = MPTableViewUpdateNode();
     node.index = row;
     node.updateType = MPTableViewUpdateReload;
     node.animation = animation;
     node.originIndex = row;
     
-    _updateVec->push_back(node);
+    _updateNodesVec->push_back(node);
     return YES;
 }
+
 @end
 
 #pragma mark -
@@ -718,7 +690,8 @@ public:
 }
 
 - (void)setNumberOfRows:(NSUInteger)numberOfRows {
-    _rowPositionVec->reserve(_numberOfRows = numberOfRows);
+    _numberOfRows = numberOfRows;
+    _rowPositionVec->reserve(numberOfRows + 1);
     _rowPositionVec->at(0) = self.beginPos + _headerHeight;
 }
 
@@ -746,7 +719,7 @@ public:
         return MPSectionTypeFooter;
     }
     NSInteger __start = 0;
-    NSInteger __end = _rowPositionVec->size() - 1;
+    NSInteger __end = _numberOfRows; // _rowPositionVec->size() - 1;
     NSInteger __middle = 0;
     while (__start <= __end) {
         __middle = (__start + __end) / 2;
@@ -781,7 +754,7 @@ public:
 - (void)setPositionOffset:(CGFloat)offset {
     self.beginPos += offset;
     self.endPos += offset;
-    for (NSInteger i = 0; i <= _numberOfRows; i++) {
+    for (NSInteger i = 0; i <= _numberOfRows; ++i) {
         (*_rowPositionVec)[i] += offset;
     }
 }
@@ -794,8 +767,8 @@ public:
     CGFloat originSection = self.section;
     self.section = newSection;
     CGFloat headerOffset = offset;
-
-    vector<MPTableViewUpdateNode> *nodes = part->_updateVec;
+    
+    MPTableViewUpdateNodesVec *nodes = part->_updateNodesVec;
     NSInteger index = 1, step = 0;
     NSUInteger indexCount = nodes->size();
     for (NSInteger i = 0; i < indexCount; i++) {
@@ -880,7 +853,10 @@ public:
         [updateDelegate updateExchangeSectionViewAtIndex:originSection toIndex:newSection withType:MPSectionTypeHeader withSectionOffset:headerOffset];
         [updateDelegate updateExchangeSectionViewAtIndex:originSection toIndex:newSection withType:MPSectionTypeFooter withSectionOffset:offset];
     }
+    
+    _numberOfRows = self.updatePart.newCount;
     self.updatePart = nil; //
+    
     return offset;
 }
 
@@ -891,7 +867,7 @@ public:
     CGFloat originSection = self.section;
     self.section = newSection;
     
-    for (NSUInteger i = 0; i < _numberOfRows; i++) {
+    for (NSUInteger i = 0; i < _numberOfRows; ++i) {
         (*_rowPositionVec)[i + 1] += offset;
         
         [updateDelegate updateSection:newSection originSection:originSection exchangeCellAtIndex:i toIndex:i];

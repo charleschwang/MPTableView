@@ -105,7 +105,6 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 @property (nonatomic, readonly) MPTableViewStyle style;
 @property (nonatomic, weak) id<MPTableViewDataSource> dataSource;
 @property (nonatomic, weak) id<MPTableViewDelegate> delegate;
-@property (nonatomic) NSUInteger numberOfSections;
 
 @property (nonatomic) CGFloat rowHeight; // will return the default value if unset
 @property (nonatomic) CGFloat sectionHeaderHeight;
@@ -121,6 +120,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 - (MPIndexPath *)indexPathForRowAtPoint:(CGPoint)point;
 
+- (NSUInteger)numberOfSections;
 - (NSUInteger)numberOfRowsInSection:(NSInteger)section;
 
 - (MPTableViewCell *)cellForRowAtIndexPath:(MPIndexPath *)indexPath;

@@ -36,13 +36,15 @@ typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
 
 @interface MPTableViewUpdateBase : NSObject {
 @package
-    NSMutableIndexSet *_existingIndexs;
+    NSMutableIndexSet *_existingStableIndexs;
+    NSMutableIndexSet *_existingUnstableIndexs;
+
     NSInteger _differ;
 }
 @property (nonatomic, assign) NSUInteger originCount;
-@property (nonatomic, assign) NSUInteger maxIndexCount;
+@property (nonatomic, assign) NSUInteger newCount;
 
-- (BOOL)formatNodesStable; // eg. a 5 cells section, it is unable to insert 5 after delete 0 and 1
+- (BOOL)formatNodesStable; // For example, a section with 5 cells, it is unable to insert 5 after delete 0 and 1
 
 @end
 
@@ -108,8 +110,6 @@ typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
 #pragma mark -
 
 @interface MPTableViewUpdatePart : MPTableViewUpdateBase
-
-+ (MPTableViewUpdatePart *)partWithIndexCount:(NSInteger)indexCount;
 
 - (BOOL)addMoveOutRow:(NSUInteger)row;
 - (BOOL)addMoveInRow:(NSUInteger)row withHeight:(CGFloat)height withOriginIndexPath:(MPIndexPath *)originIndexPath;

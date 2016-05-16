@@ -75,12 +75,12 @@
 }
 
 - (void)tableViewDelete {
-    self.tableView.numberOfSections = --self.sectionCount;
+    --self.sectionCount;
     [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
 }
 
 - (void)tableViewInsert {
-    self.tableView.numberOfSections = ++self.sectionCount;
+    ++self.sectionCount;
     [self.tableView insertSections:[NSIndexSet indexSetWithIndex:self.sectionCount - 1] withRowAnimation:MPTableViewRowAnimationRandom];
 }
 
