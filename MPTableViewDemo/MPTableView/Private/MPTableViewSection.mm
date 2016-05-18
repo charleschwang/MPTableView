@@ -670,12 +670,12 @@ public:
 
 - (instancetype)init {
     if (self = [super init]) {
-        [self resetData];
+        [self resetSection];
     }
     return self;
 }
 
-- (void)resetData {
+- (void)resetSection {
     if (!_rowPositionVec) {
         _rowPositionVec = new vector<CGFloat>();
     }

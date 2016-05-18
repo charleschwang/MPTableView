@@ -2001,7 +2001,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         MPTableViewSection *section;
         if (i < sectionsCount && !newSections) {
             section = _sectionsAreaList[i];
-            [section resetData];
+            [section resetSection];
         } else {
             section = [MPTableViewSection section];
         }

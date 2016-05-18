@@ -98,7 +98,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @interface MPTableView : UIScrollView
 
-- (instancetype)initWithFrame:(CGRect)frame style:(MPTableViewStyle)style NS_DESIGNATED_INITIALIZER;// must specify style at creation. -initWithFrame: calls this with UITableViewStylePlain
+- (instancetype)initWithFrame:(CGRect)frame style:(MPTableViewStyle)style NS_DESIGNATED_INITIALIZER;// must specify style at creation. -initWithFrame: calls this with MPTableViewStylePlain
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder NS_DESIGNATED_INITIALIZER;
 

@@ -131,7 +131,7 @@ typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
 @property (nonatomic, weak) MPTableViewUpdatePart *updatePart;
 
 + (instancetype)section;
-- (void)resetData;
+- (void)resetSection;
 
 - (void)addRowWithPosition:(CGFloat)position;
 - (CGFloat)rowPositionBeginAt:(NSInteger)index;

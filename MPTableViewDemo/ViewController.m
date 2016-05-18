@@ -62,10 +62,10 @@
 - (void)showMenuAction:(UIButton *)sender {
     [self becomeFirstResponder];
     UIMenuController *menuController = [UIMenuController sharedMenuController];
-    [menuController setMenuItems:@[[[UIMenuItem alloc]initWithTitle:@"插入" action:@selector(tableViewInsert)],
-                                   [[UIMenuItem alloc]initWithTitle:@"删除" action:@selector(tableViewDelete)],
-                                   [[UIMenuItem alloc]initWithTitle:@"重组" action:@selector(tableViewUpdate)],
-                                   [[UIMenuItem alloc]initWithTitle:@"异步缓存高度" action:@selector(tableViewReload)]]];
+    [menuController setMenuItems:@[[[UIMenuItem alloc]initWithTitle:@"insert" action:@selector(tableViewInsert)],
+                                   [[UIMenuItem alloc]initWithTitle:@"delete" action:@selector(tableViewDelete)],
+                                   [[UIMenuItem alloc]initWithTitle:@"update" action:@selector(tableViewUpdate)],
+                                   [[UIMenuItem alloc]initWithTitle:@"async reloadData" action:@selector(tableViewReload)]]];
     [menuController setTargetRect:CGRectMake(0, 0, 0, 0) inView:sender];
     [menuController setMenuVisible:YES animated:YES];
 }
