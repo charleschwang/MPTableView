@@ -118,7 +118,8 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (CGRect)rectForFooterInSection:(NSInteger)section;
 - (CGRect)rectForRowAtIndexPath:(MPIndexPath *)indexPath;
 
-- (MPIndexPath *)indexPathForRowAtPoint:(CGPoint)point;
+- (MPIndexPath *)indexPathForRowAtPoint:(CGPoint)point; // returns nil if point is outside of any row in the table
+- (NSUInteger)indexForSectionAtPoint:(CGPoint)point; // returns NSNotFound if point is outside of any section in the table
 
 - (NSUInteger)numberOfSections;
 - (NSUInteger)numberOfRowsInSection:(NSInteger)section;

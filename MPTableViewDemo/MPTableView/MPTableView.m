@@ -724,12 +724,20 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     if (point.y < _contentDrawArea.beginPos || point.y > _contentDrawArea.endPos) {
         return nil;
     } else {
-        MPIndexPath *indexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:(point.y)]];
+        MPIndexPath *indexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:(point.y - _contentDrawArea.beginPos)]];
         if (indexPath.row == MPSectionTypeHeader || indexPath.row == MPSectionTypeFooter) {
             return nil;
         } else {
             return indexPath;
         }
+    }
+}
+
+- (NSUInteger)indexForSectionAtPoint:(CGPoint)point {
+    if (point.y < _contentDrawArea.beginPos || point.y > _contentDrawArea.endPos) {
+        return NSNotFound;
+    } else {
+        return [self _sectionIndexAtContentOffset:point.y - _contentDrawArea.beginPos];
     }
 }
 
