@@ -104,6 +104,7 @@ MPCompareIndexPath(MPIndexPathStruct first, MPIndexPathStruct second) {
 }
 
 - (NSComparisonResult)compare:(MPIndexPath *)indexPath {
+    NSParameterAssert(self && indexPath);
     return MPCompareIndexPath([self structIndexPath], [indexPath structIndexPath]);
 }
 
@@ -796,16 +797,30 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     return _selectedIndexPaths.anyObject;
 }
 
+- (NSArray *)indexPathsForSelectedRows {
+    return [_selectedIndexPaths allObjects];
+}
+
 - (void)selectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated scrollPosition:(MPTableViewScrollPosition)scrollPosition {
-    [_selectedIndexPaths addObject:indexPath];
-    [self scrollToRowAtIndexPath:indexPath atScrollPosition:scrollPosition animated:animated];
+    
     MPTableViewCell *cell = [_displayedCellsDic objectForKey:indexPath];
     if (_respond_willSelectCellAtIndexPath) {
-        [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:indexPath];
+        MPIndexPath *newIndexPath = [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:indexPath];
+        if (!newIndexPath) {
+            return;
+        }
+        if (![indexPath isEqual:newIndexPath]) {
+            cell = [_displayedCellsDic objectForKey:indexPath = [newIndexPath copy]];
+        }
     }
+    [_selectedIndexPaths addObject:indexPath];
+
     if (cell) {
         [cell setSelected:YES];
     }
+    
+    [self scrollToRowAtIndexPath:indexPath atScrollPosition:scrollPosition animated:animated];
+    
     if (_respond_didSelectCellAtIndexPath) {
         [_mpDelegate MPTableView:self didSelectCell:cell atIndexPath:indexPath];
     }
@@ -830,7 +845,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
     MPTableViewCell *selectedCell = [_displayedCellsDic objectForKey:indexPath];
     if (_respond_willDeselectRowAtIndexPath) {
-        [_mpDelegate MPTableView:self willDeselectRowAtIndexPath:indexPath];
+        MPIndexPath *newIndexPath = [_mpDelegate MPTableView:self willDeselectRowAtIndexPath:indexPath];
+        if (!newIndexPath) {
+            return;
+        }
+        if (![newIndexPath isEqual:indexPath]) {
+            selectedCell = [_displayedCellsDic objectForKey:indexPath = [newIndexPath copy]];
+        }
     }
     if (selectedCell) {
         [selectedCell setSelected:NO animated:animated];
@@ -2611,18 +2632,19 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             return;
         }
         
+        if (_respond_shouldHighlightRowAtIndexPath && ![_mpDelegate MPTableView:self shouldHighlightRowAtIndexPath:highlightedIndexPath]) {
+            return;
+        }
+        
         MPTableViewCell *cell = [_displayedCellsDic objectForKey:_highlightedIndexPath = highlightedIndexPath];
         if (!cell) {
             return;
-        }
-        if (_respond_shouldHighlightRowAtIndexPath) {
-            [_mpDelegate MPTableView:self shouldHighlightRowAtIndexPath:[highlightedIndexPath copy]];
         }
         if (![cell isHighlighted]) {
             [cell setHighlighted:YES];
         }
         if (_respond_didHighlightRowAtIndexPath) {
-            [_mpDelegate MPTableView:self didHighlightRowAtIndexPath:[highlightedIndexPath copy]];
+            [_mpDelegate MPTableView:self didHighlightRowAtIndexPath:highlightedIndexPath];
         }
     }
 }
@@ -2649,6 +2671,18 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         if (!cell) {
             return;
         }
+        MPTableViewCell *highlightedCell = cell;
+
+        if (_respond_willSelectCellAtIndexPath) {
+            MPIndexPath *indexPath = [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:[_highlightedIndexPath copy]];
+            if (!indexPath) {
+                goto UNHIGHLIGHT;
+            }
+            if (![_highlightedIndexPath isEqual:indexPath]) {
+                cell = [_displayedCellsDic objectForKey:_highlightedIndexPath = [indexPath copy]];
+            }
+        }
+        
         if (_allowsMultipleSelection && [_selectedIndexPaths containsObject:_highlightedIndexPath]) {
             [self _deselectRowAtIndexPath:_highlightedIndexPath animated:NO];
         } else {
@@ -2656,16 +2690,16 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [self _deselectRowAtIndexPath:_selectedIndexPaths.anyObject animated:NO];
             }
             [_selectedIndexPaths addObject:_highlightedIndexPath];
-            if (_respond_willSelectCellAtIndexPath) {
-                [_mpDelegate MPTableView:self willSelectCell:cell atIndexPath:[_highlightedIndexPath copy]];
-            }
+            
             [cell setSelected:YES];
             if (_respond_didSelectCellAtIndexPath) {
                 [_mpDelegate MPTableView:self didSelectCell:cell atIndexPath:[_highlightedIndexPath copy]];
             }
         }
-        if ([cell isHighlighted]) {
-            [cell setHighlighted:NO];
+        
+    UNHIGHLIGHT:
+        if ([highlightedCell isHighlighted]) {
+            [highlightedCell setHighlighted:NO];
         }
         if (_respond_didUnhighlightRowAtIndexPath) {
             [_mpDelegate MPTableView:self didUnhighlightRowAtIndexPath:[_highlightedIndexPath copy]];

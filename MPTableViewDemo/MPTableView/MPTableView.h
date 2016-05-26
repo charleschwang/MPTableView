@@ -40,6 +40,8 @@
 - (void)MPTableView:(MPTableView *)tableView didSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
 - (void)MPTableView:(MPTableView *)tableView didDeselectRowAtIndexPath:(MPIndexPath *)indexPath;
 
+// -MPTableView:shouldHighlightRowAtIndexPath: is called when a touch comes down on a row.
+// Returning NO to that message halts the selection process and does not cause the currently selected row to lose its selected look while the touch is down.
 - (BOOL)MPTableView:(MPTableView *)tableView shouldHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
 - (void)MPTableView:(MPTableView *)tableView didHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
 - (void)MPTableView:(MPTableView *)tableView didUnhighlightRowAtIndexPath:(MPIndexPath *)indexPath;
@@ -162,8 +164,6 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 - (void)beginUpdates; // allow multiple insert/delete of rows and sections to be animated simultaneously. Nestable
 - (void)endUpdates; // only call insert/delete/reload calls or sections inside an update block.  otherwise things like row count, etc. may be invalid.
-
-// indexPaths/sections must not be duplicated
 
 - (void)deleteSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation;
 - (void)insertSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation;
