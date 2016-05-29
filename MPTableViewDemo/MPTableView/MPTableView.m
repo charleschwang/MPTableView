@@ -10,21 +10,21 @@
 #import "MPTableViewSection.h"
 
 //
-static NSRange
-MPSubtractionRange(NSRange subtrahend, NSRange minuend) {
-    if (subtrahend.length == minuend.length) {
-        return NSMakeRange(0, 0);
-    } else if (minuend.length == 0) {
-        return subtrahend;
-    } else {
-        return NSMakeRange((subtrahend.location == minuend.location) ? NSMaxRange(minuend) - 1: subtrahend.location, subtrahend.length - minuend.length + 1);
-    }
-}
-
-NS_INLINE BOOL
-_outofRange(NSUInteger target, NSRange range) {
-    return (target < range.location || target > range.location + range.length - 1) || range.length < 1;
-}
+//static NSRange
+//MPSubtractionRange(NSRange subtrahend, NSRange minuend) {
+//    if (subtrahend.length == minuend.length) {
+//        return NSMakeRange(0, 0);
+//    } else if (minuend.length == 0) {
+//        return subtrahend;
+//    } else {
+//        return NSMakeRange((subtrahend.location == minuend.location) ? NSMaxRange(minuend) - 1: subtrahend.location, subtrahend.length - minuend.length + 1);
+//    }
+//}
+//
+//NS_INLINE BOOL
+//_outofRange(NSUInteger target, NSRange range) {
+//    return (target < range.location || target > range.location + range.length - 1) || range.length < 1;
+//}
 
 typedef struct struct_MPIndexPath {
     NSInteger section, row;
@@ -132,8 +132,7 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, MPTableViewRowAnimat
         case MPTableViewRowAnimationFade: {
             if (view.opaque == NO) {
                 view.hidden = YES;
-            } else {
-                view.alpha = 0;
+                return frame;
             }
         }
             break;
@@ -172,11 +171,13 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, MPTableViewRowAnimat
             break;
         case MPTableViewRowAnimationNone: {
             view.hidden = YES;
+            return frame;
         }
             break;
         default:
             break;
     }
+    view.alpha = 0;
     return frame;
 }
 
@@ -187,8 +188,7 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
         case MPTableViewRowAnimationFade: {
             if (view.opaque == NO) {
                 view.hidden = NO;
-            } else {
-                view.alpha = 1;
+                return;
             }
         }
             break;
@@ -227,17 +227,19 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
             break;
         case MPTableViewRowAnimationNone: {
             view.hidden = NO;
+            return;
         }
             break;
         default:
             break;
     }
+    view.alpha = 1;
     view.frame = frame;
 }
 
 NSString *const MPTableViewSelectionDidChangeNotification = @"MPTableViewSelectionDidChangeNotification";
 
-const CGFloat MPTableViewRowAnimationDuration = 0.3;
+const CGFloat MPTableViewRowAnimationDuration = 0.3; // Unless it's necessary, don't change the value.
 
 #define _ReloadDataAsync_Exception_Value -7883507
 #define _ReloadDataAsync_Exception_ if (!_mpDataSource) { \
@@ -527,11 +529,20 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             _MP_SetViewWidth(sectionView, frame.size.width);
         }
         
+        for (MPTableViewCell *cell in _insertCellsDic.allValues) {
+            _MP_SetViewWidth(cell, frame.size.width);
+        }
+        for (UIView *sectionView in _insertSectionViewsDic.allValues) {
+            _MP_SetViewWidth(sectionView, frame.size.width);
+        }
+        
         CGSize contentSize = self.contentSize;
         contentSize.width = frame.size.width;
         self.contentSize = contentSize;
         
-        [self _unlockLayoutSubviews];
+        if (![_updateManager isUpdating]) {
+            [self _unlockLayoutSubviews];
+        }
     }
     [super setFrame:frame];
 }
