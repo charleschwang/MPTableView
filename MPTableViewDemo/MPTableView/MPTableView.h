@@ -112,33 +112,36 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 @property (nonatomic) CGFloat sectionHeaderHeight;
 @property (nonatomic) CGFloat sectionFooterHeight;
 
+- (NSUInteger)numberOfSections;
+- (NSUInteger)numberOfRowsInSection:(NSInteger)section;
+
 @property (nonatomic, readonly) MPIndexPath *beginIndexPath; // displaying
 @property (nonatomic, readonly) MPIndexPath *endIndexPath;
 
-- (CGRect)rectForSection:(NSInteger)section;                                    // includes header, footer and all rows
-- (CGRect)rectForHeaderInSection:(NSInteger)section;
-- (CGRect)rectForFooterInSection:(NSInteger)section;
+- (CGRect)rectForSection:(NSUInteger)section; // includes header, footer and all rows, return CGRectNull if section is not found
+- (CGRect)rectForHeaderInSection:(NSUInteger)section;
+- (CGRect)rectForFooterInSection:(NSUInteger)section;
 - (CGRect)rectForRowAtIndexPath:(MPIndexPath *)indexPath;
 
 - (MPIndexPath *)indexPathForRowAtPoint:(CGPoint)point; // returns nil if point is outside of any row in the table
 - (NSUInteger)indexForSectionAtPoint:(CGPoint)point; // returns NSNotFound if point is outside of any section in the table
 
-- (NSUInteger)numberOfSections;
-- (NSUInteger)numberOfRowsInSection:(NSInteger)section;
-
 - (MPTableViewCell *)cellForRowAtIndexPath:(MPIndexPath *)indexPath;
 
-- (MPIndexPath *)indexPathForCell:(MPTableViewCell *)cell;                      // returns nil if cell is not visible
+- (MPIndexPath *)indexPathForCell:(MPTableViewCell *)cell; // returns nil if cell is not visible
 
 - (NSArray *)visibleCells;
 
+- (NSArray *)visibleCellsInRect:(CGRect)rect; // returns nil if rect not valid
+
 - (NSArray *)indexPathsForVisibleRows;
+
+- (NSArray *)indexPathsForRowsInRect:(CGRect)rect; // returns nil if rect not valid
 
 @property (nonatomic, strong) UIView *tableHeaderView;
 @property (nonatomic, strong) UIView *tableFooterView;
 
 @property (nonatomic, strong) UIView *backgroundView; // will be placed as a subview of the table view behind all cells and headers/footers.
-
 
 @property (nonatomic, assign) BOOL enableCachesReload; // default is NO, when reloading tableview, without clear reusable views and cache all displayed views to reuse(It is best to make sure that tableview will reload with the same cells/reusableViews);
 - (void)clearReusableCells;

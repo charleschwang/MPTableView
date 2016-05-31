@@ -647,11 +647,63 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (NSArray *)indexPathsForVisibleRows {
-//    NSMutableArray *indexPaths = [NSMutableArray array];
-//    for (MPIndexPath *indexPath in _displayedCellsDic.allKeys) {
-//        [indexPaths addObject:[indexPath copy]];
-//    }
     return _displayedCellsDic.allKeys;
+}
+
+- (NSArray *)visibleCellsInRect:(CGRect)rect {
+    if (rect.origin.x > self.frame.size.width || CGRectGetMaxX(rect) < 0 || rect.origin.y > _contentDrawArea.endPos || CGRectGetMaxY(rect) < _contentDrawArea.beginPos) {
+        return nil;
+    }
+    
+    NSMutableArray *visibleCells = [NSMutableArray array];
+    
+    for (MPTableViewCell *cell in _displayedCellsDic.allValues) {
+        if (CGRectIntersectsRect(rect, cell.frame)) {
+            [visibleCells addObject:cell];
+        }
+    }
+    
+    return visibleCells;
+}
+
+- (NSArray *)indexPathsForRowsInRect:(CGRect)rect {
+    if (rect.origin.x > self.frame.size.width || CGRectGetMaxX(rect) < 0 || rect.origin.y > _contentDrawArea.endPos || CGRectGetMaxY(rect) < _contentDrawArea.beginPos) {
+        return nil;
+    }
+    
+    NSMutableArray *indexPaths = [NSMutableArray array];
+    MPIndexPath *beginIndexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:rect.origin.y - _contentDrawArea.beginPos]];
+    MPIndexPath *endIndexPath = [MPIndexPath indexPathFromStruct:[self _indexPathAtContentOffset:CGRectGetMaxY(rect) - _contentDrawArea.beginPos]];
+    
+    for (NSInteger i = beginIndexPath.section; i <= endIndexPath.section; i++) {
+        NSUInteger numberOfRows = [self numberOfRowsInSection:i];
+        if (i == beginIndexPath.section) {
+            NSInteger j = (beginIndexPath.row == MPSectionTypeHeader) ? 0 : beginIndexPath.row;
+            if (beginIndexPath.section == endIndexPath.section) {
+                for (; j <= endIndexPath.row; j++) {
+                    if (j < MPSectionTypeFooter) {
+                        [indexPaths addObject:[MPIndexPath indexPathForRow:j inSection:i]];
+                    }
+                }
+            } else {
+                for (; j < numberOfRows; j++) {
+                    [indexPaths addObject:[MPIndexPath indexPathForRow:j inSection:i]];
+                }
+            }
+        } else {
+            if (i == endIndexPath.section) {
+                if (endIndexPath.row == MPSectionTypeHeader) {
+                    numberOfRows = 0;
+                } else if (endIndexPath.row < MPSectionTypeFooter) {
+                    numberOfRows = endIndexPath.row + 1;
+                }
+            }
+            for (NSInteger j = 0; j < numberOfRows; j++) {
+                [indexPaths addObject:[MPIndexPath indexPathForRow:j inSection:i]];
+            }
+        }
+    }
+    return indexPaths;
 }
 
 - (MPIndexPath *)beginIndexPath {
@@ -693,8 +745,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     return indexPath;
 }
 
-- (CGRect)rectForSection:(NSInteger)section {
-    NSParameterAssert(section > 0 && section < _numberOfSections);
+- (CGRect)rectForSection:(NSUInteger)section {
+    if (section >= _numberOfSections) {
+        return CGRectNull;
+    }
     
     CGRect frame;
     MPTableViewSection *sectionObj = _sectionsAreaList[section];
@@ -703,8 +757,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     return frame;
 }
 
-- (CGRect)rectForHeaderInSection:(NSInteger)section {
-    NSParameterAssert(section > 0 && section < _numberOfSections);
+- (CGRect)rectForHeaderInSection:(NSUInteger)section {
+    if (section >= _numberOfSections) {
+        return CGRectNull;
+    }
     
     CGRect frame;
     MPTableViewSection *sectionObj = _sectionsAreaList[section];
@@ -713,8 +769,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     return frame;
 }
 
-- (CGRect)rectForFooterInSection:(NSInteger)section {
-    NSParameterAssert(section > 0 && section < _numberOfSections);
+- (CGRect)rectForFooterInSection:(NSUInteger)section {
+    if (section >= _numberOfSections) {
+        return CGRectNull;
+    }
 
     CGRect frame;
     MPTableViewSection *sectionObj = _sectionsAreaList[section];
@@ -724,10 +782,14 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (CGRect)rectForRowAtIndexPath:(MPIndexPath *)indexPath {
-    NSParameterAssert(indexPath.section > 0 && indexPath.section < _numberOfSections);
+    if (indexPath.section < 0 || indexPath.section >= _numberOfSections) {
+        return CGRectNull;
+    }
     
     MPTableViewSection *section = _sectionsAreaList[indexPath.section];
-    NSParameterAssert(indexPath.row > 0 && indexPath.section < section.numberOfRows);
+    if (indexPath.row < 0 || indexPath.row >= section.numberOfRows) {
+        return CGRectNull;
+    }
     
     return [self _cellFrameAtIndexPath:indexPath];;
 }
@@ -805,7 +867,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (MPIndexPath *)indexPathForSelectedRow {
-    return _selectedIndexPaths.anyObject;
+    return [_selectedIndexPaths anyObject];
 }
 
 - (NSArray *)indexPathsForSelectedRows {
@@ -2345,7 +2407,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         _beginIndexPath = beginIndexPathStruct;
         _endIndexPath = endIndexPathStruct;
     }
-    
     [self _unlockLayoutSubviews];
 }
 

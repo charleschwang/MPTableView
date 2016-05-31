@@ -15,13 +15,6 @@ _NSIntegerMalloc(size_t size) {
     return memset(temp, 0, size);
 }
 
-@interface MPMutableIndexPath () {
-    NSInteger _reserved, _reservedStep;
-    dispatch_semaphore_t _semaphore_lock;
-}
-
-@end
-
 @implementation MPIndexPath
 
 - (instancetype)init {
@@ -120,7 +113,10 @@ _NSIntegerMalloc(size_t size) {
 
 #pragma mark-
 
-@implementation MPMutableIndexPath
+@implementation MPMutableIndexPath {
+    NSInteger _reserved, _reservedStep;
+    dispatch_semaphore_t _semaphore_lock;
+}
 
 + (instancetype)indexPath {
     return [MPMutableIndexPath new];
