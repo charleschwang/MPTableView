@@ -17,22 +17,26 @@ _NSIntegerMalloc(size_t size) {
 
 @implementation MPIndexPath
 
-- (instancetype)init {
+- (instancetype)initWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
     if (self = [super init]) {
-        _length = 0;
+        _length = length;
+        
+        if (length > 0) {
+            NSParameterAssert(indexes);
+            size_t size = length * sizeof(NSInteger);
+            _indexes = _NSIntegerMalloc(size);
+            memmove(_indexes, indexes, size);
+        }
     }
     return self;
 }
 
+- (instancetype)init {
+    return [self initWithIndexes:NULL length:0];
+}
+
 + (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
-    NSParameterAssert(indexes && length);
-    
-    MPIndexPath *indexPath = [[self class] new];
-    indexPath->_length = length;
-    size_t size = length * sizeof(NSInteger);
-    indexPath->_indexes = _NSIntegerMalloc(size);
-    memmove(indexPath->_indexes, indexes, size);
-    return indexPath;
+    return [[self alloc] initWithIndexes:indexes length:length];
 }
 
 - (NSInteger)indexAtPosition:(NSUInteger)position {
@@ -94,15 +98,13 @@ _NSIntegerMalloc(size_t size) {
     }
 }
 
-- (NSString*)description {
-    if (!_length) {
-        return @"empty index path";
-    }
-    NSMutableString *_desc = [NSMutableString string];
+- (NSString *)description {
+
+    NSMutableString *description = [NSMutableString stringWithFormat:@"length = %zd", _length];
     for (NSInteger i = 0; i < _length; i++) {
-        [_desc appendString:[NSString stringWithFormat:@" node%zd:%zd", i, _indexes[i]]];
+        [description appendString:[NSString stringWithFormat:@", path%zd = %zd", i, _indexes[i]]];
     }
-    return _desc;
+    return description;
 }
 
 - (void)dealloc {
@@ -114,38 +116,49 @@ _NSIntegerMalloc(size_t size) {
 #pragma mark-
 
 @implementation MPMutableIndexPath {
-    NSInteger _reserved, _reservedStep;
-    //dispatch_semaphore_t _semaphore_lock;
+    NSInteger _reserved;
+    NSUInteger _reservedStep;
 }
 
 + (instancetype)indexPath {
-    return [MPMutableIndexPath new];
+    return [[MPMutableIndexPath alloc] init];
 }
 
 + (instancetype)indexPathWithIndexPath:(MPIndexPath *)indexPath {
-    MPMutableIndexPath *mutableIndexPath = [MPMutableIndexPath indexPath];
+    MPMutableIndexPath *mutableIndexPath = [[MPMutableIndexPath alloc] init];
     [mutableIndexPath addIndexPaths:indexPath];
     return mutableIndexPath;
 }
 
 + (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
-    NSParameterAssert(indexes && length);
     
-    MPMutableIndexPath *indexPath = [MPMutableIndexPath indexPath];
-    [indexPath addIndexes:indexes length:length];
-    return indexPath;
+    MPMutableIndexPath *mutableIndexPath = [[MPMutableIndexPath alloc] init];
+    [mutableIndexPath addIndexes:indexes length:length];
+    return mutableIndexPath;
+}
+
+- (instancetype)initWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
+    return [self init];
 }
 
 - (instancetype)init {
-    if (self = [super init]) {
+    if (self = [super initWithIndexes:NULL length:0]) {
         _reservedStep = 2;
         _reserved = 0;
-        //_semaphore_lock = dispatch_semaphore_create(1);
     }
     return self;
 }
 
-- (void)_reserve:(NSInteger)length {
+- (instancetype)initWithCapacity:(NSUInteger)numItems {
+    if (self = [super initWithIndexes:NULL length:0]) {
+        _reservedStep = 2;
+        _reserved = numItems;
+        [self _reserve:numItems];
+    }
+    return self;
+}
+
+- (void)_reserve:(NSUInteger)length {
     NSInteger *temp = _NSIntegerMalloc(length * sizeof(NSInteger));
     if (_length) {
         memmove(temp, _indexes, _length * sizeof(NSInteger));
@@ -155,8 +168,6 @@ _NSIntegerMalloc(size_t size) {
 }
 
 - (void)addIndexPaths:(MPIndexPath *)indexPath {
-    //dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-    
     if (indexPath && [indexPath length]) {
         if ([indexPath length] > _length + _reserved) {
             if (_reserved <= 0) {
@@ -169,14 +180,13 @@ _NSIntegerMalloc(size_t size) {
         
         _length += [indexPath length];
     }
-    
-    //dispatch_semaphore_signal(_semaphore_lock);
 }
 
 - (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
-    //dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-    
-    NSParameterAssert(indexes && length);
+    if (length == 0) {
+        return;
+    }
+    NSParameterAssert(indexes);
     
     if (length > _length + _reserved) {
         if (_reserved <= 0) {
@@ -188,24 +198,16 @@ _NSIntegerMalloc(size_t size) {
     memmove(dest, indexes, length * sizeof(NSInteger));
     
     _length += length;
-    
-    //dispatch_semaphore_signal(_semaphore_lock);
 }
 
 - (void)removeLastIndexes:(NSUInteger)length {
-    //dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-    
     NSParameterAssert(length <= _length);
     
     memset(_indexes + (_length -= length), 0, length * sizeof(NSInteger));
     _reserved += length;
-    
-    //dispatch_semaphore_signal(_semaphore_lock);
 }
 
 - (void)addIndex:(NSInteger)index {
-    //dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-    
     if (_reserved <= 0) {
         _reserved = _reservedStep *= 2;
         [self _reserve:_length + _reserved];
@@ -213,51 +215,13 @@ _NSIntegerMalloc(size_t size) {
     _indexes[_length] = index;
     _reserved--;
     _length++;
-    
-    //dispatch_semaphore_signal(_semaphore_lock);
 }
 
 - (void)removeLastIndex {
-    //dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-    
     if (_length > 0) {
         _indexes[--_length] = 0;
         _reserved++;
     }
-    
-    //dispatch_semaphore_signal(_semaphore_lock);
 }
-
-//- (NSInteger *)indexsInRange:(NSRange)range {
-//    NSInteger *indexs = NULL;
-//    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-//    indexs = [super indexsInRange:range];
-//    dispatch_semaphore_signal(_semaphore_lock);
-//    return indexs;
-//}
-//
-//- (id)copyWithZone:(NSZone *)zone {
-//    MPIndexPath *copyObj = nil;
-//    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-//    copyObj = [super copyWithZone:zone];
-//    dispatch_semaphore_signal(_semaphore_lock);
-//    return copyObj;
-//}
-//
-//- (id)mutableCopyWithZone:(NSZone *)zone {
-//    MPMutableIndexPath *mutableCopyObj = nil;
-//    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-//    mutableCopyObj = [super mutableCopyWithZone:zone];
-//    dispatch_semaphore_signal(_semaphore_lock);
-//    return mutableCopyObj;
-//}
-//
-//- (NSString*)description {
-//    NSString *description;
-//    dispatch_semaphore_wait(_semaphore_lock, DISPATCH_TIME_FOREVER);
-//    description = [super description];
-//    dispatch_semaphore_signal(_semaphore_lock);
-//    return description;
-//}
 
 @end

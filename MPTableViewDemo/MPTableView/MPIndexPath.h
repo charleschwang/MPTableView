@@ -8,6 +8,14 @@
 
 #import <Foundation/Foundation.h>
 
+#ifndef NS_DESIGNATED_INITIALIZER
+#if __has_attribute(objc_designated_initializer)
+#define NS_DESIGNATED_INITIALIZER __attribute__((objc_designated_initializer))
+#else
+#define NS_DESIGNATED_INITIALIZER
+#endif
+#endif
+
 @interface MPIndexPath : NSObject<NSCopying, NSMutableCopying> {
     @protected
     NSInteger *_indexes;
@@ -15,6 +23,7 @@
 }
 
 @property (readonly) NSUInteger length;
+- (instancetype)initWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length NS_DESIGNATED_INITIALIZER;
 
 + (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length;
 - (NSInteger)indexAtPosition:(NSUInteger)position;
@@ -26,6 +35,9 @@
 
 + (instancetype)indexPath;
 + (instancetype)indexPathWithIndexPath:(MPIndexPath *)indexPath;
+
+- (instancetype)init NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithCapacity:(NSUInteger)numItems NS_DESIGNATED_INITIALIZER;
 
 - (void)addIndexPaths:(MPIndexPath *)indexPath;
 - (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length;

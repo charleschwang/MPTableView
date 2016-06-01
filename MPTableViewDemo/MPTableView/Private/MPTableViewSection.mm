@@ -33,7 +33,7 @@ using namespace std;
     if (!object) {
         return NO;
     } else {
-        return _beginPos == [object beginPos] || _endPos == [object endPos];
+        return _beginPos == [object beginPos] && _endPos == [object endPos];
     }
 }
 
@@ -48,8 +48,8 @@ using namespace std;
     return position;
 }
 
-- (NSString*)description {
-    return [NSString stringWithFormat:@"beginPos:%.2f, endPos:%.2f", _beginPos, _endPos];
+- (NSString *)description {
+    return [NSString stringWithFormat:@"%@, beginPos:%.2f, endPos:%.2f", [super description], _beginPos, _endPos];
 }
 @end
 
@@ -883,9 +883,8 @@ public:
     }
 }
 
-- (NSString*)description {
-    NSString *superDesc = [super description];
-    return [NSString stringWithFormat:@"%@, section:%zd, numberOfRows:%zd, headerViewHeight:%.2f, footerViewHeight:%.2f", superDesc, self.section, _numberOfRows, _headerHeight, _footerHeight];
+- (NSString *)description {
+    return [NSString stringWithFormat:@"%@, section:%zd, numberOfRows:%zd, headerViewHeight:%.2f, footerViewHeight:%.2f", [super description], self.section, _numberOfRows, _headerHeight, _footerHeight];
 }
 
 - (void)dealloc {
