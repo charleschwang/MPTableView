@@ -148,7 +148,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)clearReusableSectionViews;
 
 - (void)reloadData;
-- (void)reloadDataAsyncWithCompleter:(void(^)())completer; //
+- (void)reloadDataAsyncWithCompletion:(void (^)(void))completion; // reload data asynchronously. In this process, tableview will work as usual.
 
 @property (nonatomic) BOOL allowsSelection;  // default is YES.
 @property (nonatomic) BOOL allowsMultipleSelection; // default is NO.

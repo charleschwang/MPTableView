@@ -107,7 +107,7 @@
     self.cellCount = 500;
     self.sectionCount = 500;
     self.tableView.enableCachesReload = YES;
-    [self.tableView reloadDataAsyncWithCompleter:^{
+    [self.tableView reloadDataAsyncWithCompletion:^{
         UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"提示" message:@"加载完毕" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
         [alert show];
     }];

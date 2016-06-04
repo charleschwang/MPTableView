@@ -2014,13 +2014,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
 }
 
-- (void)reloadDataAsyncWithCompleter:(void (^)())completer {
+- (void)reloadDataAsyncWithCompletion:(void (^)(void))completion {
     if (!_mpDataSource) {
         return;
     }
     if ([_updateManager isUpdating]) {
         return dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(MPTableViewRowAnimationDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self reloadDataAsyncWithCompleter:completer];
+            [self reloadDataAsyncWithCompletion:completion];
         });
     }
     [self _lockLayoutSubviews];
@@ -2036,8 +2036,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [self _getDisplayingArea];
                 [self _updateDisplayingArea];
             }
-            if (completer) {
-                completer();
+            if (completion) {
+                completion();
             }
         });
     });
