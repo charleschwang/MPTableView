@@ -76,12 +76,12 @@
 
 - (void)tableViewDelete {
     --self.sectionCount;
-    [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
+    [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
 }
 
 - (void)tableViewInsert {
     ++self.sectionCount;
-    [self.tableView insertSections:[NSIndexSet indexSetWithIndex:self.sectionCount - 1] withRowAnimation:MPTableViewRowAnimationRandom];
+    [self.tableView insertSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
 }
 
 - (void)tableViewUpdate {
@@ -121,6 +121,7 @@
 }
 
 #pragma mark -dataSource
+
 - (NSUInteger)numberOfSectionsInMPTableView:(MPTableView *)tableView {
     return self.sectionCount;
 }
@@ -160,19 +161,68 @@
     cell.label_title.text = [NSString stringWithFormat:@"two one cell: %zd", indexPath.row];
     return cell;
 }
+
 #pragma mark -delegate
+
 - (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
     if ([indexPath compare:tableView.beginIndexPath] != NSOrderedDescending || [tableView isUpdating]) {
         return;
     }
     cell.transform = CGAffineTransformMakeScale(1.5, 1.5);
     [UIView animateWithDuration:0.5 animations:^{
-        cell.transform = CGAffineTransformMakeScale(1., 1.);
+        cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
     }];
 }
 
 - (void)MPTableView:(MPTableView *)tableView didSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath {
     // ...
+}
+
+#pragma mark -custom tableview update
+
+//...delete
+
+void _deleteAnimation(UIView *view) {
+    view.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(-view.frame.size.width, view.frame.size.height), 0.5 * M_PI);
+    view.alpha = 0;
+}
+
+- (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
+    _deleteAnimation(cell);
+}
+
+- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section {
+    _deleteAnimation(view);
+}
+
+- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section {
+    _deleteAnimation(view);
+}
+
+// ...insert
+
+- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
+    cell.transform = CGAffineTransformMakeScale(0.1, 0.1);
+}
+
+- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
+    cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
+}
+
+- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section {
+    view.transform = CGAffineTransformMakeScale(0.1, 0.1);
+}
+
+- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section {
+    view.transform = CGAffineTransformMakeScale(1.0, 1.0);
+}
+
+- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section {
+    view.transform = CGAffineTransformMakeScale(0.1, 0.1);
+}
+
+- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section {
+    view.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
 - (void)didReceiveMemoryWarning {

@@ -24,12 +24,21 @@
 - (void)MPTableView:(MPTableView *)tableView didEndDisplayingFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
 
 // Custom animations for updating. cell will be nil while it is ouside of the display area.
-- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath; // before animation
+- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath; // callback when animating(in [UIView Animation] block)
+
 - (void)MPTableView:(MPTableView *)tableView willDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+
 - (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
 - (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+
 - (void)MPTableView:(MPTableView *)tableView willDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
 - (void)MPTableView:(MPTableView *)tableView willDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
 
 // Called before the user changes the selection. Return a new indexPath, or nil, to change the proposed selection.
 - (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
@@ -91,10 +100,11 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationFade,
     MPTableViewRowAnimationRight, // slide in from right (or out to right)
     MPTableViewRowAnimationLeft,
-    MPTableViewRowAnimationTop,
-    MPTableViewRowAnimationBottom,
+    MPTableViewRowAnimationTop, // views will initialize in the positions of those views in front of them, just like UITableViewRowAnimationTop
+    MPTableViewRowAnimationBottom, // different with UITableViewRowAnimationBottom
     MPTableViewRowAnimationMiddle,
     MPTableViewRowAnimationNone,
+    MPTableViewRowAnimationCustom,
     MPTableViewRowAnimationRandom = 100
 };
 

@@ -51,6 +51,7 @@ using namespace std;
 - (NSString *)description {
     return [NSString stringWithFormat:@"%@, beginPos:%.2f, endPos:%.2f", [super description], _beginPos, _endPos];
 }
+
 @end
 
 #pragma mark -
@@ -267,7 +268,6 @@ public:
     [_existingUpdatePartsIndexs removeAllIndexes];
     
     _differ = 0;
-    _isUpdating = NO;
     self.originCount = self.newCount = NSNotFound;
 }
 
@@ -419,7 +419,6 @@ public:
 }
 
 - (CGFloat)startUpdate {
-    _isUpdating = YES;
     CGFloat offset = 0;
     NSUInteger sectionCount = self.originCount;
     

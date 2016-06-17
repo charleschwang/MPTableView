@@ -85,7 +85,6 @@ typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
 
 @property (nonatomic, weak) NSMutableArray *sections;
 @property (weak, readonly) MPTableView<MPTableViewUpdateDelegate> *delegate;
-@property (nonatomic) BOOL isUpdating;
 
 + (MPTableViewUpdateManager *)managerWithDelegate:(MPTableView<MPTableViewUpdateDelegate> *)delegate andSections:(NSMutableArray *)sections;
 - (void)resetManager;
