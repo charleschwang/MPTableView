@@ -988,7 +988,12 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         animation = MPTableViewGetRandomRowAnimation();
     }
     
-    NSUInteger count = [_mpDataSource numberOfSectionsInMPTableView:self];
+    NSUInteger count;
+    if (_respond_numberOfSectionsInMPTableView) {
+        count = [_mpDataSource numberOfSectionsInMPTableView:self];
+    } else {
+        count = _numberOfSections;
+    }
     [sections enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL *stop) {
         NSAssert(idx < count, @"insert section overflow");
         NSAssert([_updateManager addInsertSection:idx withAnimation:animation], @"check duplicate indexPaths");
@@ -1019,7 +1024,15 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     NSParameterAssert(section != newSection);
     
     NSAssert(section < _numberOfSections, @"move out section overflow");
-    NSAssert(newSection < [_mpDataSource numberOfSectionsInMPTableView:self], @"move in section overflow");
+    
+    NSUInteger count;
+    if (_respond_numberOfSectionsInMPTableView) {
+        count = [_mpDataSource numberOfSectionsInMPTableView:self];
+    } else {
+        count = _numberOfSections;
+    }
+    
+    NSAssert(newSection < count, @"move in section overflow");
     
     NSAssert([_updateManager addMoveOutSection:section], @"check duplicate indexPaths");
     
@@ -1056,7 +1069,12 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         animation = MPTableViewGetRandomRowAnimation();
     }
     
-    NSUInteger count = [_mpDataSource numberOfSectionsInMPTableView:self];
+    NSUInteger count;
+    if (_respond_numberOfSectionsInMPTableView) {
+        count = [_mpDataSource numberOfSectionsInMPTableView:self];
+    } else {
+        count = _numberOfSections;
+    }
     for (MPIndexPath *indexPath in indexPaths) {
         NSParameterAssert(indexPath.row >= 0 && indexPath.section >= 0);
         NSAssert(indexPath.section < count, @"insert section overflow");
@@ -1094,7 +1112,15 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     
     NSAssert(indexPath.section < _numberOfSections, @"move out section overflow");
     NSAssert(indexPath.row < [self numberOfRowsInSection:indexPath.section], @"move out row overflow");
-    NSAssert(newIndexPath.section < [_mpDataSource numberOfSectionsInMPTableView:self], @"move in section overflow");
+    
+    NSUInteger count;
+    if (_respond_numberOfSectionsInMPTableView) {
+        count = [_mpDataSource numberOfSectionsInMPTableView:self];
+    } else {
+        count = _numberOfSections;
+    }
+    
+    NSAssert(newIndexPath.section < count, @"move in section overflow");
     
     NSAssert([_updateManager addMoveOutIndexPath:indexPath], @"check duplicate indexPaths");
 
@@ -1226,8 +1252,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (void)_startUpdateAnimation {
     _lastSuspendFooterSection = _lastSuspendHeaderSection = NSNotFound;
+    
     _updateManager.originCount = _numberOfSections;
-    _updateManager.newCount = _numberOfSections = [_mpDataSource numberOfSectionsInMPTableView:self];
+    if (_respond_numberOfSectionsInMPTableView) {
+        _numberOfSections = [_mpDataSource numberOfSectionsInMPTableView:self];
+    }
+    _updateManager.newCount = _numberOfSections;
+    
     _updateInsertOriginTopPosition = _updateDeleteOriginTopPosition = 0;
     
     NSAssert([_updateManager formatNodesStable], @"check for update sections");
@@ -2310,7 +2341,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     CGFloat step = 0;
     const NSUInteger sectionsCount = _sectionsAreaList.count;
     _ReloadDataAsync_Exception_
-    _numberOfSections = [_mpDataSource numberOfSectionsInMPTableView:self];
+    if (_respond_numberOfSectionsInMPTableView) {
+        _numberOfSections = [_mpDataSource numberOfSectionsInMPTableView:self];
+    }
+    
     if (sectionsCount > _numberOfSections && !newSections) {
         [_sectionsAreaList removeObjectsInRange:NSMakeRange(_numberOfSections, sectionsCount - _numberOfSections)];
     }
