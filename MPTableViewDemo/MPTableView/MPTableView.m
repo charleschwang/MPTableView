@@ -2452,6 +2452,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     [cell prepareForDisplaying];
     if (![cell superview] || cell.superview != _contentWrapperView) {
         [_contentWrapperView addSubview:cell];
+        if ([self isUpdating]) {
+            [_contentWrapperView sendSubviewToBack:cell];
+        }
     }
 }
 
