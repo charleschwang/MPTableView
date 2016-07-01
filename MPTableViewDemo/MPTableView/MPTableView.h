@@ -175,6 +175,10 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 - (BOOL)isUpdating; // animating
 
+@property (nonatomic, assign) NSTimeInterval rowAnimationDuration; // default is 0.3
+@property (nonatomic, assign) NSTimeInterval rowAnimationDelay; // default is 0
+@property (nonatomic) UIViewAnimationOptions rowAnimationOptions; // default is UIViewAnimationOptionCurveEaseInOut.
+
 - (void)beginUpdates; // allow multiple insert/delete of rows and sections to be animated simultaneously. Nestable
 - (void)endUpdates; // only call insert/delete/reload calls or sections inside an update block.  otherwise things like row count, etc. may be invalid.
 
