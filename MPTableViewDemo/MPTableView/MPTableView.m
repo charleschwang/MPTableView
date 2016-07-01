@@ -1399,10 +1399,14 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 
                 [self _contentOffsetChangedResetInsertSectionView:sectionView inSection:section withType:indexPath.row];
                 
-                void (^animationBlock)(void) = ^{
+                if ([sectionView isHidden]) { // animationNone
                     [self _suspendingSectionHeader:sectionView inArea:section];
-                };
-                [_updateAnimationBlocks addObject:animationBlock];
+                } else {
+                    void (^animationBlock)(void) = ^{
+                        [self _suspendingSectionHeader:sectionView inArea:section];
+                    };
+                    [_updateAnimationBlocks addObject:animationBlock];
+                }
                 continue;
             } else {
                 if ([self _isSuspendingAtIndexPath:indexPath]) {
@@ -1421,11 +1425,16 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 
                 [self _contentOffsetChangedResetInsertSectionView:sectionView inSection:section withType:indexPath.row];
                 
-                void (^animationBlock)(void) = ^{
+                if ([sectionView isHidden]) { // animationNone
                     CGRect frame = [self _prepareToSuspendViewFrameAt:section withType:indexPath.row];
                     sectionView.frame = frame;
-                };
-                [_updateAnimationBlocks addObject:animationBlock];
+                } else {
+                    void (^animationBlock)(void) = ^{
+                        CGRect frame = [self _prepareToSuspendViewFrameAt:section withType:indexPath.row];
+                        sectionView.frame = frame;
+                    };
+                    [_updateAnimationBlocks addObject:animationBlock];
+                }
             }
             continue;
         }
@@ -1491,6 +1500,10 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)_contentOffsetChangedResetSectionView:(MPTableReusableView *)sectionView inSection:(MPTableViewSection *)section withType:(MPSectionType)type {
+    if ([sectionView isHidden]) {
+        return;
+    }
+    
     if (type == MPSectionTypeHeader) {
         [_updateAnimationBlocks addObject:^{
             CGRect frame = sectionView.frame;
@@ -1511,11 +1524,11 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         return;
     }
     
-    CGRect frame = sectionView.frame;
-    if (sectionView.alpha == 0) { // animation
+    if (sectionView.alpha == 0 || [sectionView isHidden]) { // animation
         return;
     }
     
+    CGRect frame = sectionView.frame;
     if ((type == MPSectionTypeHeader) && (frame.origin.y != section.beginPos + _contentDrawArea.beginPos)) {
         frame.origin.y = _contentOffset.beginPos - frame.size.height - 1;
     }
@@ -1922,14 +1935,16 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else {
             CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateDeleteOriginTopPosition, animation, deleteSection, _contentDrawArea.beginPos);
             
-            if (optimizeFrame.origin.y > _contentOffset.endPos) {
-                optimizeFrame.origin.y = _contentOffset.endPos + 1;
+            if (animation != MPTableViewRowAnimationNone) {
+                if (optimizeFrame.origin.y > _contentOffset.endPos) {
+                    optimizeFrame.origin.y = _contentOffset.endPos + 1;
+                }
+                if (optimizeFrame.origin.y < _contentOffset.beginPos) {
+                    optimizeFrame.origin.y = _contentOffset.beginPos - 1;
+                }
+                
+                sectionView.frame = optimizeFrame;
             }
-            if (optimizeFrame.origin.y < _contentOffset.beginPos) {
-                optimizeFrame.origin.y = _contentOffset.beginPos - 1;
-            }
-            
-            sectionView.frame = optimizeFrame;
         }
     };
     [_updateAnimationBlocks addObject:animationBlock];
@@ -1985,6 +2000,17 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
             
             sectionView.frame = optimizeFrame;
+            if (animation == MPTableViewRowAnimationNone) {
+                if (isSuspending) {
+                    if (type == MPSectionTypeHeader) {
+                        [self _suspendingSectionHeader:sectionView inArea:insertSection];
+                    } else {
+                        [self _suspendingSectionFooter:sectionView inArea:insertSection];
+                    }
+                } else if (isPrepareToSuspend) {
+                    sectionView.frame = [self _prepareToSuspendViewFrameAt:insertSection withType:type];
+                }
+            }
         }
         
         void (^animationBlock)(void) = ^{
@@ -2004,14 +2030,16 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 MPTableViewDisplayViewFrameWithRowAnimation(sectionView, frame, animation, insertSection);
             }
             
-            if (isSuspending) {
-                if (type == MPSectionTypeHeader) {
-                    [self _suspendingSectionHeader:sectionView inArea:insertSection];
-                } else {
-                    [self _suspendingSectionFooter:sectionView inArea:insertSection];
+            if (animation != MPTableViewRowAnimationNone) {
+                if (isSuspending) {
+                    if (type == MPSectionTypeHeader) {
+                        [self _suspendingSectionHeader:sectionView inArea:insertSection];
+                    } else {
+                        [self _suspendingSectionFooter:sectionView inArea:insertSection];
+                    }
+                } else if (isPrepareToSuspend) {
+                    sectionView.frame = [self _prepareToSuspendViewFrameAt:insertSection withType:type];
                 }
-            } else if (isPrepareToSuspend) {
-                sectionView.frame = [self _prepareToSuspendViewFrameAt:insertSection withType:type];
             }
         };
         [_updateAnimationBlocks addObject:animationBlock];
