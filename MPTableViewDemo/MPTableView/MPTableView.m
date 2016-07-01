@@ -126,7 +126,7 @@ MPTableViewGetRandomRowAnimation() {
 }
 
 static CGRect
-MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTableViewRowAnimation animation, MPTableViewPosition *sectionPosition, CGFloat contentBeginPos) {
+MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTableViewRowAnimation animation, MPTableViewPosition *sectionPosition) {
     CGRect frame = view.frame;
     switch (animation) {
         case MPTableViewRowAnimationFade: {
@@ -155,7 +155,9 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTable
             break;
         case MPTableViewRowAnimationBottom: {
             if (sectionPosition) {
-                frame.origin.y = sectionPosition.endPos + contentBeginPos;
+                frame.origin.y = top + sectionPosition.endPos - sectionPosition.beginPos;
+            } else {
+                frame.origin.y = top + frame.size.height;
             }
             frame.size.height = 0;
         }
@@ -208,9 +210,7 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
         }
             break;
         case MPTableViewRowAnimationBottom: {
-            if (sectionPosition) {
-                frame.origin.y = originFrame.origin.y;
-            }
+            frame.origin.y = originFrame.origin.y;
             frame.size.height = originFrame.size.height;
         }
             break;
@@ -1632,7 +1632,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [_mpDelegate MPTableView:self beginDeleteCell:cell forRowAtIndexPath:indexPath];
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateDeleteOriginTopPosition, animation, sectionPosition, _contentDrawArea.beginPos);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateDeleteOriginTopPosition, animation, sectionPosition);
 
             if (sectionPosition) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
@@ -1668,7 +1668,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [_mpDelegate MPTableView:self willInsertCell:cell forRowAtIndexPath:indexPath];
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, _updateInsertOriginTopPosition, animation, sectionPosition, _contentDrawArea.beginPos);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, _updateInsertOriginTopPosition, animation, sectionPosition);
             
             if (sectionPosition) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos && CGRectGetMaxY(frame) <= _contentOffset.endPos/* except for the last one, which is in edge of display area */) {
@@ -1933,7 +1933,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 }
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateDeleteOriginTopPosition, animation, deleteSection, _contentDrawArea.beginPos);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateDeleteOriginTopPosition, animation, deleteSection);
             
             if (animation != MPTableViewRowAnimationNone) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
@@ -1990,7 +1990,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 }
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, _updateInsertOriginTopPosition, animation, insertSection, _contentDrawArea.beginPos);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, _updateInsertOriginTopPosition, animation, insertSection);
             
             if (optimizeFrame.origin.y > _contentOffset.endPos && CGRectGetMaxY(frame) <= _contentOffset.endPos/* except for the last one, which in edge of display area */) {
                 optimizeFrame.origin.y = _contentOffset.endPos + 1;
