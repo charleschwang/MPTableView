@@ -153,11 +153,14 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTable
             break;
         case MPTableViewRowAnimationTop: {
             frame.origin.y = top;
+            frame.size.height = 0;
+            
             if (belowSubview) { // for sectionViews
                 [view.superview insertSubview:view aboveSubview:belowSubview];
             } else {
                 [view.superview sendSubviewToBack:view];
             }
+            
             CGRect bounds = view.bounds;
             bounds.origin.y = bounds.size.height;
             view.bounds = bounds;
@@ -170,7 +173,10 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTable
 //                frame.origin.y = top + frame.size.height;
 //            }
             frame.origin.y = top;
+            frame.size.height = 0;
+            
             [view.superview bringSubviewToFront:view];
+            
             CGRect bounds = view.bounds;
             bounds.origin.y = -bounds.size.height;
             view.bounds = bounds;
@@ -224,6 +230,8 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
             break;
         case MPTableViewRowAnimationTop: {
             frame.origin.y = originFrame.origin.y;
+            frame.size.height = originFrame.size.height;
+            
             CGRect bounds = view.bounds;
             bounds.origin.y = 0;
             view.bounds = bounds;
@@ -231,7 +239,10 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
             break;
         case MPTableViewRowAnimationBottom: {
             frame.origin.y = originFrame.origin.y;
+            frame.size.height = originFrame.size.height;
+            
             [view.superview bringSubviewToFront:view];
+            
             CGRect bounds = view.bounds;
             bounds.origin.y = 0;
             view.bounds = bounds;
