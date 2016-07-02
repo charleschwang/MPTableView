@@ -23,22 +23,27 @@
 - (void)MPTableView:(MPTableView *)tableView didEndDisplayingHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
 - (void)MPTableView:(MPTableView *)tableView didEndDisplayingFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
 
-// Custom animations for updating. cell will be nil while it is ouside of the display area.
-- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath; // before animation
-- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath; // callback when animating(in [UIView Animation] block)
+// Custom animations for updating. cell will be nil while it is ouside of the display area. a reload-update is composed of a delete and a insert function.
 
-- (void)MPTableView:(MPTableView *)tableView willDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
-- (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+// Called before animation start. The pathPosition is the origin.y of those animating views that in front of the current cell. In the MPTableViewRowAnimation, the pathPosition is the cell's starting position.
+- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
-- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+// Called when animating(in [UIView Animation] block).
+- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
-- (void)MPTableView:(MPTableView *)tableView willDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView willDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+// The pathPosition in delete is a target position that views will move to. In the MPTableViewRowAnimation, the pathPosition is the cell's target position that make it looks like always follow the font one.
+- (void)MPTableView:(MPTableView *)tableView willDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
+
+- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+
+- (void)MPTableView:(MPTableView *)tableView willDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView willDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
 
 // Called before the user changes the selection. Return a new indexPath, or nil, to change the proposed selection.
 - (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;

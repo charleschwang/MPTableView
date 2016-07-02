@@ -76,12 +76,16 @@
 
 - (void)tableViewDelete {
     --self.sectionCount;
+    self.tableView.rowAnimationDuration = 1.5;
     [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
+    self.tableView.rowAnimationDuration = 0.3;
 }
 
 - (void)tableViewInsert {
     ++self.sectionCount;
+    self.tableView.rowAnimationDuration = 1.5;
     [self.tableView insertSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
+    self.tableView.rowAnimationDuration = 0.3;
 }
 
 - (void)tableViewUpdate {
@@ -187,41 +191,41 @@ void _deleteAnimation(UIView *view) {
     view.alpha = 0;
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
+- (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(cell);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section {
+- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section {
+- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
 // ...insert
 
-- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
+- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
     cell.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
+- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
     cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
-- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section {
+- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section {
+- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     view.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
-- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section {
+- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section {
+- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     view.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
