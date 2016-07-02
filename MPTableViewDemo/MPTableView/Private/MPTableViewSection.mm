@@ -42,7 +42,7 @@ using namespace std;
 }
 
 - (id)copyWithZone:(NSZone *)zone {
-    MPTableViewPosition *position = [[self class] allocWithZone:zone];
+    MPTableViewPosition *position = [MPTableViewPosition allocWithZone:zone];
     position.beginPos = _beginPos;
     position.endPos = _endPos;
     return position;

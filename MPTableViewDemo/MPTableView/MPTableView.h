@@ -106,7 +106,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationRight, // slide in from right (or out to right)
     MPTableViewRowAnimationLeft,
     MPTableViewRowAnimationTop, // views will initialize in the positions of those views in front of them, just like UITableViewRowAnimationTop
-    MPTableViewRowAnimationBottom, // different with UITableViewRowAnimationBottom
+    MPTableViewRowAnimationBottom,
     MPTableViewRowAnimationMiddle,
     MPTableViewRowAnimationNone,
     MPTableViewRowAnimationCustom,

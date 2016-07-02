@@ -126,7 +126,7 @@ MPTableViewGetRandomRowAnimation() {
 }
 
 static CGRect
-MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTableViewRowAnimation animation, MPTableViewPosition *sectionPosition) {
+MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTableViewRowAnimation animation, MPTableViewPosition *sectionPosition, UIView *belowSubview) {
     CGRect frame = view.frame;
     switch (animation) {
         case MPTableViewRowAnimationFade: {
@@ -152,17 +152,28 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTable
         }
             break;
         case MPTableViewRowAnimationTop: {
-            frame.origin.y = top - frame.size.height;
-            [view.superview sendSubviewToBack:view];
+            frame.origin.y = top;
+            if (belowSubview) { // for sectionViews
+                [view.superview insertSubview:view aboveSubview:belowSubview];
+            } else {
+                [view.superview sendSubviewToBack:view];
+            }
+            CGRect bounds = view.bounds;
+            bounds.origin.y = bounds.size.height;
+            view.bounds = bounds;
         }
             break;
         case MPTableViewRowAnimationBottom: {
-            if (sectionPosition) {
-                frame.origin.y = top + sectionPosition.endPos - sectionPosition.beginPos;
-            } else {
-                frame.origin.y = top + frame.size.height;
-            }
+//            if (sectionPosition) {
+//                frame.origin.y = top + sectionPosition.endPos - sectionPosition.beginPos;
+//            } else {
+//                frame.origin.y = top + frame.size.height;
+//            }
+            frame.origin.y = top;
             [view.superview bringSubviewToFront:view];
+            CGRect bounds = view.bounds;
+            bounds.origin.y = -bounds.size.height;
+            view.bounds = bounds;
         }
             break;
         case MPTableViewRowAnimationMiddle: {
@@ -213,11 +224,17 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
             break;
         case MPTableViewRowAnimationTop: {
             frame.origin.y = originFrame.origin.y;
+            CGRect bounds = view.bounds;
+            bounds.origin.y = 0;
+            view.bounds = bounds;
         }
             break;
         case MPTableViewRowAnimationBottom: {
             frame.origin.y = originFrame.origin.y;
             [view.superview bringSubviewToFront:view];
+            CGRect bounds = view.bounds;
+            bounds.origin.y = 0;
+            view.bounds = bounds;
         }
             break;
         case MPTableViewRowAnimationMiddle: {
@@ -1631,13 +1648,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [_mpDelegate MPTableView:self beginDeleteCell:cell forRowAtIndexPath:indexPath withAnimationPathPosition:updateDeleteOriginTopPosition];
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateDeleteOriginTopPosition, animation, sectionPosition);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateDeleteOriginTopPosition, animation, sectionPosition, nil);
 
             if (animation != MPTableViewRowAnimationNone) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
                     optimizeFrame.origin.y = _contentOffset.endPos + 1;
                 }
-                if (optimizeFrame.origin.y < _contentOffset.beginPos) {
+                if (CGRectGetMaxY(optimizeFrame) < _contentOffset.beginPos) {
                     optimizeFrame.origin.y = _contentOffset.beginPos - optimizeFrame.size.height - 1;
                 }
                 
@@ -1663,6 +1680,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         [cell setSelected:[_selectedIndexPaths containsObject:indexPath]];
         
         cell.frame = frame;
+        if (_updateInsertOriginTopPosition < _contentOffset.beginPos) {
+            _updateInsertOriginTopPosition = sectionPosition ? sectionPosition.beginPos + _contentDrawArea.beginPos : cell.frame.origin.y;
+        }
         
         CGFloat updateInsertOriginTopPosition = _updateInsertOriginTopPosition;
         if (animation == MPTableViewRowAnimationCustom) {
@@ -1671,12 +1691,12 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
         } else {
             if (animation != MPTableViewRowAnimationNone) {
-                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateInsertOriginTopPosition, animation, sectionPosition);
+                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateInsertOriginTopPosition, animation, sectionPosition, nil);
                 
                 if (optimizeFrame.origin.y > _contentOffset.endPos && CGRectGetMaxY(frame) <= _contentOffset.endPos/* except for the last one, which is in edge of display area */) {
                     optimizeFrame.origin.y = _contentOffset.endPos + 1;
                 }
-                if (optimizeFrame.origin.y < _contentOffset.beginPos && frame.origin.y >= _contentOffset.beginPos) {
+                if (CGRectGetMaxY(optimizeFrame) < _contentOffset.beginPos && frame.origin.y >= _contentOffset.beginPos) {
                     optimizeFrame.origin.y = _contentOffset.beginPos - optimizeFrame.size.height - 1;
                 }
                 
@@ -1789,11 +1809,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             [_insertCellsDic setObject:cell forKey:indexPath];
         }
     } else {
-        _updateInsertOriginTopPosition = CGRectGetMaxY(cell.frame);
-        
         originY = cell.frame.origin.y + cellOffset;
-        
-        _updateDeleteOriginTopPosition = originY + cell.frame.size.height;
         
         if (indexPathChanged) {
             [_displayedCellsDic removeObjectForKey:indexPath];
@@ -1802,6 +1818,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             [_insertCellsDic setObject:cell forKey:indexPath];
         }
     }
+    
+    _updateInsertOriginTopPosition = CGRectGetMaxY(cell.frame);
+    _updateDeleteOriginTopPosition = originY + cell.frame.size.height;
     
     void (^animationBlock)(void) = ^{
         [self _addCellToWrapperViewIfNeeded:cell];
@@ -1941,13 +1960,13 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 }
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateDeleteOriginTopPosition, animation, deleteSection);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateDeleteOriginTopPosition, animation, deleteSection, _contentWrapperView);
             
             if (animation != MPTableViewRowAnimationNone) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
                     optimizeFrame.origin.y = _contentOffset.endPos + 1;
                 }
-                if (optimizeFrame.origin.y < _contentOffset.beginPos) {
+                if (CGRectGetMaxY(optimizeFrame) < _contentOffset.beginPos) {
                     optimizeFrame.origin.y = _contentOffset.beginPos - optimizeFrame.size.height - 1;
                 }
                 
@@ -1987,6 +2006,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             return;
         }
         sectionView.frame = frame;
+        if (_updateInsertOriginTopPosition < _contentOffset.beginPos) {
+            _updateInsertOriginTopPosition = insertSection ? insertSection.beginPos + _contentDrawArea.beginPos : sectionView.frame.origin.y;
+        }
         
         CGFloat updateInsertOriginTopPosition = _updateInsertOriginTopPosition;
         if (animation == MPTableViewRowAnimationCustom) {
@@ -2011,12 +2033,12 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                     sectionView.frame = [self _prepareToSuspendViewFrameAt:insertSection withType:type];
                 }
             } else {
-                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateInsertOriginTopPosition, animation, insertSection);
+                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateInsertOriginTopPosition, animation, insertSection, _contentWrapperView);
 
                 if (optimizeFrame.origin.y > _contentOffset.endPos && CGRectGetMaxY(frame) <= _contentOffset.endPos/* except for the last one, which in edge of display area */) {
                     optimizeFrame.origin.y = _contentOffset.endPos + 1;
                 }
-                if (optimizeFrame.origin.y < _contentOffset.beginPos && frame.origin.y >= _contentOffset.beginPos) {
+                if (CGRectGetMaxY(optimizeFrame) < _contentOffset.beginPos && frame.origin.y >= _contentOffset.beginPos) {
                     optimizeFrame.origin.y = _contentOffset.beginPos - optimizeFrame.size.height - 1;
                 }
                 
@@ -2207,17 +2229,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             [_insertSectionViewsDic setObject:sectionView forKey:indexPath];
         }
     } else {
-        CGFloat newTopPosition = CGRectGetMaxY(sectionView.frame);
-        if (newTopPosition > _updateInsertOriginTopPosition) {
-            _updateInsertOriginTopPosition = newTopPosition;
-        }
-        
         originY = sectionView.frame.origin.y + sectionOffset;
-        
-        newTopPosition = originY + sectionView.frame.size.height;
-        if (newTopPosition > _updateDeleteOriginTopPosition) {
-            _updateDeleteOriginTopPosition = newTopPosition;
-        }
         
         if (self.style == MPTableViewStylePlain && !isSuspending && !isPrepareToSuspend) { // displaying
             MPTableViewSection *section = _sectionsAreaList[currIndex];
@@ -2234,6 +2246,17 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             [_insertSectionViewsDic setObject:sectionView forKey:indexPath];
         }
     }
+    
+    CGFloat newTopPosition = CGRectGetMaxY(sectionView.frame);
+    if (newTopPosition > _updateInsertOriginTopPosition) {
+        _updateInsertOriginTopPosition = newTopPosition;
+    }
+    
+    newTopPosition = originY + sectionView.frame.size.height;
+    if (newTopPosition > _updateDeleteOriginTopPosition) {
+        _updateDeleteOriginTopPosition = newTopPosition;
+    }
+    
     void (^animationBlock)(void) = ^{
         [self _addSectionViewToWrapperViewIfNeeded:sectionView];
         
