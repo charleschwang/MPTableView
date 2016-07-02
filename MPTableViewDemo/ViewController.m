@@ -209,7 +209,7 @@ void _deleteAnimation(UIView *view) {
     cell.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withTargetFrame:(CGRect)targetFrame {
     cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
@@ -217,7 +217,7 @@ void _deleteAnimation(UIView *view) {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withTargetFrame:(CGRect)targetFrame {
     view.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
@@ -225,7 +225,7 @@ void _deleteAnimation(UIView *view) {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withTargetFrame:(CGRect)targetFrame {
     view.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
