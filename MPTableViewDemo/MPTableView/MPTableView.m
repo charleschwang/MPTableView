@@ -186,9 +186,15 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTable
             if (sectionPosition) {
                 frame.origin.y = top + (sectionPosition.endPos - sectionPosition.beginPos) / 2;
             } else {
-                frame.origin.y = top + frame.size.height / 2;
+                frame.origin.y = top;
             }
             frame.size.height = 0;
+            
+            CGRect bounds = view.bounds;
+            bounds.origin.y = bounds.size.height / 2;
+            bounds.size.height = 0;
+            view.bounds = bounds;
+            
             view.alpha = 0;
         }
             break;
@@ -251,6 +257,12 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
         case MPTableViewRowAnimationMiddle: {
             frame.origin.y = originFrame.origin.y;
             frame.size.height = originFrame.size.height;
+            
+            CGRect bounds = view.bounds;
+            bounds.origin.y = 0;
+            bounds.size.height = originFrame.size.height;
+            view.bounds = bounds;
+            
             view.alpha = 1;
         }
             break;
@@ -1666,7 +1678,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
         } else {
             CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateDeleteOriginTopPosition, animation, sectionPosition, nil);
-
+            
             if (animation != MPTableViewRowAnimationNone) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
                     optimizeFrame.origin.y = _contentOffset.endPos + 1;
@@ -1697,6 +1709,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
         [cell setSelected:[_selectedIndexPaths containsObject:indexPath]];
         
         cell.frame = frame;
+        [cell prepareForDisplaying];
         
         CGFloat updateInsertOriginTopPosition = _updateInsertOriginTopPosition;
         if (animation == MPTableViewRowAnimationCustom) {
@@ -1784,6 +1797,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                 frame.origin.y = _contentOffset.beginPos - frame.size.height - 1;
             }
             cell.frame = frame;
+            [cell prepareForDisplaying];
+            
             if ([_updateExchangedSelectedIndexPaths containsObject:indexPath]) {
                 [cell setSelected:YES];
             }
@@ -1826,6 +1841,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             
             originY = frame.origin.y;
             [self _updateSetInsertView:cell startFrame:frame withOffset:cellOffset];
+            
+            [cell prepareForDisplaying];
             [_insertCellsDic setObject:cell forKey:indexPath];
         }
     } else {
@@ -2038,6 +2055,7 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             return;
         }
         sectionView.frame = frame;
+        [sectionView prepareForDisplaying];
         
         CGFloat updateInsertOriginTopPosition = _updateInsertOriginTopPosition;
         if (animation == MPTableViewRowAnimationCustom) {
@@ -2190,7 +2208,9 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             } else {
                 frame.origin.y = _contentOffset.beginPos - frame.size.height - 1;
             }
+            
             sectionView.frame = frame;
+            [sectionView prepareForDisplaying];
         }
         
         void (^animationBlock)(void) = ^{
@@ -2262,6 +2282,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
             
             originY = frame.origin.y;
             [self _updateSetInsertView:sectionView startFrame:frame withOffset:sectionOffset];
+            
+            [sectionView prepareForDisplaying];
             [_insertSectionViewsDic setObject:sectionView forKey:indexPath];
         }
     } else {
@@ -2603,7 +2625,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)_addCellToWrapperViewIfNeeded:(MPTableViewCell *)cell {
-    [cell prepareForDisplaying];
     if (![cell superview] || cell.superview != _contentWrapperView) {
         [_contentWrapperView addSubview:cell];
         if ([self isUpdating]) {
@@ -2613,7 +2634,6 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)_addSectionViewToWrapperViewIfNeeded:(MPTableReusableView *)sectionView {
-    [sectionView prepareForDisplaying];
     if (![sectionView superview] || sectionView.superview != self) {
         [self insertSubview:sectionView aboveSubview:_contentWrapperView];
     }
@@ -2826,6 +2846,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
                     [cell setSelected:YES];
                 }
                 cell.frame = [self _cellFrameAtIndexPath:indexPath];
+                [cell prepareForDisplaying];
+                
                 [self _addCellToWrapperViewIfNeeded:cell];
                 [_displayedCellsDic setObject:cell forKey:indexPath];
             }
@@ -2915,6 +2937,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     if (sectionView) {
         CGRect frame = [self _sectionViewFrameAtIndexPath:indexPath];
         sectionView.frame = frame;
+        [sectionView prepareForDisplaying];
+        
         [self _addSectionViewToWrapperViewIfNeeded:sectionView];
         [_displayedSectionViewsDic setObject:sectionView forKey:indexPath];
     }
@@ -2963,6 +2987,8 @@ _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
     if (sectionView) {
         sectionView.frame = [self _prepareToSuspendViewFrameAt:section withType:type];
+        [sectionView prepareForDisplaying];
+        
         [self _addSectionViewToWrapperViewIfNeeded:sectionView];
         [_displayedSectionViewsDic setObject:sectionView forKey:indexPath];
     }

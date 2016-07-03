@@ -15,7 +15,7 @@
         CGRect frame = self.frame;
         frame.origin = CGPointZero;
         self.label_title = [[UILabel alloc]initWithFrame:frame];
-        self.label_title.backgroundColor = [UIColor colorWithRed:arc4random() % 10 / 10. green:arc4random() % 10 / 10. blue:arc4random() % 10 / 10. alpha:1];
+        self.backgroundColor = [UIColor colorWithRed:arc4random() % 10 / 10. green:arc4random() % 10 / 10. blue:arc4random() % 10 / 10. alpha:1];
         self.label_title.autoresizesSubviews = YES;
         self.label_title.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         self.label_title.font = [UIFont systemFontOfSize:12];

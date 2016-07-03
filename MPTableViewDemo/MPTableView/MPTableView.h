@@ -101,6 +101,8 @@ typedef NS_ENUM(NSInteger, MPTableViewScrollPosition) {
     MPTableViewScrollPositionBottom
 };
 
+// top, bottom, middle should set cell(section header/footer)'s height to 0. So we had better put the layout codes in -(void)prepareForDisplaying, and not in -(void)layoutSubviews.
+
 typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationFade,
     MPTableViewRowAnimationRight, // slide in from right (or out to right)
