@@ -12,12 +12,11 @@
 
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier {
     if (self = [super initWithReuseIdentifier:identifier]) {
+        self.backgroundColor = [UIColor colorWithRed:arc4random() % 10 / 10. green:arc4random() % 10 / 10. blue:arc4random() % 10 / 10. alpha:1];
+        
         CGRect frame = self.frame;
         frame.origin = CGPointZero;
         self.label_title = [[UILabel alloc]initWithFrame:frame];
-        self.backgroundColor = [UIColor colorWithRed:arc4random() % 10 / 10. green:arc4random() % 10 / 10. blue:arc4random() % 10 / 10. alpha:1];
-        self.label_title.autoresizesSubviews = YES;
-        self.label_title.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         self.label_title.font = [UIFont systemFontOfSize:12];
         [self addSubview:self.label_title];
         
@@ -29,8 +28,8 @@
     return self;
 }
 
-- (void)layoutSubviews {
-    
+- (void)prepareForDisplaying {
+    self.label_title.frame = self.bounds;
 }
 
 - (void)prepareForReuse {

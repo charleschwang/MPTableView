@@ -101,7 +101,8 @@ typedef NS_ENUM(NSInteger, MPTableViewScrollPosition) {
     MPTableViewScrollPositionBottom
 };
 
-// top, bottom, middle should set cell(section header/footer)'s height to 0. So we had better put the layout codes in -(void)prepareForDisplaying, and not in -(void)layoutSubviews.
+// Top, bottom and middle should set cell(section header/footer)'s height to 0. So we had better put the layout codes in -(void)prepareForDisplaying, and not in -(void)layoutSubviews.
+// The animation will looks unnatural when you using Autolayout or -(void)layoutSubviews and choosed top, bottom, and especially middle.
 
 typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationFade,

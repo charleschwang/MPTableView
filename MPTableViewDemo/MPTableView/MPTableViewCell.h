@@ -19,7 +19,7 @@ UIKIT_EXTERN const CGFloat MPTableViewDefaultCellHeight;
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithCoder:(NSCoder *)aDecoder NS_DESIGNATED_INITIALIZER;
 
-- (void)prepareForDisplaying; // the frame has been set.
+- (void)prepareForDisplaying; // frame has been set. set subviews layout in here.
 
 - (void)prepareForReuse; // if the reusableView is reusable (has a reuse identifier), this is called just before the reusableView is returned from the table view method dequeueReusableViewWithIdentifier:(or dequeueReusableCellWithIdentifier).  If you override, you don't need to call super.
 
