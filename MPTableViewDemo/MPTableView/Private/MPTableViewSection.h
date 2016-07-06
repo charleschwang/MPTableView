@@ -16,11 +16,12 @@
 @end
 
 #pragma mark -
-typedef NS_ENUM (NSInteger, MPSectionType) {
+
+typedef NS_ENUM(NSInteger, MPSectionType) {
     MPSectionTypeHeader = NSIntegerMin + 32, MPSectionTypeFooter = NSIntegerMax - 32
 };
 
-typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
+typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
     MPTableViewUpdateAdjust,
     MPTableViewUpdateDelete,
     MPTableViewUpdateInsert,
@@ -29,8 +30,8 @@ typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
     MPTableViewUpdateMoveOut
 };
 
-#define MPTableViewUpdateTypeStable(_type_) (_type_ == MPTableViewUpdateMoveIn || _type_ == MPTableViewUpdateInsert)
-#define MPTableViewUpdateTypeUnstable(_type_) (_type_ == MPTableViewUpdateMoveOut || _type_ == MPTableViewUpdateDelete || _type_ == MPTableViewUpdateReload)
+#define MPTableViewUpdateTypeStable(_type_) (_type_ == MPTableViewUpdateInsert || _type_ == MPTableViewUpdateMoveIn)
+#define MPTableViewUpdateTypeUnstable(_type_) (_type_ == MPTableViewUpdateDelete || _type_ == MPTableViewUpdateMoveOut || _type_ == MPTableViewUpdateReload)
 
 @class MPTableViewSection;
 
@@ -44,7 +45,7 @@ typedef NS_ENUM (NSInteger, MPTableViewUpdateType) {
 @property (nonatomic, assign) NSUInteger originCount;
 @property (nonatomic, assign) NSUInteger newCount;
 
-- (BOOL)formatNodesStable; // For example, a section with 5 cells, it is unable to insert 5 after delete 0 and 1
+- (BOOL)formatNodesStable; // For example, a section with 5 cells, it is unable to insert 5 after delete 0.
 
 @end
 

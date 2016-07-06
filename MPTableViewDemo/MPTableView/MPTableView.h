@@ -90,7 +90,7 @@ UIKIT_EXTERN NSString *const MPTableViewSelectionDidChangeNotification;
 
 #pragma mark -
 
-typedef NS_ENUM(NSUInteger, MPTableViewStyle) {
+typedef NS_ENUM(NSInteger, MPTableViewStyle) {
     MPTableViewStylePlain, MPTableViewStyleGrouped
 };
 

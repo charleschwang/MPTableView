@@ -173,6 +173,7 @@ _CGColorClearColor() {
     if (_selected == selected) {
         return;
     }
+    
     _selected = selected;
     if (selected && _highlighted) {
         return;
@@ -188,6 +189,7 @@ _CGColorClearColor() {
     if (_highlighted == highlighted) {
         return;
     }
+    
     _highlighted = highlighted;
     if (!highlighted && _selected) {
         return;
@@ -225,6 +227,7 @@ _CGColorClearColor() {
     if (!highlighted && _cachedSubviewColorsMap.size() == 0) {
         return;
     }
+    
     _setSubviewsHighlightedAndCachedColorIfNeeded(self.subviews, highlighted, &_cachedSubviewColorsMap);
 }
 

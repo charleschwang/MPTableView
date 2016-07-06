@@ -41,11 +41,13 @@ _NSIntegerMalloc(size_t size) {
 
 - (NSInteger)indexAtPosition:(NSUInteger)position {
     NSParameterAssert(position < _length);
+    
     return _indexes[position];
 }
 
 - (NSInteger *)indexsInRange:(NSRange)range {
     NSParameterAssert(NSMaxRange(range) <= _length);
+    
     if (!range.length) {
         return NULL;
     } else {

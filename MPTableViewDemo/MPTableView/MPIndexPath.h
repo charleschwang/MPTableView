@@ -31,6 +31,8 @@
 
 @end
 
+#pragma mark -
+
 @interface MPMutableIndexPath : MPIndexPath
 
 + (instancetype)indexPath;
