@@ -139,8 +139,11 @@ _CGColorClearColor() {
 - (void)setFrame:(CGRect)frame {
     [super setFrame:frame];
     if (!(CGSizeEqualToSize(self.frame.size, _fadeAnimationLayer.frame.size))) {
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
         frame.origin = CGPointZero;
         _fadeAnimationLayer.frame = frame;
+        [CATransaction commit];
     }
 }
 
