@@ -127,7 +127,7 @@ MPTableViewGetRandomRowAnimation() {
 }
 
 static CGRect
-MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTableViewRowAnimation animation, MPTableViewPosition *sectionPosition, UIView *belowSubview) {
+MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTableViewRowAnimation animation, MPTableViewPosition *sectionPosition) {
     CGRect frame = view.frame;
     switch (animation) {
         case MPTableViewRowAnimationFade: {
@@ -156,12 +156,6 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTable
             frame.origin.y = top;
             frame.size.height = 0;
             
-            if (belowSubview) { // for sectionViews
-                [view.superview insertSubview:view aboveSubview:belowSubview];
-            } else {
-                [view.superview sendSubviewToBack:view];
-            }
-            
             CGRect bounds = view.bounds;
             bounds.origin.y = bounds.size.height;
             view.bounds = bounds;
@@ -170,8 +164,6 @@ MPTableViewDisappearViewFrameWithRowAnimation(UIView *view, CGFloat top, MPTable
         case MPTableViewRowAnimationBottom: {
             frame.origin.y = top;
             frame.size.height = 0;
-            
-            [view.superview bringSubviewToFront:view];
             
             CGRect bounds = view.bounds;
             bounds.origin.y = -bounds.size.height;
@@ -243,8 +235,6 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
         case MPTableViewRowAnimationBottom: {
             frame.origin.y = originFrame.origin.y;
             frame.size.height = originFrame.size.height;
-            
-            [view.superview bringSubviewToFront:view];
             
             CGRect bounds = view.bounds;
             bounds.origin.y = 0;
@@ -1683,7 +1673,15 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             updateDeleteOriginTopPosition = _contentOffset.beginPos - cell.frame.size.height - 1;
         }
         [_mpDelegate MPTableView:self willDeleteCell:cell forRowAtIndexPath:indexPath withAnimationPathPosition:updateDeleteOriginTopPosition];
+    } else {
+        if (animation == MPTableViewRowAnimationTop) {
+            [_contentWrapperView sendSubviewToBack:cell];
+        }
+        if (animation == MPTableViewRowAnimationBottom) {
+            [_contentWrapperView bringSubviewToFront:cell];
+        }
     }
+    
     if (_respond_didEndDisplayingCellForRowAtIndexPath) {
         [_mpDelegate MPTableView:self didEndDisplayingCell:cell forRowAtIndexPath:indexPath];
     }
@@ -1694,7 +1692,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
                 [_mpDelegate MPTableView:self beginDeleteCell:cell forRowAtIndexPath:indexPath withAnimationPathPosition:updateDeleteOriginTopPosition];
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateDeleteOriginTopPosition, animation, sectionPosition, nil);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateDeleteOriginTopPosition, animation, sectionPosition);
             
             if (animation != MPTableViewRowAnimationNone) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
@@ -1741,13 +1739,20 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
         } else {
             if (animation != MPTableViewRowAnimationNone) {
-                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateInsertOriginTopPosition, animation, sectionPosition, nil);
+                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(cell, updateInsertOriginTopPosition, animation, sectionPosition);
                 
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
                     optimizeFrame.origin.y = _contentOffset.endPos + 1;
                 }
                 if (CGRectGetMaxY(optimizeFrame) < _contentOffset.beginPos) {
                     optimizeFrame.origin.y = _contentOffset.beginPos - optimizeFrame.size.height - 1;
+                }
+                
+                if (animation == MPTableViewRowAnimationTop) {
+                    [_contentWrapperView sendSubviewToBack:cell];
+                }
+                if (animation == MPTableViewRowAnimationBottom) {
+                    [_contentWrapperView bringSubviewToFront:cell];
                 }
                 
                 cell.frame = optimizeFrame;
@@ -1792,6 +1797,8 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
             
             void (^animationBlock)(void) = ^{
+                [_contentWrapperView bringSubviewToFront:cell];
+                
                 CGRect frame = cell.frame;
                 if ([indexPath compare:originIndexPath] == NSOrderedAscending) { //
                     frame.origin.y = _contentOffset.beginPos - frame.size.height - 1;
@@ -2003,7 +2010,15 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         if (type == MPSectionTypeFooter && _respond_willDeleteFooterViewForSection) {
             [_mpDelegate MPTableView:self willDeleteFooterView:sectionView forSection:index withAnimationPathPosition:updateDeleteOriginTopPosition];
         }
+    } else {
+        if (animation == MPTableViewRowAnimationTop) {
+            [self insertSubview:sectionView aboveSubview:_contentWrapperView];
+        }
+        if (animation == MPTableViewRowAnimationBottom) {
+            [self bringSubviewToFront:sectionView];
+        }
     }
+    
     if (type == MPSectionTypeHeader) {
         if (_respond_didEndDisplayingHeaderViewForSection) {
             [_mpDelegate MPTableView:self didEndDisplayingHeaderView:sectionView forSection:index];
@@ -2026,7 +2041,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
                 }
             }
         } else {
-            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateDeleteOriginTopPosition, animation, deleteSection, _contentWrapperView);
+            CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateDeleteOriginTopPosition, animation, deleteSection);
             
             if (animation != MPTableViewRowAnimationNone) {
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
@@ -2104,13 +2119,20 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
                     sectionView.frame = [self _prepareToSuspendViewFrameAt:insertSection withType:type];
                 }
             } else {
-                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateInsertOriginTopPosition, animation, insertSection, _contentWrapperView);
+                CGRect optimizeFrame = MPTableViewDisappearViewFrameWithRowAnimation(sectionView, updateInsertOriginTopPosition, animation, insertSection);
 
                 if (optimizeFrame.origin.y > _contentOffset.endPos) {
                     optimizeFrame.origin.y = _contentOffset.endPos + 1;
                 }
                 if (CGRectGetMaxY(optimizeFrame) < _contentOffset.beginPos) {
                     optimizeFrame.origin.y = _contentOffset.beginPos - optimizeFrame.size.height - 1;
+                }
+                
+                if (animation == MPTableViewRowAnimationTop) {
+                    [self insertSubview:sectionView aboveSubview:_contentWrapperView];
+                }
+                if (animation == MPTableViewRowAnimationBottom) {
+                    [self bringSubviewToFront:sectionView];
                 }
                 
                 sectionView.frame = optimizeFrame;
@@ -2201,6 +2223,8 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             }
             
             void (^animationBlock)(void) = ^{
+                [self bringSubviewToFront:sectionView];
+                
                 CGRect frame = sectionView.frame;
                 if ([indexPath compare:originIndexPath] == NSOrderedAscending) { //
                     frame.origin.y = _contentOffset.beginPos - frame.size.height - 1;
