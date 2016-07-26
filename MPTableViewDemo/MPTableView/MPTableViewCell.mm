@@ -103,10 +103,14 @@ _CGColorClearColor() {
     _highlighted = NO;
     _selected = NO;
     
-    _fadeAnimationLayer = [CALayer new];
-    _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionDefault();
     _selectionColor = _UIColorMPSelectionDefault();
+    
+    _fadeAnimationLayer = [CALayer new];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionDefault();
     _fadeAnimationLayer.hidden = YES;
+    [CATransaction commit];
     [self.layer insertSublayer:_fadeAnimationLayer atIndex:0];
 }
 
@@ -158,6 +162,8 @@ _CGColorClearColor() {
 }
 
 - (void)setSelectionColor:(UIColor *)selectionColor {
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
     if (!(_selectionColor = selectionColor)) {
         _fadeAnimationLayer.backgroundColor = _CGColorClearColor();
         if (!_selected && !_highlighted) {
@@ -166,6 +172,7 @@ _CGColorClearColor() {
     } else {
         _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
     }
+    [CATransaction commit];
 }
 
 - (void)setSelected:(BOOL)selected {

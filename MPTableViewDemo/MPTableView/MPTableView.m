@@ -2704,6 +2704,8 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
 
 - (void)_cacheSectionView:(MPTableReusableView *)sectionView {
     if (sectionView.identifier && ![self isUpdating]) {
+        [sectionView prepareForReuse];
+        
         NSMutableSet *queue = [_reusableReusableViewsDic objectForKey:sectionView.identifier];
         if (!queue) {
             queue = [NSMutableSet set];
