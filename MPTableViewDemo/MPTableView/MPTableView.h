@@ -102,7 +102,6 @@ typedef NS_ENUM(NSInteger, MPTableViewScrollPosition) {
 };
 
 // Top, bottom and middle should set cell(section header/footer)'s height to 0. So we had better put the layout codes in -(void)prepareForDisplaying, and not in -(void)layoutSubviews.
-// The animation will looks unnatural when you using Autolayout or -(void)layoutSubviews and choosed top, bottom, and especially middle.
 
 typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationFade,
@@ -185,7 +184,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @property (nonatomic, assign) NSTimeInterval rowAnimationDuration; // default is 0.3
 @property (nonatomic, assign) NSTimeInterval rowAnimationDelay; // default is 0
-@property (nonatomic) UIViewAnimationOptions rowAnimationOptions; // default is UIViewAnimationOptionCurveEaseInOut.
+@property (nonatomic) UIViewAnimationOptions rowAnimationOptions; // default is UIViewAnimationOptionLayoutSubviews. If not, the animation effects will look unnatural when you using Autolayout.
 
 - (void)beginUpdates; // allow multiple insert/delete of rows and sections to be animated simultaneously. Nestable
 - (void)endUpdates; // only call insert/delete/reload calls or sections inside an update block.  otherwise things like row count, etc. may be invalid.

@@ -268,9 +268,8 @@ MPTableViewDisplayViewFrameWithRowAnimation(UIView *view, CGRect originFrame, MP
 
 NSString *const MPTableViewSelectionDidChangeNotification = @"MPTableViewSelectionDidChangeNotification";
 
-#define _ReloadDataAsync_Exception_Value -7883507
 #define _ReloadDataAsync_Exception_ if (!_mpDataSource) { \
-    return _ReloadDataAsync_Exception_Value; \
+    return MPTableViewMaxSize; \
 }
 
 @interface MPTableView ()<MPTableViewUpdateDelegate>
@@ -450,6 +449,7 @@ NSString *const MPTableViewSelectionDidChangeNotification = @"MPTableViewSelecti
     _updateAnimationStep = 0;
     _updateDataPreparing = NO;
     _rowAnimationDuration = 0.3; // Unless it's necessary, don't change the value.
+    _rowAnimationOptions = UIViewAnimationOptionLayoutSubviews;
     
     _deleteViewsList = [NSMutableArray array];
     _insertCellsDic = [NSMutableDictionary dictionary];
@@ -478,12 +478,6 @@ NSString *const MPTableViewSelectionDidChangeNotification = @"MPTableViewSelecti
     _respond_heightForFooterInSection = [_mpDataSource respondsToSelector:@selector(MPTableView:heightForFooterInSection:)];
     _respond_viewForHeaderInSection = [_mpDataSource respondsToSelector:@selector(MPTableView:viewForHeaderInSection:)];
     _respond_viewForFooterInSection = [_mpDataSource respondsToSelector:@selector(MPTableView:viewForFooterInSection:)];
-    if (_respond_heightForHeaderInSection) {
-        _sectionHeaderHeight = 0;
-    }
-    if (_respond_heightForFooterInSection) {
-        _sectionFooterHeight = 0;
-    }
 }
 
 - (void)_respondsToDelegate {
@@ -605,21 +599,18 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
 }
 
 - (void)setRowHeight:(CGFloat)rowHeight {
-    if (!_respond_heightForIndexPath && rowHeight >= 0) {
-        _rowHeight = rowHeight;
-    }
+    NSParameterAssert(rowHeight >= 0);
+    _rowHeight = rowHeight;
 }
 
 - (void)setSectionHeaderHeight:(CGFloat)sectionHeaderHeight {
-    if (!_respond_heightForHeaderInSection && sectionHeaderHeight >= 0) {
-        _sectionHeaderHeight = sectionHeaderHeight;
-    }
+    NSParameterAssert(sectionHeaderHeight >= 0);
+    _sectionHeaderHeight = sectionHeaderHeight;
 }
 
 - (void)setSectionFooterHeight:(CGFloat)sectionFooterHeight {
-    if (!_respond_heightForFooterInSection && sectionFooterHeight >= 0) {
-        _sectionFooterHeight = sectionFooterHeight;
-    }
+    NSParameterAssert(sectionFooterHeight >= 0);
+    _sectionFooterHeight = sectionFooterHeight;
 }
 
 - (void)setTableHeaderView:(UIView *)tableHeaderView {
@@ -1647,7 +1638,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
     CGFloat cellHeight;
     if (_respond_heightForIndexPath) {
         cellHeight = ([_mpDataSource MPTableView:self heightForIndexPath:[MPIndexPath indexPathForRow:index inSection:section]]);
-        NSAssert(cellHeight >= 0, @"cell height");
+        NSAssert(cellHeight >= 0 && cellHeight < MPTableViewMaxSize, @"cell height");
     } else {
         cellHeight = MPTableViewDefaultCellHeight;
     }
@@ -2491,7 +2482,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             [self _clear];
             _updateManager.sections = _sectionsAreaList = newSections;
             [self _unlockLayoutSubviews];
-            if (height != _ReloadDataAsync_Exception_Value && [self superview]) {
+            if (height != MPTableViewMaxSize && [self superview]) {
                 [self _setVerticalContentHeight:height];
                 [self _getDisplayingArea];
                 [self _updateDisplayingArea];
@@ -2506,7 +2497,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
 - (CGFloat)_initializeSection:(MPTableViewSection *)section withOffset:(CGFloat)step {
     // header
     section.beginPos = step;
-    if (_respond_viewForHeaderInSection || self.style == MPTableViewStyleGrouped) {
+    if (_respond_heightForHeaderInSection || _respond_viewForHeaderInSection || self.style == MPTableViewStyleGrouped) {
         CGFloat height;
         if (_respond_heightForHeaderInSection) {
             _ReloadDataAsync_Exception_
@@ -2514,7 +2505,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else {
             height = self.sectionHeaderHeight;
         }
-        NSAssert(height >= 0, @"section header height");
+        NSAssert(height >= 0 && height < MPTableViewMaxSize, @"section header height");
         section.headerHeight = height;
         step += height;
     }
@@ -2530,12 +2521,12 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             } else {
                 cellHeight = self.rowHeight;
             }
-            NSAssert(cellHeight >= 0, @"cell height");
+            NSAssert(cellHeight >= 0 && cellHeight < MPTableViewMaxSize, @"cell height");
             [section addRowWithPosition:step += cellHeight];
         }
     }
     // footer
-    if (_respond_viewForFooterInSection || self.style == MPTableViewStyleGrouped) {
+    if (_respond_heightForFooterInSection || _respond_viewForFooterInSection || self.style == MPTableViewStyleGrouped) {
         CGFloat height;
         if (_respond_heightForFooterInSection) {
             _ReloadDataAsync_Exception_
@@ -2543,7 +2534,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         } else {
             height = self.sectionFooterHeight;
         }
-        NSAssert(height >= 0, @"section footer height");
+        NSAssert(height >= 0 && height < MPTableViewMaxSize, @"section footer height");
         section.footerHeight = height;
         step += height;
     }
@@ -2557,6 +2548,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
     _ReloadDataAsync_Exception_
     if (_respond_numberOfSectionsInMPTableView) {
         _numberOfSections = [_mpDataSource numberOfSectionsInMPTableView:self];
+        NSAssert(_numberOfSections < MPTableViewMaxCount, @"too many sections");
     }
     
     if (sectionsCount > _numberOfSections && !newSections) {
@@ -2573,7 +2565,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         section.section = i;
         
         step = [self _initializeSection:section withOffset:step];
-        if (step == _ReloadDataAsync_Exception_Value) {
+        if (step == MPTableViewMaxSize) {
             [newSections removeAllObjects];
             break;
         }

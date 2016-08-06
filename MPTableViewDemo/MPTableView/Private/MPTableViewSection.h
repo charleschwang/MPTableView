@@ -8,6 +8,9 @@
 
 #import "MPTableView.h"
 
+#define MPTableViewMaxCount 7883507
+#define MPTableViewMaxSize 7883507.0f
+
 @interface MPTableViewPosition : NSObject<NSCopying>
 @property (nonatomic, assign) CGFloat beginPos;
 @property (nonatomic, assign) CGFloat endPos;

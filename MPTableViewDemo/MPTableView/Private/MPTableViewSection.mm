@@ -734,6 +734,8 @@ public:
 }
 
 - (void)setNumberOfRows:(NSUInteger)numberOfRows {
+    NSAssert(numberOfRows < MPTableViewMaxCount, @"too many rows");
+    
     _numberOfRows = numberOfRows;
     _rowPositionVec->reserve(numberOfRows + 1);
     _rowPositionVec->at(0) = self.beginPos + _headerHeight;
