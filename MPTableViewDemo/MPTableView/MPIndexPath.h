@@ -29,6 +29,8 @@
 - (NSInteger)indexAtPosition:(NSUInteger)position;
 - (NSInteger *)indexsInRange:(NSRange)range;
 
+- (NSComparisonResult)compare:(MPIndexPath *)indexPath;
+
 @end
 
 #pragma mark -

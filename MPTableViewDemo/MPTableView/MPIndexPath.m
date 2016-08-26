@@ -73,6 +73,16 @@ _NSIntegerMalloc(size_t size) {
     }
 }
 
+- (NSComparisonResult)compare:(MPIndexPath *)indexPath {
+    if (_length < indexPath.length) {
+        return NSOrderedAscending;
+    } else if (_length > indexPath.length) {
+        return NSOrderedDescending;
+    } else {
+        return (NSComparisonResult)memcmp(_indexes, indexPath->_indexes, _length * sizeof(NSInteger));
+    }
+}
+
 - (id)copyWithZone:(NSZone *)zone {
     MPIndexPath *copyObj = [MPIndexPath allocWithZone:zone];
     copyObj->_length = _length;

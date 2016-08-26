@@ -11,6 +11,39 @@
 #define MPTableViewMaxCount 7883507
 #define MPTableViewMaxSize 7883507.0f
 
+typedef struct struct_MPIndexPath {
+    NSInteger section, row;
+} MPIndexPathStruct;
+
+MPIndexPathStruct MPIndexPathStructMake(NSInteger section, NSInteger row) {
+    MPIndexPathStruct result;
+    result.section = section;
+    result.row = row;
+    return result;
+}
+
+FOUNDATION_EXTERN const MPIndexPathStruct MPIndexPathStructNotFound;
+
+NS_INLINE BOOL MPEqualIndexPaths(MPIndexPathStruct indexPath1, MPIndexPathStruct indexPath2) {
+    return indexPath1.section == indexPath2.section && indexPath2.row == indexPath1.row;
+}
+
+NSComparisonResult MPCompareIndexPath(MPIndexPathStruct first, MPIndexPathStruct second) {
+    if (first.section > second.section) {
+        return NSOrderedDescending;
+    } else if (first.section < second.section) {
+        return NSOrderedAscending;
+    } else {
+        if (first.row > second.row) {
+            return NSOrderedDescending;
+        } else if (first.row < second.row) {
+            return NSOrderedAscending;
+        } else {
+            return NSOrderedSame;
+        }
+    }
+}
+
 @interface MPTableViewPosition : NSObject<NSCopying>
 @property (nonatomic, assign) CGFloat beginPos;
 @property (nonatomic, assign) CGFloat endPos;
@@ -48,14 +81,18 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 @property (nonatomic, assign) NSUInteger originCount;
 @property (nonatomic, assign) NSUInteger newCount;
 
-- (BOOL)formatNodesStable; // For example, a section with 5 cells, it is unable to insert 5 after delete 0.
+- (BOOL)formatNodesStable:(BOOL)countCheckIgnored; // For example, a section with 5 cells, it is unable to insert 5 after delete 0.
 
 @end
 
 #pragma mark -
 
-@protocol MPTableViewUpdateDelegate
-@required
+@interface MPTableView (MPTableView_UpdatePrivate)
+
+- (MPIndexPathStruct)_beginIndexPath;
+- (MPIndexPathStruct)_endIndexPath;
+
+- (BOOL)_isContentMoving;
 
 - (MPTableViewSection *)updateMakeSectionAt:(NSInteger)section;
 - (CGFloat)updateSection:(NSInteger)section cellHeightAtIndex:(NSInteger)index;
@@ -88,9 +125,12 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 @interface MPTableViewUpdateManager : MPTableViewUpdateBase
 
 @property (nonatomic, weak) NSMutableArray *sections;
-@property (weak, readonly) MPTableView<MPTableViewUpdateDelegate> *delegate;
+@property (weak, readonly) MPTableView *delegate;
 
-+ (MPTableViewUpdateManager *)managerWithDelegate:(MPTableView<MPTableViewUpdateDelegate> *)delegate andSections:(NSMutableArray *)sections;
+@property (nonatomic, assign) NSUInteger moveFromSection;
+@property (nonatomic, assign) NSUInteger moveToSection; // optimize
+
++ (MPTableViewUpdateManager *)managerWithDelegate:(MPTableView *)delegate andSections:(NSMutableArray *)sections;
 - (void)resetManager;
 
 - (BOOL)addMoveOutSection:(NSUInteger)section;
@@ -108,6 +148,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 - (BOOL)addReloadIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
 
 - (CGFloat)startUpdate;
+
 @end
 
 #pragma mark -
@@ -144,7 +185,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 - (void)setPositionOffset:(CGFloat)offset;
 
-- (CGFloat)updateUsingPartWith:(id<MPTableViewUpdateDelegate>)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback;
-- (void)updateWith:(id<MPTableViewUpdateDelegate>)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback;
+- (CGFloat)updateUsingPartWith:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback;
+- (void)updateWith:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback;
 
 @end

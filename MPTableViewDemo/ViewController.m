@@ -39,6 +39,10 @@
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
     
+    self.tableView.moveModeEnabled = YES;
+    self.tableView.allowsSelectionDuringMoving = YES;
+    self.tableView.allowDragOutBounds = YES;
+    
     UILabel *header = [[UILabel alloc]initWithFrame:CGRectMake(0, 0, 114, 114)];
     header.backgroundColor = [UIColor darkGrayColor];
     header.font = [UIFont systemFontOfSize:20];
@@ -110,7 +114,7 @@
 - (void)tableViewReload {
     self.cellCount = 500;
     self.sectionCount = 500;
-    self.tableView.enableCachesReload = YES;
+    self.tableView.cachesReloadEnabled = YES;
     [self.tableView reloadDataAsyncWithCompletion:^{
         UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"提示" message:@"加载完毕" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
         [alert show];
@@ -166,6 +170,12 @@
     return cell;
 }
 
+- (CGRect)MPTableView:(MPTableView *)tableView rectForCellToMoveRowAtIndexPath:(MPIndexPath *)indexPath {
+    MyDemoCell *cell = (MyDemoCell *)[tableView cellForRowAtIndexPath:indexPath];
+    
+    return [cell rectForMoving];
+}
+
 #pragma mark -delegate
 
 - (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
@@ -195,11 +205,11 @@ void _deleteAnimation(UIView *view) {
     _deleteAnimation(cell);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
@@ -213,19 +223,19 @@ void _deleteAnimation(UIView *view) {
     cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
-- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withTargetFrame:(CGRect)targetFrame {
+- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withTargetFrame:(CGRect)targetFrame {
     view.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 
-- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withTargetFrame:(CGRect)targetFrame {
+- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withTargetFrame:(CGRect)targetFrame {
     view.transform = CGAffineTransformMakeScale(1.0, 1.0);
 }
 

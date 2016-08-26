@@ -24,12 +24,29 @@
         separator.tag = 250;
         separator.backgroundColor = [UIColor lightGrayColor];
         [self addSubview:separator];
+        
+        self.btn_movement = [[UIButton alloc] initWithFrame:frame];
+        [self.btn_movement setTitle:@"drag" forState:UIControlStateNormal];
+        [self.btn_movement setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+        self.btn_movement.titleLabel.font = [UIFont systemFontOfSize:11];
+        self.btn_movement.backgroundColor = [UIColor whiteColor];
+        
+        // =========================================================
+        self.btn_movement.userInteractionEnabled = NO; // @required
+        // =========================================================
+        
+        [self addSubview:self.btn_movement];
     }
     return self;
 }
 
 - (void)prepareForDisplaying {
     self.label_title.frame = self.bounds;
+    self.btn_movement.frame = [self rectForMoving];
+}
+
+- (CGRect)rectForMoving {
+    return CGRectMake(self.bounds.size.width / 4 * 3, 2, self.bounds.size.width / 4, self.bounds.size.height - 3);
 }
 
 - (void)prepareForReuse {

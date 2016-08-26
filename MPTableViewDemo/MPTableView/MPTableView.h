@@ -18,10 +18,10 @@
 - (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
 - (void)MPTableView:(MPTableView *)tableView didEndDisplayingCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
 
-- (void)MPTableView:(MPTableView *)tableView willDisplayHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView willDisplayFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView didEndDisplayingHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section;
-- (void)MPTableView:(MPTableView *)tableView didEndDisplayingFooterView:(MPTableReusableView *)view forSection:(NSInteger)section;
+- (void)MPTableView:(MPTableView *)tableView willDisplayHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section;
+- (void)MPTableView:(MPTableView *)tableView willDisplayFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section;
+- (void)MPTableView:(MPTableView *)tableView didEndDisplayingHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section;
+- (void)MPTableView:(MPTableView *)tableView didEndDisplayingFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section;
 
 // Custom animations for updating. cell will be nil while it is ouside of the display area. a reload-update is composed of a delete and a insert function.
 
@@ -35,15 +35,15 @@
 - (void)MPTableView:(MPTableView *)tableView willDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 - (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
-- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
-- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withTargetFrame:(CGRect)targetFrame;
-- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
-- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withTargetFrame:(CGRect)targetFrame;
+- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withTargetFrame:(CGRect)targetFrame;
+- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withTargetFrame:(CGRect)targetFrame;
 
-- (void)MPTableView:(MPTableView *)tableView willDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
-- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
-- (void)MPTableView:(MPTableView *)tableView willDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
-- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView willDeleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView willDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
 
 // Called before the user changes the selection. Return a new indexPath, or nil, to change the proposed selection.
 - (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
@@ -59,6 +59,8 @@
 - (BOOL)MPTableView:(MPTableView *)tableView shouldHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
 - (void)MPTableView:(MPTableView *)tableView didHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
 - (void)MPTableView:(MPTableView *)tableView didUnhighlightRowAtIndexPath:(MPIndexPath *)indexPath;
+
+- (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath;
 
 @end
 
@@ -85,6 +87,14 @@ UIKIT_EXTERN NSString *const MPTableViewSelectionDidChangeNotification;
 
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section;
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForFooterInSection:(NSUInteger)section;
+
+- (BOOL)MPTableView:(MPTableView *)tableView canMoveRowAtIndexPath:(MPIndexPath *)indexPath;
+- (BOOL)MPTableView:(MPTableView *)tableView canMoveRowToIndexPath:(MPIndexPath *)indexPath;
+
+// If not implemented, touch any position of cell will make it begin to move. Default is [cell bounds].
+- (CGRect)MPTableView:(MPTableView *)tableView rectForCellToMoveRowAtIndexPath:(MPIndexPath *)indexPath;
+
+- (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath;
 
 @end
 
@@ -130,7 +140,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 @property (nonatomic) CGFloat sectionFooterHeight;
 
 - (NSUInteger)numberOfSections;
-- (NSUInteger)numberOfRowsInSection:(NSInteger)section;
+- (NSUInteger)numberOfRowsInSection:(NSUInteger)section;
 
 @property (nonatomic, readonly) MPIndexPath *beginIndexPath; // displaying
 @property (nonatomic, readonly) MPIndexPath *endIndexPath;
@@ -160,7 +170,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @property (nonatomic, strong) UIView *backgroundView; // will be placed as a subview of the table view behind all cells and headers/footers.
 
-@property (nonatomic, assign) BOOL enableCachesReload; // default is NO, when reloading tableview, without clear reusable views and cache all displayed views to reuse(It is best to make sure that tableview will reload with the same cells/reusableViews);
+@property (nonatomic, getter=isCachesReloadEnabled) BOOL cachesReloadEnabled; // default is NO, when reloading tableview, without clear reusable views and cache all displayed views to reuse(It is best to make sure that tableview will reload with the same cells/reusableViews);
 - (void)clearReusableCells;
 - (void)clearReusableSectionViews;
 
@@ -199,8 +209,12 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)reloadRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
 - (void)moveRowAtIndexPath:(MPIndexPath *)indexPath toIndexPath:(MPIndexPath *)newIndexPath;
 
-- (id)dequeueReusableCellWithIdentifier:(NSString *)identifier;
+@property (nonatomic, getter=isMoveModeEnabled) BOOL moveModeEnabled; // default is NO.
+@property (nonatomic) BOOL allowsSelectionDuringMoving;                                 // default is NO. Controls whether rows can be selected when in moving mode
+@property (nonatomic, assign) BOOL allowDragOutBounds; // default is NO.
+- (MPIndexPath *)movingIndexPath; // default is nil.
 
+- (id)dequeueReusableCellWithIdentifier:(NSString *)identifier;
 // like dequeueReusableCellWithIdentifier:, but for headers/footers
 - (id)dequeueReusableViewWithIdentifier:(NSString *)identifier;
 
@@ -218,6 +232,5 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (NSInteger)section;
 - (NSInteger)row;
 + (MPIndexPath *)indexPathForRow:(NSInteger)row inSection:(NSInteger)section;
-- (NSComparisonResult)compare:(MPIndexPath *)indexPath;
 
 @end
