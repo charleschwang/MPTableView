@@ -49,7 +49,7 @@ const CGFloat MPTableViewDefaultCellHeight = 44.;
     _identifier = [identifier copy];
 }
 
-- (void)prepareForDisplaying {
+- (void)prepareForRecovery {
     
 }
 

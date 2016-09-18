@@ -40,7 +40,7 @@
     return self;
 }
 
-- (void)prepareForDisplaying {
+- (void)prepareForReuse {
     self.label_title.frame = self.bounds;
     self.btn_movement.frame = [self rectForMoving];
 }
@@ -49,7 +49,7 @@
     return CGRectMake(self.bounds.size.width / 4 * 3, 2, self.bounds.size.width / 4, self.bounds.size.height - 3);
 }
 
-- (void)prepareForReuse {
+- (void)prepareForRecovery {
     self.transform = CGAffineTransformMakeScale(1, 1);
 }
 

@@ -83,6 +83,15 @@ UIKIT_EXTERN NSString *const MPTableViewSelectionDidChangeNotification;
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForHeaderInSection:(NSUInteger)section;
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForFooterInSection:(NSUInteger)section;
 
+// Use the estimatedHeight methods to quickly calcuate guessed values which will allow for fast load times of the table.
+// If these methods are implemented, the above -MPTableView:heightForXXX calls will be deferred until views are ready to be displayed, so more expensive logic can be placed there.
+
+// There is no estimatedRowHeight、estimatedSectionHeaderHeight and estimatedSectionFooterHeight, because they can be modified at any time, and that will cause some trouble.
+
+- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForRowAtIndexPath:(MPIndexPath *)indexPath;
+- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForHeaderInSection:(NSUInteger)section;
+- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForFooterInSection:(NSUInteger)section;
+
 // custom view for header. will be adjusted to default or specified header height. Implementers should *always* try to reuse sectionViews by setting each sectionView's reuseIdentifier and querying for available reusable sectionViews with dequeueReusableViewWithIdentifier:
 
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section;
@@ -232,5 +241,6 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (NSInteger)section;
 - (NSInteger)row;
 + (MPIndexPath *)indexPathForRow:(NSInteger)row inSection:(NSInteger)section;
+- (NSComparisonResult)compareRowSection:(MPIndexPath *)indexPath;
 
 @end

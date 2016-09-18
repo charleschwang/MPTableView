@@ -143,6 +143,10 @@
     return 35. + (temp - 10);
 }
 
+- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForFooterInSection:(NSUInteger)section {
+    return 1;
+}
+
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section {
     MySectionView *sectionView = [tableView dequeueReusableViewWithIdentifier:@"MySectionView"];
     sectionView.label_title.text = [NSString stringWithFormat:@"section:%zd", section];

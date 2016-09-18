@@ -79,7 +79,8 @@ _NSIntegerMalloc(size_t size) {
     } else if (_length > indexPath.length) {
         return NSOrderedDescending;
     } else {
-        return (NSComparisonResult)memcmp(_indexes, indexPath->_indexes, _length * sizeof(NSInteger));
+        int result = memcmp(_indexes, indexPath->_indexes, _length * sizeof(NSInteger));
+        return (result == 0) ? NSOrderedSame : (result > 0 ? NSOrderedDescending : NSOrderedAscending);
     }
 }
 
