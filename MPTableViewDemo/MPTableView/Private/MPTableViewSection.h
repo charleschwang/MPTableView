@@ -15,35 +15,6 @@ typedef struct struct_MPIndexPath {
     NSInteger section, row;
 } MPIndexPathStruct;
 
-MPIndexPathStruct MPIndexPathStructMake(NSInteger section, NSInteger row) {
-    MPIndexPathStruct result;
-    result.section = section;
-    result.row = row;
-    return result;
-}
-
-FOUNDATION_EXTERN const MPIndexPathStruct MPIndexPathStructNotFound;
-
-NS_INLINE BOOL MPEqualIndexPaths(MPIndexPathStruct indexPath1, MPIndexPathStruct indexPath2) {
-    return indexPath1.section == indexPath2.section && indexPath2.row == indexPath1.row;
-}
-
-NSComparisonResult MPCompareIndexPath(MPIndexPathStruct first, MPIndexPathStruct second) {
-    if (first.section > second.section) {
-        return NSOrderedDescending;
-    } else if (first.section < second.section) {
-        return NSOrderedAscending;
-    } else {
-        if (first.row > second.row) {
-            return NSOrderedDescending;
-        } else if (first.row < second.row) {
-            return NSOrderedAscending;
-        } else {
-            return NSOrderedSame;
-        }
-    }
-}
-
 @interface MPTableViewPosition : NSObject<NSCopying>
 @property (nonatomic, assign) CGFloat beginPos;
 @property (nonatomic, assign) CGFloat endPos;

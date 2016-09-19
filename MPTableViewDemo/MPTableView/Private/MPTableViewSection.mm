@@ -14,8 +14,6 @@
 
 using namespace std;
 
-const MPIndexPathStruct MPIndexPathStructNotFound = MPIndexPathStructMake(NSNotFound, NSNotFound);
-
 @implementation MPTableViewPosition
 
 - (instancetype)init {

@@ -26,6 +26,33 @@
 //    return (target < range.location || target > range.location + range.length - 1) || range.length < 1;
 //}
 
+MPIndexPathStruct MPIndexPathStructMake(NSInteger section, NSInteger row) {
+    MPIndexPathStruct result;
+    result.section = section;
+    result.row = row;
+    return result;
+}
+
+NS_INLINE BOOL MPEqualIndexPaths(MPIndexPathStruct indexPath1, MPIndexPathStruct indexPath2) {
+    return indexPath1.section == indexPath2.section && indexPath2.row == indexPath1.row;
+}
+
+NSComparisonResult MPCompareIndexPath(MPIndexPathStruct first, MPIndexPathStruct second) {
+    if (first.section > second.section) {
+        return NSOrderedDescending;
+    } else if (first.section < second.section) {
+        return NSOrderedAscending;
+    } else {
+        if (first.row > second.row) {
+            return NSOrderedDescending;
+        } else if (first.row < second.row) {
+            return NSOrderedAscending;
+        } else {
+            return NSOrderedSame;
+        }
+    }
+}
+
 @implementation MPIndexPath (MPTableView)
 
 + (MPIndexPath *)indexPathForRow:(NSInteger)row inSection:(NSInteger)section {
@@ -1474,7 +1501,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         _beginIndexPath = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
         _endIndexPath = [self _indexPathAtContentOffset:_currDrawArea.endPos];
         
-        if (![self __isEstimatedMode] && self.contentSize.height + self.contentInset.bottom + offset < _contentOffset.endPos) { // when scrolling to the bottom, it needs to change content-offset
+        if (self.contentSize.height + self.contentInset.bottom + offset < _contentOffset.endPos) { // when scrolling to the bottom, it needs to change content-offset
             changedContentOffset = _contentOffset.beginPos;
             
             _contentOffset.endPos = self.contentSize.height + self.contentInset.bottom + offset;
@@ -3655,16 +3682,16 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
     MPTableReusableView *sectionView = nil;
     if (self.style == MPTableViewStylePlain || [self isUpdating]) {
         if (![_displayedSectionViewsDic objectForKey:indexPath]) {
-            sectionView = [self _drawSctionViewAtIndexPath:indexPath];
+            sectionView = [self _drawSectionViewAtIndexPath:indexPath];
         }
     } else {
         if ([indexPath compareIndexPathAt:_beginIndexPath] == NSOrderedAscending || [indexPath compareIndexPathAt:_endIndexPath] == NSOrderedDescending) {
-            sectionView = [self _drawSctionViewAtIndexPath:indexPath];
+            sectionView = [self _drawSectionViewAtIndexPath:indexPath];
         }
     }
 }
 
-- (MPTableReusableView *)_drawSctionViewAtIndexPath:(MPIndexPath *)indexPath {
+- (MPTableReusableView *)_drawSectionViewAtIndexPath:(MPIndexPath *)indexPath {
     MPTableReusableView *sectionView = [self _getSectionViewFromDelegateAtIndexPath:indexPath];
     if (sectionView) {
         CGRect frame = [self _sectionViewFrameAtIndexPath:indexPath];
@@ -3789,7 +3816,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         MPIndexPath *indexPath = [MPIndexPath indexPathForRow:MPSectionTypeHeader inSection:_currSuspendHeaderSection];
         UIView *suspendHeader = [_displayedSectionViewsDic objectForKey:indexPath];
         if (!suspendHeader) {
-            suspendHeader = [self _drawSctionViewAtIndexPath:indexPath];
+            suspendHeader = [self _drawSectionViewAtIndexPath:indexPath];
         }
         
         [self _suspendingSectionHeader:suspendHeader inArea:section];
@@ -3862,7 +3889,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         MPIndexPath *indexPath = [MPIndexPath indexPathForRow:MPSectionTypeFooter inSection:_currSuspendFooterSection];
         UIView *suspendFooter = [_displayedSectionViewsDic objectForKey:indexPath];
         if (!suspendFooter) {
-            suspendFooter = [self _drawSctionViewAtIndexPath:indexPath];
+            suspendFooter = [self _drawSectionViewAtIndexPath:indexPath];
         }
         
         [self _suspendingSectionFooter:suspendFooter inArea:section];
