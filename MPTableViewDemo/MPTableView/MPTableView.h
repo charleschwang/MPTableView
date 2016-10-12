@@ -121,8 +121,8 @@ typedef NS_ENUM(NSInteger, MPTableViewScrollDirection) {
 // indexPaths that previously were considered as candidates for pre-fetching, but were not actually used; may be a subset of the previous call to -MPTableView:prefetchRowsAtIndexPaths:
 - (void)MPTableView:(MPTableView *)tableView cancelPrefetchingForRowsAtIndexPaths:(NSArray *)indexPaths;
 
-// Called after the tableview has scrolled to a new position and finished content layout.
-- (void)MPTableView:(MPTableView *)tableView didScrollAndFinishedLayoutWithDirection:(MPTableViewScrollDirection)direction withPreviousDirection:(MPTableViewScrollDirection)previousDirection;
+// Called after the tableview has scrolled to a new position and finished content layout(display content has been changed).
+- (void)MPTableView:(MPTableView *)tableView didScrollAndLayoutUpdatedWithDirection:(MPTableViewScrollDirection)direction withPreviousDirection:(MPTableViewScrollDirection)previousDirection;
 
 @end
 

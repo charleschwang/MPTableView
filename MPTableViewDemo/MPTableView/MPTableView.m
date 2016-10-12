@@ -379,7 +379,7 @@ const CGFloat MPTableViewDefaultAnimationDuration = 0.3f;
     BOOL
     _respond_prefetchRowsAtIndexPaths,
     _respond_cancelPrefetchingForRowsAtIndexPaths,
-    _respond_didScrollAndFinishedLayoutWithDirectionWithPreviousDirection;
+    _respond_didScrollAndLayoutUpdatedWithDirectionWithPreviousDirection;
 }
 
 @dynamic delegate;
@@ -557,7 +557,7 @@ const CGFloat MPTableViewDefaultAnimationDuration = 0.3f;
 - (void)_respondsToPrefetchDataSource {
     _respond_prefetchRowsAtIndexPaths = [_prefetchDataSource respondsToSelector:@selector(MPTableView:prefetchRowsAtIndexPaths:)];
     _respond_cancelPrefetchingForRowsAtIndexPaths = [_prefetchDataSource respondsToSelector:@selector(MPTableView:cancelPrefetchingForRowsAtIndexPaths:)];
-    _respond_didScrollAndFinishedLayoutWithDirectionWithPreviousDirection = [_prefetchDataSource respondsToSelector:@selector(MPTableView:didScrollAndFinishedLayoutWithDirection:withPreviousDirection:)];
+    _respond_didScrollAndLayoutUpdatedWithDirectionWithPreviousDirection = [_prefetchDataSource respondsToSelector:@selector(MPTableView:didScrollAndLayoutUpdatedWithDirection:withPreviousDirection:)];
 }
 
 #pragma mark -public-
@@ -1568,10 +1568,11 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             beginIndexPath = _beginIndexPath;
             endIndexPath = _endIndexPath;
             changedContentOffset = 0;
+            
+            [self _layoutUpdatedNoticeIfNeeded];
+            [self _prefetchDataIfNeeded];
         }
     }
-    
-    [self _prefetchDataIfNeeded];
     
     // clip...
     for (MPIndexPath *indexPath in _displayedCellsDic.allKeys) {
@@ -2693,8 +2694,6 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         _endIndexPath = [self _indexPathAtContentOffset:_currDrawArea.endPos];
     }
     
-    [self _prefetchDataIfNeeded];
-    
     if (_estimatedCellsDic.count) {
         for (MPTableViewCell *cell in _estimatedCellsDic.allValues) {
             [self _cacheCell:cell];
@@ -3484,6 +3483,8 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             
             if (MPCompareIndexPath(beginIndexPathStruct, _beginIndexPath) == NSOrderedAscending) {
                 estimatedFirstIndexPath = beginIndexPathStruct;
+                
+                [self _startEstimatedUpdateAtFirstIndexPath:estimatedFirstIndexPath];
             } else if (MPCompareIndexPath(endIndexPathStruct, _endIndexPath) == NSOrderedDescending) {
                 if (_endIndexPath.row == MPSectionTypeFooter) {
                     estimatedFirstIndexPath = MPIndexPathStructMake(_endIndexPath.section + 1, MPSectionTypeHeader);
@@ -3492,6 +3493,8 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
                 } else {
                     estimatedFirstIndexPath = MPIndexPathStructMake(_endIndexPath.section, _endIndexPath.row + 1);
                 }
+                
+                [self _startEstimatedUpdateAtFirstIndexPath:estimatedFirstIndexPath];
             } else {
                 [self _clipCellsBetween:beginIndexPathStruct and:endIndexPathStruct];
                 [self _adjustEstimatedSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
@@ -3500,9 +3503,8 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
                 _endIndexPath = endIndexPathStruct;
             }
             
-            [self _startEstimatedUpdateAtFirstIndexPath:estimatedFirstIndexPath];
-        } else {
-            [self _clipCellsBetween:beginIndexPathStruct and:endIndexPathStruct];
+            [self _layoutUpdatedNoticeIfNeeded];
+        } else if (self.style == MPTableViewStylePlain) {
             [self _adjustEstimatedSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
         }
         
@@ -3522,6 +3524,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
             [self _clipSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
             
             [self _updateDisplayingBegin:beginIndexPathStruct and:endIndexPathStruct isUpdating:NO];
+            [self _layoutUpdatedNoticeIfNeeded];
         }
         
         _updateDataPreparing = NO;
@@ -3626,8 +3629,6 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
     
     _beginIndexPath = beginIndexPathStruct;
     _endIndexPath = endIndexPathStruct;
-    
-    [self _prefetchDataIfNeeded];
 }
 
 - (MPTableViewCell *)_getCellFromDataSourceAtIndexPath:(MPIndexPath *)indexPath {
@@ -3960,18 +3961,7 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         [self _updateDisplayingArea];
     }
     
-    if (_prefetchDataSource && _contentOffset.beginPos != _previousContentOffset) {
-        MPTableViewScrollDirection scrollDirection;
-        if (_contentOffset.beginPos < _previousContentOffset) {
-            scrollDirection = MPTableViewScrollDirectionUp;
-        } else {
-            scrollDirection = MPTableViewScrollDirectionDown;
-        }
-        
-        if (scrollDirection != _previousContentOffset) {
-            [self _prefetchDataIfNeeded];
-        }
-    }
+    [self _prefetchDataIfNeeded];
 }
 
 #pragma mark -prefetch
@@ -3981,17 +3971,17 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         return;
     }
     
+    MPTableViewScrollDirection scrollDirection;
+    MPIndexPath *beginIndexPath = [self beginIndexPath];
+    MPIndexPath *endIndexPath = [self endIndexPath];
+    
+    if (_contentOffset.beginPos < _previousContentOffset) {
+        scrollDirection = MPTableViewScrollDirectionUp;
+    } else {
+        scrollDirection = MPTableViewScrollDirectionDown;
+    }
+    
     @autoreleasepool {
-        MPTableViewScrollDirection scrollDirection;
-        MPIndexPath *beginIndexPath = [self beginIndexPath];
-        MPIndexPath *endIndexPath = [self endIndexPath];
-        
-        if (_contentOffset.beginPos < _previousContentOffset) {
-            scrollDirection = MPTableViewScrollDirectionUp;
-        } else {
-            scrollDirection = MPTableViewScrollDirectionDown;
-        }
-        
         NSMutableArray *prefetchUpIndexPaths = [NSMutableArray array];
         NSMutableArray *prefetchDownIndexPaths = [NSMutableArray array];
         
@@ -4068,12 +4058,27 @@ NS_INLINE void _MP_SetViewWidth(UIView *view, CGFloat width) {
         if (_respond_cancelPrefetchingForRowsAtIndexPaths && cancelPrefetchIndexPaths.count) {
             [_prefetchDataSource MPTableView:self cancelPrefetchingForRowsAtIndexPaths:cancelPrefetchIndexPaths];
         }
-        
-        if (_respond_didScrollAndFinishedLayoutWithDirectionWithPreviousDirection) {
-            [_prefetchDataSource MPTableView:self didScrollAndFinishedLayoutWithDirection:scrollDirection withPreviousDirection:_previousScrollDirection];
-        }
-        _previousContentOffset = _contentOffset.beginPos;
-        _previousScrollDirection = scrollDirection;
+    }
+    
+    _previousContentOffset = _contentOffset.beginPos;
+    _previousScrollDirection = scrollDirection;
+}
+
+- (void)_layoutUpdatedNoticeIfNeeded {
+    if (!_prefetchDataSource || !_numberOfSections) {
+        return;
+    }
+    
+    MPTableViewScrollDirection scrollDirection;
+    
+    if (_contentOffset.beginPos < _previousContentOffset) {
+        scrollDirection = MPTableViewScrollDirectionUp;
+    } else {
+        scrollDirection = MPTableViewScrollDirectionDown;
+    }
+    
+    if (_respond_didScrollAndLayoutUpdatedWithDirectionWithPreviousDirection) {
+        [_prefetchDataSource MPTableView:self didScrollAndLayoutUpdatedWithDirection:scrollDirection withPreviousDirection:_previousScrollDirection];
     }
 }
 

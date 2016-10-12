@@ -26,7 +26,7 @@
     [super viewDidLoad];
     self.title = @"title";
     
-    self.tableView = [[MPTableView alloc]initWithFrame:(CGRect){0, 0, self.view.frame.size.width, self.view.frame.size.height} style:MPTableViewStylePlain];
+    self.tableView = [[MPTableView alloc] initWithFrame:(CGRect){0, 0, self.view.frame.size.width, self.view.frame.size.height} style:MPTableViewStylePlain];
     self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self.view addSubview:self.tableView];
     
@@ -249,13 +249,16 @@ void _insertAnimation(UIView *view) {
 }
 
 #pragma mark -prefetchDataSource
-
 - (void)MPTableView:(MPTableView *)tableView prefetchRowsAtIndexPaths:(NSArray *)indexPaths {
-    NSLog(@"prefetch %@", indexPaths);
+    //NSLog(@"prefetch %@", indexPaths);
 }
 
 - (void)MPTableView:(MPTableView *)tableView cancelPrefetchingForRowsAtIndexPaths:(NSArray *)indexPaths {
-    NSLog(@"cancel prefetching %@", indexPaths);
+    //NSLog(@"cancel prefetching %@", indexPaths);
+}
+
+- (void)MPTableView:(MPTableView *)tableView didScrollAndLayoutUpdatedWithDirection:(MPTableViewScrollDirection)direction withPreviousDirection:(MPTableViewScrollDirection)previousDirection {
+    //NSLog(@"%@, %@", tableView.beginIndexPath, tableView.endIndexPath);
 }
 
 - (void)didReceiveMemoryWarning {
