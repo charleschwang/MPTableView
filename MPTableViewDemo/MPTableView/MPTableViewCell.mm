@@ -9,15 +9,12 @@
 #import "MPTableViewCell.h"
 #import <c++/v1/map>
 
-const CGFloat MPTableViewDefaultCellHeight = 44.;
-
 @implementation MPTableReusableView
 
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier {
-    if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen]bounds].size.width, MPTableViewDefaultCellHeight)]) {
+    if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, MPTableViewDefaultCellHeight)]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = identifier;
-        self.clipsToBounds = YES;
     }
     return self;
 }
@@ -32,10 +29,8 @@ const CGFloat MPTableViewDefaultCellHeight = 44.;
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
-        self.identifier = [aDecoder decodeObjectForKey:@"_identifier"];
-        
         [super setAutoresizingMask:UIViewAutoresizingNone];
-        self.clipsToBounds = YES;
+        self.identifier = [aDecoder decodeObjectForKey:@"_identifier"];
     }
     return self;
 }
@@ -57,9 +52,17 @@ const CGFloat MPTableViewDefaultCellHeight = 44.;
     
 }
 
+- (NSString *)description {
+    NSString *description = [super description];
+    
+    return [NSString stringWithFormat:@"%@, identifier:%@", description, _identifier];
+}
+
 @end
 
 #pragma mark -
+
+const CGFloat MPTableViewDefaultCellHeight = 44.;
 
 static CGColor *
 _CGColorMPSelectionDefault() {
@@ -105,7 +108,7 @@ _CGColorClearColor() {
     
     _selectionColor = _UIColorMPSelectionDefault();
     
-    _fadeAnimationLayer = [CALayer new];
+    _fadeAnimationLayer = [[CALayer alloc] init];
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
     _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionDefault();
@@ -159,6 +162,12 @@ _CGColorClearColor() {
         }
     }
     [super willRemoveSubview:subview];
+}
+
+- (NSString *)description {
+    NSString *description = [super description];
+    
+    return [NSString stringWithFormat:@"%@, %@, %@", description, _selected ? @"selected" : @"unselected", _highlighted ? @"highlighted" : @"unhighlighted"];
 }
 
 - (void)setSelectionColor:(UIColor *)selectionColor {
@@ -253,9 +262,9 @@ _UIColorEqualToClearColor(UIColor *color) {
 
 static void
 _setSubviewsHighlightedAndCachedColorIfNeeded(NSArray *subviews, bool highlighted, std::map<NSUInteger, UIColor *> *cacheColorsMap) {
-    for (id subview in subviews) {
+    for (UIView *subview in subviews) {
         if ([subview respondsToSelector:@selector(setHighlighted:)]) {
-            [subview setHighlighted:highlighted];
+            [(id)subview setHighlighted:highlighted];
         }
         if (highlighted) {
             cacheColorsMap->insert(std::pair<NSUInteger, UIColor *>((NSUInteger)subview, [subview backgroundColor]));

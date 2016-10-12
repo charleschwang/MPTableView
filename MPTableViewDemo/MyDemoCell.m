@@ -20,7 +20,7 @@
         self.label_title.font = [UIFont systemFontOfSize:12];
         [self addSubview:self.label_title];
         
-        UIView *separator = [UIView new];
+        UIView *separator = [[UIView alloc] init];
         separator.tag = 250;
         separator.backgroundColor = [UIColor lightGrayColor];
         [self addSubview:separator];
@@ -40,7 +40,7 @@
     return self;
 }
 
-- (void)prepareForReuse {
+- (void)layoutSubviews {
     self.label_title.frame = self.bounds;
     self.btn_movement.frame = [self rectForMoving];
 }

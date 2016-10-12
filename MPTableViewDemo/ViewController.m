@@ -12,7 +12,7 @@
 #import "MyDemoCell.h"
 #import "MySectionView.h"
 
-@interface ViewController () <MPTableViewDataSource, MPTableViewDelegate>
+@interface ViewController () <MPTableViewDataSource, MPTableViewDelegate, MPTableViewDataSourcePrefetching>
 
 @property (nonatomic, strong) MPTableView *tableView;
 @property (nonatomic, assign) NSInteger sectionCount;
@@ -38,6 +38,7 @@
     
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
+    self.tableView.prefetchDataSource = self;
     
     self.tableView.moveModeEnabled = YES;
     self.tableView.allowsSelectionDuringMoving = YES;
@@ -82,14 +83,14 @@
     --self.sectionCount;
     self.tableView.rowAnimationDuration = 1.5;
     [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
-    self.tableView.rowAnimationDuration = 0.3;
+    self.tableView.rowAnimationDuration = 0.25;
 }
 
 - (void)tableViewInsert {
     ++self.sectionCount;
     self.tableView.rowAnimationDuration = 1.5;
     [self.tableView insertSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
-    self.tableView.rowAnimationDuration = 0.3;
+    self.tableView.rowAnimationDuration = 0.25;
 }
 
 - (void)tableViewUpdate {
@@ -112,8 +113,8 @@
 }
 
 - (void)tableViewReload {
-    self.cellCount = 500;
-    self.sectionCount = 500;
+    self.cellCount = 150;
+    self.sectionCount = 150;
     self.tableView.cachesReloadEnabled = YES;
     [self.tableView reloadDataAsyncWithCompletion:^{
         UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"提示" message:@"加载完毕" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
@@ -136,15 +137,14 @@
 
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForHeaderInSection:(NSUInteger)section {
     NSInteger temp = arc4random() % 10;
-    // ...
-    CGSize labelSize = [@"Goliath online. Acknowledged HQ." boundingRectWithSize:CGSizeMake(tableView.frame.size.width, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
-    labelSize = [@"Battlecruiser operational. Receiving transmission. Good day, commander." boundingRectWithSize:CGSizeMake(tableView.frame.size.width, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
     
     return 35. + (temp - 10);
 }
 
-- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForFooterInSection:(NSUInteger)section {
-    return 1;
+- (CGFloat)MPTableView:(MPTableView *)tableView heightForFooterInSection:(NSUInteger)section {
+    NSInteger temp = arc4random() % 10;
+    
+    return 35. + (temp - 10);
 }
 
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section {
@@ -164,7 +164,12 @@
 }
 
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForIndexPath:(MPIndexPath *)indexPath {
+    // useless calculation,
+    CGSize labelSize = [@"Goliath online. Acknowledged HQ." boundingRectWithSize:CGSizeMake(tableView.frame.size.width, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
+    labelSize = [@"Battlecruiser operational. Receiving transmission. Good day, commander." boundingRectWithSize:CGSizeMake(tableView.frame.size.width, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
+    
     NSInteger temp = arc4random() % 20;
+    
     return MPTableViewDefaultCellHeight + (temp - 10);
 }
 
@@ -186,6 +191,7 @@
     if ([indexPath compare:tableView.beginIndexPath] != NSOrderedDescending || [tableView isUpdating]) {
         return;
     }
+    
     cell.transform = CGAffineTransformMakeScale(1.5, 1.5);
     [UIView animateWithDuration:0.5 animations:^{
         cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
@@ -196,51 +202,60 @@
     // ...
 }
 
-#pragma mark -custom tableview update
+#pragma mark -custom table view update
 
 //...delete
 
 void _deleteAnimation(UIView *view) {
-    view.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(-view.frame.size.width, view.frame.size.height), 0.5 * M_PI);
-    view.alpha = 0;
+    [UIView animateWithDuration:1.5 animations:^{
+        view.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(-view.frame.size.width, view.frame.size.height), 0.5 * M_PI);
+        view.alpha = 0;
+    } completion:^(BOOL finished) {
+        [view removeFromSuperview];
+    }];
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView deleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(cell);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView deleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView deleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
 // ...insert
-
-- (void)MPTableView:(MPTableView *)tableView willInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
-    cell.transform = CGAffineTransformMakeScale(0.1, 0.1);
-}
-
-- (void)MPTableView:(MPTableView *)tableView beginInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withTargetFrame:(CGRect)targetFrame {
-    cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
-}
-
-- (void)MPTableView:(MPTableView *)tableView willInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+void _insertAnimation(UIView *view) {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
+    
+    [UIView animateWithDuration:1.5 animations:^{
+        view.transform = CGAffineTransformMakeScale(1.0, 1.0);
+    }];
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withTargetFrame:(CGRect)targetFrame {
-    view.transform = CGAffineTransformMakeScale(1.0, 1.0);
+- (void)MPTableView:(MPTableView *)tableView insertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
+    _insertAnimation(cell);
 }
 
-- (void)MPTableView:(MPTableView *)tableView willInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
-    view.transform = CGAffineTransformMakeScale(0.1, 0.1);
+- (void)MPTableView:(MPTableView *)tableView insertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+    _insertAnimation(view);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withTargetFrame:(CGRect)targetFrame {
-    view.transform = CGAffineTransformMakeScale(1.0, 1.0);
+- (void)MPTableView:(MPTableView *)tableView insertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+    _insertAnimation(view);
+}
+
+#pragma mark -prefetchDataSource
+
+- (void)MPTableView:(MPTableView *)tableView prefetchRowsAtIndexPaths:(NSArray *)indexPaths {
+    NSLog(@"prefetch %@", indexPaths);
+}
+
+- (void)MPTableView:(MPTableView *)tableView cancelPrefetchingForRowsAtIndexPaths:(NSArray *)indexPaths {
+    NSLog(@"cancel prefetching %@", indexPaths);
 }
 
 - (void)didReceiveMemoryWarning {
