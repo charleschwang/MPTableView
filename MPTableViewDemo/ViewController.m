@@ -35,6 +35,7 @@
     
     self.cellCount = 6;
     self.sectionCount = 6;
+    self.tableView.sectionFooterHeight = 30; // set the property before set a dataSource
     
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
@@ -135,16 +136,8 @@
     return self.sectionCount;
 }
 
-- (CGFloat)MPTableView:(MPTableView *)tableView heightForHeaderInSection:(NSUInteger)section {
-    NSInteger temp = arc4random() % 10;
-    
-    return 35. + (temp - 10);
-}
-
-- (CGFloat)MPTableView:(MPTableView *)tableView heightForFooterInSection:(NSUInteger)section {
-    NSInteger temp = arc4random() % 10;
-    
-    return 35. + (temp - 10);
+- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForHeaderInSection:(NSUInteger)section {
+    return 20;
 }
 
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section {

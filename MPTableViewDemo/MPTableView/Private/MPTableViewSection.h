@@ -67,7 +67,14 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 - (MPTableViewSection *)__updateGetSectionAt:(NSInteger)section;
 
-- (CGFloat)__updateGetCellHeightAtIndexPath:(MPIndexPath *)indexPath;
+- (CGFloat)__updateInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath;
+
+- (CGFloat)__rebuildHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection isInsertion:(BOOL)insertion;
+- (CGFloat)__force_rebuildHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection; // when a section has some rows update
+
+- (CGFloat)__rebuildFooterHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection isInsertion:(BOOL)insertion;
+
+- (CGFloat)__rebuildCellAtSection:(NSInteger)section fromOriginSection:(NSInteger)originSection atIndex:(NSInteger)index;
 
 - (BOOL)__updateNeedToAnimateSection:(MPTableViewSection *)section updateType:(MPTableViewUpdateType)type andOffset:(CGFloat)offset;
 
@@ -93,15 +100,10 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 //
 - (BOOL)__isEstimatedMode;
 
+- (CGFloat)__estimateSectionView:(MPSectionType)type inSection:(MPTableViewSection *)section;
+
 - (CGFloat)__estimateAdjustCellAtSection:(NSInteger)section atIndex:(NSInteger)originIndex withOffset:(CGFloat)cellOffset;
-- (void)__estimateSectionViewAtSection:(NSInteger)originIndex withType:(MPSectionType)type;
-
-- (CGFloat)__rebuildHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection isInsertion:(BOOL)insertion;
-- (CGFloat)__force_rebuildHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection; // when a section has some rows update
-
-- (CGFloat)__rebuildFooterHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection isInsertion:(BOOL)insertion;
-
-- (CGFloat)__rebuildCellAtSection:(NSInteger)section fromOriginSection:(NSInteger)originSection atIndex:(NSInteger)index;
+- (void)__estimateAdjustSectionViewAtSection:(NSInteger)originIndex withType:(MPSectionType)type;
 
 @end
 

@@ -955,7 +955,7 @@ public:
             CGFloat cellHeight;
             
             if (node.updateType == MPTableViewUpdateInsert) {
-                cellHeight = [updateDelegate __updateGetCellHeightAtIndexPath:[MPIndexPath indexPathForRow:node.index inSection:newSection]];
+                cellHeight = [updateDelegate __updateInsertCellHeightAtIndexPath:[MPIndexPath indexPathForRow:node.index inSection:newSection]];
                 [self insertRowAt:node.index withHeight:cellHeight];
                 offset += cellHeight;
                 
@@ -977,7 +977,7 @@ public:
             
             index = node.index + 2;
         } else if (node.updateType == MPTableViewUpdateReload) {
-            CGFloat cellHeight = [updateDelegate __updateGetCellHeightAtIndexPath:[MPIndexPath indexPathForRow:node.index inSection:newSection]];
+            CGFloat cellHeight = [updateDelegate __updateInsertCellHeightAtIndexPath:[MPIndexPath indexPathForRow:node.index inSection:newSection]];
             offset += cellHeight - [self rowHeightAt:node.index];
             [self reloadRowAt:node.index withHeight:cellHeight];
             
@@ -1166,7 +1166,7 @@ public:
     CGFloat originSection = self.section;
     
     self.endPos += offset;
-    CGFloat headerHeight = [updateDelegate __rebuildHeaderHeightInSection:self fromOriginSection:originSection isInsertion:NO];
+    CGFloat headerHeight = [updateDelegate __estimateSectionView:MPSectionTypeHeader inSection:self];
     self.endPos -= offset;
     if (headerHeight >= 0) {
         offset += headerHeight - self.headerHeight;
@@ -1196,7 +1196,7 @@ public:
     
     self.endPos += offset;
     
-    CGFloat footerHeight = [updateDelegate __rebuildFooterHeightInSection:self fromOriginSection:originSection isInsertion:NO];
+    CGFloat footerHeight = [updateDelegate __estimateSectionView:MPSectionTypeFooter inSection:self];
     if (footerHeight >= 0) {
         CGFloat newOffset = footerHeight - self.footerHeight;
         offset += newOffset;
@@ -1205,8 +1205,8 @@ public:
     }
     
     if (callback) {
-        [updateDelegate __estimateSectionViewAtSection:originSection withType:MPSectionTypeHeader];
-        [updateDelegate __estimateSectionViewAtSection:originSection withType:MPSectionTypeFooter];
+        [updateDelegate __estimateAdjustSectionViewAtSection:originSection withType:MPSectionTypeHeader];
+        [updateDelegate __estimateAdjustSectionViewAtSection:originSection withType:MPSectionTypeFooter];
     }
     
     return offset;
