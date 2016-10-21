@@ -926,7 +926,7 @@ public:
             isInsert = NO;
         }
         
-        if (![updateDelegate __isContentMoving] || ([updateDelegate __isContentMoving] && offset != 0)) {
+        if (![updateDelegate __isContentMoving] || offset != 0) {
             for (NSInteger j = index; j <= idx; ++j) {
                 if (offset != 0) {
                     (*_rowPositionDeque)[j] += offset;
@@ -1008,7 +1008,7 @@ public:
     
     _numberOfRows += step;
     
-    if (![updateDelegate __isContentMoving] || ([updateDelegate __isContentMoving] && step != 0)) {
+    if (![updateDelegate __isContentMoving] || step != 0) {
         for (NSInteger i = index; i <= _numberOfRows; ++i) {
             if (offset != 0) {
                 (*_rowPositionDeque)[i] += offset;

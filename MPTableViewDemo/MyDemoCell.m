@@ -16,7 +16,7 @@
         
         CGRect frame = self.frame;
         frame.origin = CGPointZero;
-        self.label_title = [[UILabel alloc]initWithFrame:frame];
+        self.label_title = [[UILabel alloc] initWithFrame:frame];
         self.label_title.font = [UIFont systemFontOfSize:12];
         [self addSubview:self.label_title];
         

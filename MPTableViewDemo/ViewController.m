@@ -45,7 +45,7 @@
     self.tableView.allowsSelectionDuringMoving = YES;
     self.tableView.allowDragOutBounds = YES;
     
-    UILabel *header = [[UILabel alloc]initWithFrame:CGRectMake(0, 0, 114, 114)];
+    UILabel *header = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 114, 114)];
     header.backgroundColor = [UIColor darkGrayColor];
     header.font = [UIFont systemFontOfSize:20];
     header.textAlignment = NSTextAlignmentCenter;
@@ -58,7 +58,7 @@
 #pragma mark -
 
 - (void)setupSubviews {
-    UIButton *toolsBtn = [[UIButton alloc]initWithFrame:CGRectMake(20, 200, 70, 40)];
+    UIButton *toolsBtn = [[UIButton alloc] initWithFrame:CGRectMake(20, 200, 70, 40)];
     toolsBtn.backgroundColor = [UIColor darkGrayColor];
     [toolsBtn setTitle:@"Menu" forState:UIControlStateNormal];
     [toolsBtn addTarget:self action:@selector(showMenuAction:) forControlEvents:UIControlEventTouchUpInside];
@@ -68,10 +68,10 @@
 - (void)showMenuAction:(UIButton *)sender {
     [self becomeFirstResponder];
     UIMenuController *menuController = [UIMenuController sharedMenuController];
-    [menuController setMenuItems:@[[[UIMenuItem alloc]initWithTitle:@"insert" action:@selector(tableViewInsert)],
-                                   [[UIMenuItem alloc]initWithTitle:@"delete" action:@selector(tableViewDelete)],
-                                   [[UIMenuItem alloc]initWithTitle:@"update" action:@selector(tableViewUpdate)],
-                                   [[UIMenuItem alloc]initWithTitle:@"async reloadData" action:@selector(tableViewReload)]]];
+    [menuController setMenuItems:@[[[UIMenuItem alloc] initWithTitle:@"insert" action:@selector(tableViewInsert)],
+                                   [[UIMenuItem alloc] initWithTitle:@"delete" action:@selector(tableViewDelete)],
+                                   [[UIMenuItem alloc] initWithTitle:@"update" action:@selector(tableViewUpdate)],
+                                   [[UIMenuItem alloc] initWithTitle:@"async reloadData" action:@selector(tableViewReload)]]];
     [menuController setTargetRect:CGRectMake(0, 0, 0, 0) inView:sender];
     [menuController setMenuVisible:YES animated:YES];
 }
@@ -118,7 +118,7 @@
     self.sectionCount = 150;
     self.tableView.cachesReloadEnabled = YES;
     [self.tableView reloadDataAsyncWithCompletion:^{
-        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"提示" message:@"加载完毕" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"提示" message:@"加载完毕" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
         [alert show];
     }];
 }
