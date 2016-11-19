@@ -464,9 +464,9 @@ public:
                     @throw [NSException exceptionWithName:@"MPTableView update exception" reason:@"check for update indexpaths" userInfo:nil];
                 }
                 
-                offset = [section updateUsingPartWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
+                offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
             } else {
-                offset = [section updateWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
+                offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
             }
         }
         
@@ -616,9 +616,9 @@ public:
                 @throw [NSException exceptionWithName:@"MPTableView update exception" reason:@"check for update indexpaths" userInfo:nil];
             }
             
-            offset = [section updateUsingPartWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
+            offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
         } else {
-            offset = [section updateWith:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
+            offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
         }
     }
     
@@ -892,7 +892,7 @@ public:
     }
 }
 
-- (CGFloat)updateUsingPartWith:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback {
+- (CGFloat)updateUsingPartWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback {
     self.beginPos += offset;
     MPTableViewUpdatePart *part = self.updatePart;
     
@@ -1053,7 +1053,7 @@ public:
     return offset;
 }
 
-- (CGFloat)updateWith:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback {
+- (CGFloat)updateWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback {
     self.beginPos += offset;
     CGFloat originSection = self.section;
     self.section = newSection;

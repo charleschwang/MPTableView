@@ -116,7 +116,6 @@
 - (void)tableViewReload {
     self.cellCount = 150;
     self.sectionCount = 150;
-    self.tableView.cachesReloadEnabled = YES;
     [self.tableView reloadDataAsyncWithCompletion:^{
         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"提示" message:@"加载完毕" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
         [alert show];
@@ -195,6 +194,20 @@
     // ...
 }
 
+- (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath {
+    MPTableViewCell *cell = [tableView cellForRowAtIndexPath:sourceIndexPath];
+    cell.layer.shadowColor = [UIColor blackColor].CGColor;
+    cell.layer.shadowOpacity = 0.8;
+    cell.layer.shadowRadius = 10;
+}
+
+- (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath {
+    MPTableViewCell *cell = [tableView cellForRowAtIndexPath:destinationIndexPath];
+    cell.layer.shadowColor = [UIColor clearColor].CGColor;
+    cell.layer.shadowOpacity = 1;
+    cell.layer.shadowRadius = 0;
+}
+
 #pragma mark -custom table view update
 
 //...delete
@@ -208,15 +221,15 @@ void _deleteAnimation(UIView *view) {
     }];
 }
 
-- (void)MPTableView:(MPTableView *)tableView deleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(cell);
 }
 
-- (void)MPTableView:(MPTableView *)tableView deleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
-- (void)MPTableView:(MPTableView *)tableView deleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _deleteAnimation(view);
 }
 
@@ -229,19 +242,20 @@ void _insertAnimation(UIView *view) {
     }];
 }
 
-- (void)MPTableView:(MPTableView *)tableView insertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition {
     _insertAnimation(cell);
 }
 
-- (void)MPTableView:(MPTableView *)tableView insertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginToInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _insertAnimation(view);
 }
 
-- (void)MPTableView:(MPTableView *)tableView insertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
+- (void)MPTableView:(MPTableView *)tableView beginToInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition {
     _insertAnimation(view);
 }
 
 #pragma mark -prefetchDataSource
+
 - (void)MPTableView:(MPTableView *)tableView prefetchRowsAtIndexPaths:(NSArray *)indexPaths {
     //NSLog(@"prefetch %@", indexPaths);
 }

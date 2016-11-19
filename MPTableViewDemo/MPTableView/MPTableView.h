@@ -7,8 +7,9 @@
 //
 
 #import "MPTableViewCell.h"
+#import "MPIndexPath.h"
 
-@class MPTableView, MPIndexPath;
+@class MPTableView;
 
 @protocol MPTableViewDataSource <NSObject>
 @required
@@ -68,17 +69,17 @@
 
 // Called when updating.
 // The pathPosition is the origin.y of those animating views that in front of the current cell. In the MPTableViewRowAnimation, the pathPosition is the cell's starting position.
-- (void)MPTableView:(MPTableView *)tableView insertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
 // The pathPosition in delete is a target position that views will move to. In the MPTableViewRowAnimation, the pathPosition is the cell's target position that make it looks like always follow the font one.
 // That deleted cell need to be manually removed.
-- (void)MPTableView:(MPTableView *)tableView deleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
-- (void)MPTableView:(MPTableView *)tableView insertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
-- (void)MPTableView:(MPTableView *)tableView insertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginToInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginToInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
 
-- (void)MPTableView:(MPTableView *)tableView deleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
-- (void)MPTableView:(MPTableView *)tableView deleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
 
 // Called before the user changes the selection. Return a new indexPath, or nil, to change the proposed selection.
 - (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
@@ -139,7 +140,7 @@ typedef NS_ENUM(NSInteger, MPTableViewScrollPosition) {
     MPTableViewScrollPositionBottom
 };
 
-// Top, bottom and middle should set cell(section header/footer)'s height to 0. So if the property rowAnimationOptions has been changed, we had better not put the layout codes in -(void)layoutSubviews.
+// top, bottom and middle should set cell(section header/footer)'s height to 0. So if the property rowAnimationOptions has been changed, we had better not put the layout codes in -(void)layoutSubviews.
 
 typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationFade,
@@ -183,6 +184,8 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (NSUInteger)indexForSectionAtPoint:(CGPoint)point; // returns NSNotFound if point is outside of any section in the table
 
 - (MPTableViewCell *)cellForRowAtIndexPath:(MPIndexPath *)indexPath;
+- (MPTableReusableView *)sectionHeaderInSection:(NSUInteger)section;
+- (MPTableReusableView *)sectionFooterInSection:(NSUInteger)section;
 
 - (MPIndexPath *)indexPathForCell:(MPTableViewCell *)cell; // returns nil if cell is not visible
 
@@ -201,7 +204,9 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @property (nonatomic, strong) UIView *backgroundView; // will be placed as a subview of the table view behind all cells and headers/footers.
 
-@property (nonatomic, getter=isCachesReloadEnabled) BOOL cachesReloadEnabled; // default is NO, when reloading the table view, without clear reusable views and cache all displayed views to reuse(It is best to make sure that table view will reload with the same cells/reusable views);
+@property (nonatomic, getter=isCachesReloadEnabled) BOOL cachesReloadEnabled; // default is YES, when reloading the table view, without clear reusable views and cache all displayed views to reuse(It is best to make sure that table view will reload with the same cell/reusable class objects);
+
+ // Sometimes we frequently make table view updating, that may produce many caches(reusable views) and you can not make the most of them.
 - (void)clearReusableCells;
 - (void)clearReusableSectionViews;
 

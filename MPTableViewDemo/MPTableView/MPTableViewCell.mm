@@ -96,13 +96,76 @@ _CGColorClearColor() {
     return CGColor;
 }
 
+struct MPCellCachedStatus {
+    BOOL highlighted;
+    UIColor *backgroundColor;
+};
+
+static bool
+_UIColorEqualToClearColor(UIColor *color) {
+    if (!color) {
+        return YES;
+    } else {
+        CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
+        return [color getRed:&red green:&green blue:&blue alpha:&alpha];
+    }
+}
+
+static void
+_setSubviewHighlighted(id subview, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap, bool highlighted, bool removeIfUnhighlighted) {
+    if (highlighted) {
+        MPCellCachedStatus status;
+        status.backgroundColor = [subview backgroundColor];
+        [subview setBackgroundColor:[UIColor clearColor]];
+        
+        if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)]) {
+            status.highlighted = [subview isHighlighted];
+            [subview setHighlighted:YES];
+        }
+        
+        cacheColorsMap->insert(std::pair<NSUInteger, MPCellCachedStatus>((NSUInteger)subview, status));
+    } else {
+        std::map<NSUInteger, MPCellCachedStatus>::iterator iter = cacheColorsMap->find((NSUInteger)subview);
+        if (iter != cacheColorsMap->end()) {
+            MPCellCachedStatus status = iter->second;
+            
+            if (_UIColorEqualToClearColor([subview backgroundColor])) {
+                [subview setBackgroundColor:status.backgroundColor];
+            }
+            if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)] && [subview isHighlighted]) {
+                [subview setHighlighted:status.highlighted];
+            }
+            
+            if (removeIfUnhighlighted) {
+                cacheColorsMap->erase(iter);
+            }
+        }
+    }
+}
+
+static void
+_setSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap) {
+    for (id subview in subviews) {
+        static Class _UIButtonClass = [UIButton class];
+        
+        if ([subview isKindOfClass:_UIButtonClass]) {
+            continue;
+        }
+        
+        _setSubviewHighlighted(subview, cacheColorsMap, highlighted, NO);
+        _setSubviewsHighlightedIfNeeded([subview subviews], highlighted, cacheColorsMap);
+    }
+}
+
+#pragma mark -
+
 @implementation MPTableViewCell {
     CALayer *_fadeAnimationLayer;
-    std::map<NSUInteger, UIColor *> _cachedSubviewColorsMap;
+    std::map<NSUInteger, MPCellCachedStatus> _cachedSubviewStatusMap;
 }
 
 - (void)_initializeData {
-    _cachedSubviewColorsMap = std::map<NSUInteger, UIColor *>();
+    _cachedSubviewStatusMap = std::map<NSUInteger, MPCellCachedStatus>();
     _highlighted = NO;
     _selected = NO;
     
@@ -140,7 +203,7 @@ _CGColorClearColor() {
 }
 
 - (void)dealloc {
-    _cachedSubviewColorsMap.clear();
+    _cachedSubviewStatusMap.clear();
 }
 
 - (void)setFrame:(CGRect)frame {
@@ -156,10 +219,7 @@ _CGColorClearColor() {
 
 - (void)willRemoveSubview:(UIView *)subview {
     if (_selected || _highlighted) {
-        std::map<NSUInteger, UIColor *>::iterator iter = _cachedSubviewColorsMap.find((NSUInteger)subview);
-        if (iter != _cachedSubviewColorsMap.end() && _UIColorEqualToClearColor([subview backgroundColor])) {
-            [subview setBackgroundColor:iter->second];
-        }
+        _setSubviewHighlighted(subview, &_cachedSubviewStatusMap, NO, YES);
     }
     [super willRemoveSubview:subview];
 }
@@ -176,7 +236,7 @@ _CGColorClearColor() {
     if (!(_selectionColor = selectionColor)) {
         _fadeAnimationLayer.backgroundColor = _CGColorClearColor();
         if (!_selected && !_highlighted) {
-            _cachedSubviewColorsMap.clear();
+            _cachedSubviewStatusMap.clear();
         }
     } else {
         _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
@@ -210,7 +270,7 @@ _CGColorClearColor() {
     }
     
     _highlighted = highlighted;
-    if (!highlighted && _selected) {
+    if (_selected) {
         return;
     }
     [self _setFadeLayerEnable:highlighted animated:animated];
@@ -221,7 +281,7 @@ _CGColorClearColor() {
         if (enable) {
             return;
         } else {
-            if (_cachedSubviewColorsMap.size() == 0) {
+            if (_cachedSubviewStatusMap.size() == 0) {
                 return;
             }
         }
@@ -235,48 +295,19 @@ _CGColorClearColor() {
         _fadeAnimationLayer.hidden = !enable;
         [CATransaction commit];
     }
-    [self _setSubviewsColorWithHighlighted:enable];
+    [self _setSubviewsHighlighted:enable];
     
-    if (!_selectionColor && _cachedSubviewColorsMap.size()) {
-        _cachedSubviewColorsMap.clear();
+    if (!enable) {
+        _cachedSubviewStatusMap.clear();
     }
 }
 
-- (void)_setSubviewsColorWithHighlighted:(BOOL)highlighted {
-    if (!highlighted && _cachedSubviewColorsMap.size() == 0) {
+- (void)_setSubviewsHighlighted:(BOOL)highlighted {
+    if (!highlighted && _cachedSubviewStatusMap.size() == 0) {
         return;
     }
     
-    _setSubviewsHighlightedAndCachedColorIfNeeded(self.subviews, highlighted, &_cachedSubviewColorsMap);
-}
-
-static bool
-_UIColorEqualToClearColor(UIColor *color) {
-    if (!color) {
-        return YES;
-    } else {
-        CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
-        return [color getRed:&red green:&green blue:&blue alpha:&alpha];
-    }
-}
-
-static void
-_setSubviewsHighlightedAndCachedColorIfNeeded(NSArray *subviews, bool highlighted, std::map<NSUInteger, UIColor *> *cacheColorsMap) {
-    for (UIView *subview in subviews) {
-        if ([subview respondsToSelector:@selector(setHighlighted:)]) {
-            [(id)subview setHighlighted:highlighted];
-        }
-        if (highlighted) {
-            cacheColorsMap->insert(std::pair<NSUInteger, UIColor *>((NSUInteger)subview, [subview backgroundColor]));
-            [subview setBackgroundColor:[UIColor clearColor]];
-        } else {
-            std::map<NSUInteger, UIColor *>::iterator iter = cacheColorsMap->find((NSUInteger)subview);
-            if (iter != cacheColorsMap->end() && _UIColorEqualToClearColor([subview backgroundColor])) {
-                [subview setBackgroundColor:iter->second];
-            }
-        }
-        _setSubviewsHighlightedAndCachedColorIfNeeded([subview subviews], highlighted, cacheColorsMap);
-    }
+    _setSubviewsHighlightedIfNeeded(self.subviews, highlighted, &_cachedSubviewStatusMap);
 }
 
 @end
