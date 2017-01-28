@@ -8,8 +8,8 @@
 
 #import "MPTableView.h"
 
-#define MPTableViewMaxCount 7883507
-#define MPTableViewMaxSize 7883507.0f
+#define MPTableViewMaxCount 5957883507
+#define MPTableViewMaxSize 5957883507.0f
 
 typedef struct struct_MPIndexPath {
     NSInteger section, row;
@@ -60,6 +60,11 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 @interface MPTableView (MPTableView_UpdatePrivate)
 
+@property (nonatomic, assign) CGFloat _updateDeleteOriginTopPosition;
+@property (nonatomic, assign) CGFloat _updateInsertOriginTopPosition;
+
+- (NSMutableArray *)ignoreUpdateActions; // insertion and movement
+
 - (MPIndexPathStruct)__beginIndexPath;
 - (MPIndexPathStruct)__endIndexPath;
 
@@ -68,11 +73,9 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 - (MPTableViewSection *)__updateGetSectionAt:(NSInteger)section;
 
 - (CGFloat)__updateInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath;
-
-- (CGFloat)__rebuildHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection isInsertion:(BOOL)insertion;
-- (CGFloat)__force_rebuildHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection; // when a section has some rows update
-
-- (CGFloat)__rebuildFooterHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection isInsertion:(BOOL)insertion;
+- (CGFloat)__updateMoveInCellHeightAtIndexPath:(MPIndexPath *)indexPath originIndexPath:(MPIndexPath *)originIndexPath originHeight:(CGFloat )originHeight;
+- (CGFloat)__updateGetHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection force:(BOOL)force;
+- (CGFloat)__updateGetFooterHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection force:(BOOL)force;
 
 - (CGFloat)__rebuildCellAtSection:(NSInteger)section fromOriginSection:(NSInteger)originSection atIndex:(NSInteger)index;
 
@@ -81,9 +84,9 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 //
 
 - (void)__updateSection:(NSInteger)originSection deleteCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition;
-- (void)__updateSection:(NSInteger)section insertCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition;
+- (BOOL)__updateSection:(NSInteger)section insertCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition;
 
-- (CGFloat)__updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index fromOriginIndexPath:(MPIndexPath *)originIndexPath withDistance:(CGFloat)distance;
+- (BOOL)__updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index fromOriginIndexPath:(MPIndexPath *)originIndexPath withDistance:(CGFloat)distance;
 
 - (CGFloat)__updateSection:(NSInteger)section originSection:(NSInteger)originSection adjustCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withOffset:(CGFloat)cellOffset;
 
@@ -91,16 +94,18 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 //
 - (void)__updateDeleteSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withDeleteSection:(MPTableViewSection *)deleteSection;
-- (void)__updateInsertSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection;
+- (BOOL)__updateInsertSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection;
 
-- (void)__updateMoveInSectionViewAtIndex:(NSInteger)index fromOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type withDistance:(CGFloat)distance;
+- (BOOL)__updateMoveInSectionViewAtIndex:(NSInteger)index fromOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type withDistance:(CGFloat)distance;
 
-- (void)__updateAdjustSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type withSectionOffset:(CGFloat)sectionOffset;
+- (void)__updateAdjustSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type withOriginHeight:(CGFloat)originHeight withSectionOffset:(CGFloat)sectionOffset;
+
+- (void)__updateAdjustSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type;
 
 //
 - (BOOL)__isEstimatedMode;
 
-- (CGFloat)__estimateSectionView:(MPSectionType)type inSection:(MPTableViewSection *)section;
+- (CGFloat)__estimateAdjustSectionViewHeight:(MPSectionType)type inSection:(MPTableViewSection *)section;
 
 - (CGFloat)__estimateAdjustCellAtSection:(NSInteger)section atIndex:(NSInteger)originIndex withOffset:(CGFloat)cellOffset;
 - (void)__estimateAdjustSectionViewAtSection:(NSInteger)originIndex withType:(MPSectionType)type;

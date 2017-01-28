@@ -11,6 +11,7 @@
 @interface MPTableReusableView : UIView
 
 @property (nonatomic, copy, readonly) NSString *identifier;
+@property (nonatomic, assign) BOOL removeAllAnimationsForDisplaying; // default is YES. if YES, call -removeAllAnimations after -prepareForReuse.
 
 // If the view can be reused, you must pass in a reuse identifier, or it will not be reused.  You should use the same reuse identifier for all reusable views of the same form.
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier NS_DESIGNATED_INITIALIZER;
@@ -30,7 +31,7 @@ UIKIT_EXTERN const CGFloat MPTableViewDefaultCellHeight;
 
 @property (nonatomic, strong) UIColor *selectionColor; // nil is selectionStyleNone
 
-@property (nonatomic, getter=isSelected) BOOL selected; // set selected state. default is NO. animated is NO
+@property (nonatomic, getter=isSelected) BOOL selected; // set selected state. default is NO. animated is NO, you can rewrite -setSelected: to turn it YES in subclass([super setSelected:selected animated:YES]).
 @property (nonatomic, getter=isHighlighted) BOOL highlighted; // set highlighted state. default is NO. animated is NO
 - (void)setSelected:(BOOL)selected animated:(BOOL)animated; // animate between regular and selected state
 - (void)setHighlighted:(BOOL)highlighted animated:(BOOL)animated;

@@ -43,7 +43,7 @@
     
     self.tableView.moveModeEnabled = YES;
     self.tableView.allowsSelectionDuringMoving = YES;
-    self.tableView.allowDragOutBounds = YES;
+    self.tableView.allowsDragCellOut = YES;
     
     UILabel *header = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 114, 114)];
     header.backgroundColor = [UIColor darkGrayColor];
@@ -208,7 +208,7 @@
     cell.layer.shadowRadius = 0;
 }
 
-#pragma mark -custom table view update
+#pragma mark -table view update custom
 
 //...delete
 

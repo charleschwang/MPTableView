@@ -10,9 +10,9 @@
 
 NS_INLINE NSInteger *
 _NSIntegerMalloc(size_t size) {
-    NSInteger *temp = (NSInteger *)malloc(size);
-    assert(temp != NULL);
-    return memset(temp, 0, size);
+    NSInteger *integers = (NSInteger *)malloc(size);
+    assert(integers != NULL);
+    return memset(integers, 0, size);
 }
 
 @implementation MPIndexPath

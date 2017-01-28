@@ -161,7 +161,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (instancetype)initWithCoder:(NSCoder *)aDecoder NS_DESIGNATED_INITIALIZER;
 
 @property (nonatomic, readonly) MPTableViewStyle style;
-@property (nonatomic, weak) id<MPTableViewDataSource> dataSource;
+@property (nonatomic, weak) id<MPTableViewDataSource> dataSource; // set a new dataSource will call -reloadData immediately.
 @property (nonatomic, weak) id<MPTableViewDelegate> delegate;
 @property (nonatomic, weak) id<MPTableViewDataSourcePrefetching> prefetchDataSource;
 
@@ -230,7 +230,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 @property (nonatomic, assign) NSTimeInterval rowAnimationDelay; // default is 0
 @property (nonatomic) UIViewAnimationOptions rowAnimationOptions; // default is UIViewAnimationOptionLayoutSubviews. If not, the animation effects may look unnatural when you using Autolayout and default table view animations.
 
-@property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload; // default is NO. If NO, table view will not reload data(mainly is height info) from data source for those off-screen views when updating, that will get better performance.
+@property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload; // default is NO. If NO, table view will not reload data(mainly is height info) from data source for those off-screen views when updating, that will get better performance. If the updates will make contentOffset change, then you should set updateForceReload to YES.
 
 - (BOOL)isUpdating; // update animating
 
@@ -249,7 +249,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @property (nonatomic, getter=isMoveModeEnabled) BOOL moveModeEnabled; // default is NO.
 @property (nonatomic) BOOL allowsSelectionDuringMoving;                                 // default is NO. Controls whether rows can be selected when in moving mode
-@property (nonatomic, assign) BOOL allowDragOutBounds; // default is NO.
+@property (nonatomic, assign) BOOL allowsDragCellOut; // default is NO.
 - (MPIndexPath *)movingIndexPath; // default is nil.
 
 - (id)dequeueReusableCellWithIdentifier:(NSString *)identifier;

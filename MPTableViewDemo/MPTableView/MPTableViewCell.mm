@@ -15,6 +15,7 @@
     if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, MPTableViewDefaultCellHeight)]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = identifier;
+        self.removeAllAnimationsForDisplaying = YES;
     }
     return self;
 }
@@ -31,12 +32,18 @@
     if (self = [super initWithCoder:aDecoder]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = [aDecoder decodeObjectForKey:@"_identifier"];
+        if ([aDecoder containsValueForKey:@"_removeAllAnimationsForDisplaying"]) {
+            self.removeAllAnimationsForDisplaying = [aDecoder decodeBoolForKey:@"_removeAllAnimationsForDisplaying"];
+        } else {
+            self.removeAllAnimationsForDisplaying = YES;
+        }
     }
     return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
     [aCoder encodeObject:_identifier forKey:@"_identifier"];
+    [aCoder encodeBool:_removeAllAnimationsForDisplaying forKey:@"_removeAllAnimationsForDisplaying"];
     [super encodeWithCoder:aCoder];
 }
 
@@ -112,11 +119,11 @@ _UIColorEqualToClearColor(UIColor *color) {
 }
 
 static void
-_setSubviewHighlighted(id subview, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap, bool highlighted, bool removeIfUnhighlighted) {
+_MPCellSetSubviewHighlighted(id subview, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap, bool highlighted, bool removeIfUnhighlighted) {
     if (highlighted) {
         MPCellCachedStatus status;
-        status.backgroundColor = [subview backgroundColor];
-        [subview setBackgroundColor:[UIColor clearColor]];
+        status.backgroundColor = [(UIView *)subview backgroundColor];
+        [(UIView *)subview setBackgroundColor:[UIColor clearColor]];
         
         if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)]) {
             status.highlighted = [subview isHighlighted];
@@ -129,8 +136,8 @@ _setSubviewHighlighted(id subview, std::map<NSUInteger, MPCellCachedStatus> *cac
         if (iter != cacheColorsMap->end()) {
             MPCellCachedStatus status = iter->second;
             
-            if (_UIColorEqualToClearColor([subview backgroundColor])) {
-                [subview setBackgroundColor:status.backgroundColor];
+            if (_UIColorEqualToClearColor([(UIView *)subview backgroundColor])) {
+                [(UIView *)subview setBackgroundColor:status.backgroundColor];
             }
             if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)] && [subview isHighlighted]) {
                 [subview setHighlighted:status.highlighted];
@@ -144,16 +151,16 @@ _setSubviewHighlighted(id subview, std::map<NSUInteger, MPCellCachedStatus> *cac
 }
 
 static void
-_setSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap) {
+_MPCellSetSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap) {
     for (id subview in subviews) {
-        static Class _UIButtonClass = [UIButton class];
+        static Class _UIButtonClass_MP_ = [UIButton class];
         
-        if ([subview isKindOfClass:_UIButtonClass]) {
+        if ([subview isKindOfClass:_UIButtonClass_MP_]) {
             continue;
         }
         
-        _setSubviewHighlighted(subview, cacheColorsMap, highlighted, NO);
-        _setSubviewsHighlightedIfNeeded([subview subviews], highlighted, cacheColorsMap);
+        _MPCellSetSubviewHighlighted(subview, cacheColorsMap, highlighted, NO);
+        _MPCellSetSubviewsHighlightedIfNeeded([subview subviews], highlighted, cacheColorsMap);
     }
 }
 
@@ -169,12 +176,15 @@ _setSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NS
     _highlighted = NO;
     _selected = NO;
     
-    _selectionColor = _UIColorMPSelectionDefault();
-    
     _fadeAnimationLayer = [[CALayer alloc] init];
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
-    _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionDefault();
+    if (!_selectionColor) {
+        _selectionColor = _UIColorMPSelectionDefault();
+        _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionDefault();
+    } else {
+        _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
+    }
     _fadeAnimationLayer.hidden = YES;
     [CATransaction commit];
     [self.layer insertSublayer:_fadeAnimationLayer atIndex:0];
@@ -189,17 +199,19 @@ _setSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NS
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
+        _selectionColor = [aDecoder decodeObjectForKey:@"_selectionColor"];
         [self _initializeData];
     }
     return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
-    self.highlighted = self.selected = NO;
-    [self setSelectionColor:nil];
+    [aCoder encodeObject:_selectionColor forKey:@"_selectionColor"];
     [_fadeAnimationLayer removeFromSuperlayer];
     
     [super encodeWithCoder:aCoder];
+    
+    [self.layer insertSublayer:_fadeAnimationLayer atIndex:0];
 }
 
 - (void)dealloc {
@@ -219,7 +231,7 @@ _setSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NS
 
 - (void)willRemoveSubview:(UIView *)subview {
     if (_selected || _highlighted) {
-        _setSubviewHighlighted(subview, &_cachedSubviewStatusMap, NO, YES);
+        _MPCellSetSubviewHighlighted(subview, &_cachedSubviewStatusMap, NO, YES);
     }
     [super willRemoveSubview:subview];
 }
@@ -231,6 +243,10 @@ _setSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NS
 }
 
 - (void)setSelectionColor:(UIColor *)selectionColor {
+    if (!selectionColor && !_selectionColor) {
+        return;
+    }
+    
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
     if (!(_selectionColor = selectionColor)) {
@@ -307,7 +323,7 @@ _setSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NS
         return;
     }
     
-    _setSubviewsHighlightedIfNeeded(self.subviews, highlighted, &_cachedSubviewStatusMap);
+    _MPCellSetSubviewsHighlightedIfNeeded(self.subviews, highlighted, &_cachedSubviewStatusMap);
 }
 
 @end
