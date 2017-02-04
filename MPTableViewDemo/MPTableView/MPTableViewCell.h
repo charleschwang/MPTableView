@@ -11,7 +11,6 @@
 @interface MPTableReusableView : UIView
 
 @property (nonatomic, copy, readonly) NSString *identifier;
-@property (nonatomic, assign) BOOL removeAllAnimationsForDisplaying; // default is YES. if YES, call -removeAllAnimations after -prepareForReuse.
 
 // If the view can be reused, you must pass in a reuse identifier, or it will not be reused.  You should use the same reuse identifier for all reusable views of the same form.
 - (instancetype)initWithReuseIdentifier:(NSString *)identifier NS_DESIGNATED_INITIALIZER;

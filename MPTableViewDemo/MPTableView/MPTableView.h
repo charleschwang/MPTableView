@@ -72,7 +72,8 @@
 - (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
 // The pathPosition in delete is a target position that views will move to. In the MPTableViewRowAnimation, the pathPosition is the cell's target position that make it looks like always follow the font one.
-// That deleted cell need to be manually removed.
+
+// ※※※※※※※※※※ WARNING: That deleted cell need to be manually removed. ※※※※※※※※※※
 - (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
 - (void)MPTableView:(MPTableView *)tableView beginToInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;

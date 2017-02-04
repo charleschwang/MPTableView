@@ -15,7 +15,6 @@
     if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, MPTableViewDefaultCellHeight)]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = identifier;
-        self.removeAllAnimationsForDisplaying = YES;
     }
     return self;
 }
@@ -32,18 +31,12 @@
     if (self = [super initWithCoder:aDecoder]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
         self.identifier = [aDecoder decodeObjectForKey:@"_identifier"];
-        if ([aDecoder containsValueForKey:@"_removeAllAnimationsForDisplaying"]) {
-            self.removeAllAnimationsForDisplaying = [aDecoder decodeBoolForKey:@"_removeAllAnimationsForDisplaying"];
-        } else {
-            self.removeAllAnimationsForDisplaying = YES;
-        }
     }
     return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
     [aCoder encodeObject:_identifier forKey:@"_identifier"];
-    [aCoder encodeBool:_removeAllAnimationsForDisplaying forKey:@"_removeAllAnimationsForDisplaying"];
     [super encodeWithCoder:aCoder];
 }
 
