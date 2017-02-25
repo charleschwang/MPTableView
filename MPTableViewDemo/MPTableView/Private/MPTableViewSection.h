@@ -44,8 +44,8 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 @interface MPTableViewUpdateBase : NSObject {
 @package
-    NSMutableIndexSet *_existingStableIndexs;
-    NSMutableIndexSet *_existingUnstableIndexs;
+    NSMutableIndexSet *_existingStableIndexes;
+    NSMutableIndexSet *_existingUnstableIndexes;
 
     NSInteger _differ;
 }

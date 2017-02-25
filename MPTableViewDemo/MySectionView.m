@@ -10,8 +10,4 @@
 
 @implementation MySectionView
 
-- (void)awakeFromNib {
-    
-}
-
 @end

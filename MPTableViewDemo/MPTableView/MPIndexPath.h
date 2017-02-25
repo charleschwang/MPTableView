@@ -27,7 +27,7 @@
 
 + (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length;
 - (NSInteger)indexAtPosition:(NSUInteger)position;
-- (NSInteger *)indexsInRange:(NSRange)range;
+- (NSInteger *)indexesInRange:(NSRange)range;
 
 - (NSComparisonResult)compare:(MPIndexPath *)indexPath;
 

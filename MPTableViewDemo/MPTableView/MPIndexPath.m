@@ -45,15 +45,15 @@ _NSIntegerMalloc(size_t size) {
     return _indexes[position];
 }
 
-- (NSInteger *)indexsInRange:(NSRange)range {
+- (NSInteger *)indexesInRange:(NSRange)range {
     NSParameterAssert(NSMaxRange(range) <= _length);
     
     if (!range.length) {
         return NULL;
     } else {
         size_t size = range.length * sizeof(NSInteger);
-        NSInteger *indexs = _NSIntegerMalloc(size);
-        return memmove(indexs, _indexes + range.location, size);
+        NSInteger *indexes = _NSIntegerMalloc(size);
+        return memmove(indexes, _indexes + range.location, size);
     }
 }
 
