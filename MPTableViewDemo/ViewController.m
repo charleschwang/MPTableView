@@ -194,14 +194,30 @@
     // ...
 }
 
+// like Teambition
+// start moving
 - (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath {
     MPTableViewCell *cell = [tableView cellForRowAtIndexPath:sourceIndexPath];
     cell.layer.shadowColor = [UIColor blackColor].CGColor;
     cell.layer.shadowOpacity = 0.8;
     cell.layer.shadowRadius = 10;
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        cell.transform = CGAffineTransformMakeRotation(M_PI / 180 * 8);
+    }];
 }
 
+// stop dragging
 - (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath {
+    MPTableViewCell *cell = [tableView cellForRowAtIndexPath:destinationIndexPath];
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        cell.transform = CGAffineTransformMakeRotation(0);
+    }];
+}
+
+// cell is in position
+- (void)MPTableView:(MPTableView *)tableView didEndMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath {
     MPTableViewCell *cell = [tableView cellForRowAtIndexPath:destinationIndexPath];
     cell.layer.shadowColor = [UIColor clearColor].CGColor;
     cell.layer.shadowOpacity = 1;

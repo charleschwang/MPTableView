@@ -379,7 +379,8 @@ const CGFloat MPTableViewDefaultAnimationDuration = 0.3f;
     _respond_beginToDeleteHeaderViewForSection,
     _respond_beginToDeleteFooterViewForSection,
     
-    _respond_shouldMoveRowAtIndexPath;
+    _respond_shouldMoveRowAtIndexPath,
+    _respond_didEndMoveRowAtIndexPathToIndexPath;
     
     BOOL
     _respond_prefetchRowsAtIndexPaths,
@@ -617,6 +618,7 @@ const CGFloat MPTableViewDefaultAnimationDuration = 0.3f;
     _respond_beginToDeleteFooterViewForSection = [_mpDelegate respondsToSelector:@selector(MPTableView:beginToDeleteFooterView:forSection:withAnimationPathPosition:)];
     
     _respond_shouldMoveRowAtIndexPath = [_mpDelegate respondsToSelector:@selector(MPTableView:shouldMoveRowAtIndexPath:)];
+    _respond_didEndMoveRowAtIndexPathToIndexPath = [_mpDelegate respondsToSelector:@selector(MPTableView:didEndMoveRowAtIndexPath:toIndexPath:)];
 }
 
 - (void)_respondsToPrefetchDataSource {
@@ -4555,13 +4557,21 @@ NS_INLINE CGPoint MPPointsSubtraction(CGPoint point1, CGPoint point2) {
         return;
     }
     
-    [UIView animateWithDuration:MPTableViewDefaultAnimationDuration animations:^{
-        _movingDraggedCell.frame = [self _cellFrameAtIndexPath:_movingIndexPath];
-    }];
+    MPIndexPath *sourceIndexPath = _sourceIndexPath;
+    MPIndexPath *movingIndexPath = _movingIndexPath;
     
     if (_respond_moveRowAtIndexPathToIndexPath) {
-        [_mpDataSource MPTableView:self moveRowAtIndexPath:[_sourceIndexPath copy] toIndexPath:[_movingIndexPath copy]];
+        [_mpDataSource MPTableView:self moveRowAtIndexPath:sourceIndexPath toIndexPath:movingIndexPath];
     }
+    
+    [UIView animateWithDuration:MPTableViewDefaultAnimationDuration animations:^{
+        CGRect frame = [self _cellFrameAtIndexPath:movingIndexPath];
+        _movingDraggedCell.center = CGPointMake(frame.size.width / 2, (CGRectGetMaxY(frame) - frame.origin.y) / 2 + frame.origin.y);
+    } completion:^(BOOL finished) {
+        if (_respond_didEndMoveRowAtIndexPathToIndexPath) {
+            [_mpDelegate MPTableView:self didEndMoveRowAtIndexPath:sourceIndexPath toIndexPath:movingIndexPath];
+        }
+    }];
     
     _sourceIndexPath = _movingIndexPath = nil;
     _movingDraggedCell = nil;
