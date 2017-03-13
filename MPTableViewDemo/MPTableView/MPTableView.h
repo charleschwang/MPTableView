@@ -227,6 +227,9 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)scrollToRowAtIndexPath:(MPIndexPath *)indexPath atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated;
 - (void)scrollToNearestSelectedRowAtScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated; // scroll to a selected row which closest to the top
 
+- (void)scrollToHeaderAtSection:(NSUInteger)section atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated; // just like scrollToRowAtIndexPath:atScrollPosition:animated:
+- (void)scrollToFooterAtSection:(NSUInteger)section atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated;
+
 - (void)selectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated scrollPosition:(MPTableViewScrollPosition)scrollPosition;
 
 - (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated;

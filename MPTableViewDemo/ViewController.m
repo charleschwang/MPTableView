@@ -185,13 +185,13 @@
     }
     
     cell.transform = CGAffineTransformMakeScale(1.5, 1.5);
-    [UIView animateWithDuration:0.5 animations:^{
+    [UIView animateWithDuration:0.5 delay:0 options:UIViewAnimationOptionAllowUserInteraction animations:^{
         cell.transform = CGAffineTransformMakeScale(1.0, 1.0);
-    }];
+    } completion:nil];
 }
 
 - (void)MPTableView:(MPTableView *)tableView didSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath {
-    // ...
+    [tableView scrollToHeaderAtSection:indexPath.section atScrollPosition:MPTableViewScrollPositionTop animated:YES];
 }
 
 // like Teambition

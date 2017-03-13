@@ -10,7 +10,7 @@
 
 @implementation MySectionView
 
-// If we do not do this, cell should be selected when we touching section views.
+// If we do not do this, cell might be selected when we touching this section view.
 // Similarly, you may not want to do this
 - (UIResponder *)nextResponder {
     return nil;
