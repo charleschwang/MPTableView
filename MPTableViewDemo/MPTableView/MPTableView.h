@@ -109,10 +109,6 @@ UIKIT_EXTERN NSString *const MPTableViewSelectionDidChangeNotification;
 
 #pragma mark -
 
-typedef NS_ENUM(NSInteger, MPTableViewScrollDirection) {
-    MPTableViewScrollDirectionUp, MPTableViewScrollDirectionDown
-};
-
 // this protocol can provide information about cells before they are displayed on screen.
 
 @protocol MPTableViewDataSourcePrefetching <NSObject>
@@ -126,9 +122,6 @@ typedef NS_ENUM(NSInteger, MPTableViewScrollDirection) {
 
 // indexPaths that previously were considered as candidates for pre-fetching, but were not actually used; may be a subset of the previous call to -MPTableView:prefetchRowsAtIndexPaths:
 - (void)MPTableView:(MPTableView *)tableView cancelPrefetchingForRowsAtIndexPaths:(NSArray *)indexPaths;
-
-// Called after the tableview has scrolled to a new position and finished content layout(display content has been changed).
-- (void)MPTableView:(MPTableView *)tableView didScrollAndLayoutUpdatedWithDirection:(MPTableViewScrollDirection)direction withPreviousDirection:(MPTableViewScrollDirection)previousDirection;
 
 @end
 

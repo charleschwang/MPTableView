@@ -280,10 +280,6 @@ void _insertAnimation(UIView *view) {
     //NSLog(@"cancel prefetching %@", indexPaths);
 }
 
-- (void)MPTableView:(MPTableView *)tableView didScrollAndLayoutUpdatedWithDirection:(MPTableViewScrollDirection)direction withPreviousDirection:(MPTableViewScrollDirection)previousDirection {
-    //NSLog(@"%@, %@", tableView.beginIndexPath, tableView.endIndexPath);
-}
-
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
