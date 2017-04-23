@@ -8,8 +8,8 @@
 
 #import "MPTableView.h"
 
-#define MPTableViewMaxCount 5957883507
-#define MPTableViewMaxSize 5957883507.0f
+#define MPTableViewMaxCount 7883507
+#define MPTableViewMaxSize 7883507.0f
 
 typedef struct struct_MPIndexPath {
     NSInteger section, row;
@@ -63,7 +63,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 @property (nonatomic, assign) CGFloat _updateDeleteOriginTopPosition;
 @property (nonatomic, assign) CGFloat _updateInsertOriginTopPosition;
 
-- (NSMutableArray *)ignoreUpdateActions; // insertion and movement
+- (NSMutableArray *)_ignoredUpdateActions; // insertion and movement
 
 - (MPIndexPathStruct)__beginIndexPath;
 - (MPIndexPathStruct)__endIndexPath;
@@ -134,6 +134,8 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 @property (nonatomic, assign) NSUInteger moveFromSection;
 @property (nonatomic, assign) NSUInteger moveToSection; // optimize
+
+- (BOOL)hasUpdateNodes;
 
 + (MPTableViewUpdateManager *)managerWithDelegate:(MPTableView *)delegate andSections:(NSMutableArray *)sections;
 - (void)resetManager;

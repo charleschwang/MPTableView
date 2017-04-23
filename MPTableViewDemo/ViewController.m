@@ -27,6 +27,10 @@
     self.title = @"title";
     
     self.tableView = [[MPTableView alloc] initWithFrame:(CGRect){0, 0, self.view.frame.size.width, self.view.frame.size.height} style:MPTableViewStylePlain];
+    self.tableView.dataSource = self;
+    self.tableView.delegate = self;
+    self.tableView.prefetchDataSource = self;
+    
     self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self.view addSubview:self.tableView];
     
@@ -35,11 +39,7 @@
     
     self.cellCount = 6;
     self.sectionCount = 6;
-    self.tableView.sectionFooterHeight = 30; // set the property before set a dataSource
-    
-    self.tableView.dataSource = self;
-    self.tableView.delegate = self;
-    self.tableView.prefetchDataSource = self;
+    self.tableView.sectionFooterHeight = 30;
     
     self.tableView.moveModeEnabled = YES;
     self.tableView.allowsSelectionDuringMoving = YES;

@@ -193,9 +193,6 @@ _updateNodesReverseBoundaryCheck(MPTableViewUpdateNodesVec *_updateNodesVec, NSU
 }
 
 - (BOOL)formatNodesStable:(BOOL)countCheckIgnored {
-    if (_updateNodesVec->size() == 0) {
-        return YES;
-    }
     _converge(_updateNodesVec);
     
     if (countCheckIgnored) {
@@ -204,8 +201,12 @@ _updateNodesReverseBoundaryCheck(MPTableViewUpdateNodesVec *_updateNodesVec, NSU
     
     if (self.originCount + _differ != self.newCount) {
         return NO;
-    } else {        
-        return _updateNodesReverseBoundaryCheck(_updateNodesVec, self.originCount, NO) && _updateNodesReverseBoundaryCheck(_updateNodesVec, self.newCount, YES);
+    } else {
+        if (_updateNodesVec->size() == 0) {
+            return YES;
+        } else {
+            return _updateNodesReverseBoundaryCheck(_updateNodesVec, self.originCount, NO) && _updateNodesReverseBoundaryCheck(_updateNodesVec, self.newCount, YES);
+        }
     }
 }
 
@@ -263,6 +264,14 @@ public:
         [super setOriginCount:_sections.count];
     }
     return [super originCount];
+}
+
+- (BOOL)hasUpdateNodes {
+    if (_updateNodesVec->size() == 0) {
+        return NO;
+    } else {
+        return YES;
+    }
 }
 
 - (void)resetManager {
@@ -610,7 +619,7 @@ public:
     if ([self.delegate __updateNeedToAnimateSection:insertSection updateType:MPTableViewUpdateInsert andOffset:offset]) {
         for (NSInteger k = 0; k < insertSection.numberOfRows; ++k) {
             if (![self.delegate __updateSection:node.index insertCellAtIndex:k withAnimation:node.animation isSectionAnimation:insertSection]) {
-                [self.delegate.ignoreUpdateActions addObject:^{
+                [self.delegate._ignoredUpdateActions addObject:^{
                     if (!self.delegate) {
                         return ;
                     }
@@ -620,7 +629,7 @@ public:
         }
         
         if (![self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeHeader withAnimation:node.animation withInsertSection:insertSection]) {
-            [self.delegate.ignoreUpdateActions addObject:^{
+            [self.delegate._ignoredUpdateActions addObject:^{
                 if (!self.delegate) {
                 return ;
             }
@@ -628,7 +637,7 @@ public:
             }];
         }
         if (![self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeFooter withAnimation:node.animation withInsertSection:insertSection]) {
-            [self.delegate.ignoreUpdateActions addObject:^{
+            [self.delegate._ignoredUpdateActions addObject:^{
                 if (!self.delegate) {
                     return ;
                 }
@@ -636,7 +645,7 @@ public:
             }];
         }
     } else {
-        [self.delegate.ignoreUpdateActions addObject:^{
+        [self.delegate._ignoredUpdateActions addObject:^{
             if (!self.delegate) {
                 return ;
             }
@@ -654,7 +663,7 @@ public:
 - (void)saveMovementsIfNecessaryForSection:(MPTableViewSection *)insertSection withBackup:(MPTableViewSection *)backup andNode:(MPTableViewUpdateNode)node andSectionIndex:(MPTableViewSectionIndex)sectionIndex withDistance:(CGFloat)distance {
     for (NSInteger k = 0; k < insertSection.numberOfRows; ++k) {
         if (![self.delegate __updateSection:node.index moveInCellAtIndex:k fromOriginIndexPath:[MPIndexPath indexPathForRow:k inSection:sectionIndex.originIndex] withOriginHeight:[backup rowHeightAt:k] withDistance:distance]) {
-            [self.delegate.ignoreUpdateActions addObject:^{
+            [self.delegate._ignoredUpdateActions addObject:^{
                 if (!self.delegate) {
                     return ;
                 }
@@ -664,7 +673,7 @@ public:
     }
     
     if (![self.delegate __updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeHeader withOriginHeight:backup.headerHeight withDistance:distance]) {
-        [self.delegate.ignoreUpdateActions addObject:^{
+        [self.delegate._ignoredUpdateActions addObject:^{
             if (!self.delegate) {
                 return ;
             }
@@ -672,7 +681,7 @@ public:
         }];
     }
     if (![self.delegate __updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeFooter withOriginHeight:backup.footerHeight withDistance:distance]) {
-        [self.delegate.ignoreUpdateActions addObject:^{
+        [self.delegate._ignoredUpdateActions addObject:^{
             if (!self.delegate) {
                 return ;
             }
@@ -1027,7 +1036,7 @@ public:
                 if (callback) {
                     if (![updateDelegate __updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil]) {
                         __weak typeof(updateDelegate) weak = updateDelegate;
-                        [updateDelegate.ignoreUpdateActions addObject:^{
+                        [updateDelegate._ignoredUpdateActions addObject:^{
                             if (!weak) {
                                 return ;
                             }
@@ -1052,7 +1061,7 @@ public:
                 
                 if (![updateDelegate __updateSection:newSection moveInCellAtIndex:node.index fromOriginIndexPath:rowInfo.indexPath withOriginHeight:cellHeight withDistance:distance]) {
                     __weak typeof(updateDelegate) weak = updateDelegate;
-                    [updateDelegate.ignoreUpdateActions addObject:^{
+                    [updateDelegate._ignoredUpdateActions addObject:^{
                         if (!weak) {
                             return ;
                         }

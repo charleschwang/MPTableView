@@ -40,6 +40,7 @@
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSUInteger)section;
 - (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForFooterInSection:(NSUInteger)section;
 
+// Movement
 - (BOOL)MPTableView:(MPTableView *)tableView canMoveRowAtIndexPath:(MPIndexPath *)indexPath;
 - (BOOL)MPTableView:(MPTableView *)tableView canMoveRowToIndexPath:(MPIndexPath *)indexPath;
 
@@ -159,7 +160,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (instancetype)initWithCoder:(NSCoder *)aDecoder NS_DESIGNATED_INITIALIZER;
 
 @property (nonatomic, readonly) MPTableViewStyle style;
-@property (nonatomic, weak) id<MPTableViewDataSource> dataSource; // set a new dataSource will call -reloadData immediately.
+@property (nonatomic, weak) id<MPTableViewDataSource> dataSource;
 @property (nonatomic, weak) id<MPTableViewDelegate> delegate;
 @property (nonatomic, weak) id<MPTableViewDataSourcePrefetching> prefetchDataSource;
 
@@ -209,7 +210,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)clearReusableSectionViews;
 
 - (void)reloadData;
-- (void)reloadDataAsyncWithCompletion:(void (^)(void))completion; // reload data asynchronously. In this process, the table view will work as usual.
+- (void)reloadDataAsyncWithCompletion:(void (^)(void))completion; // reload data asynchronously. In this process, the table view will work as usual. Allows working in a async thread
 
 @property (nonatomic) BOOL allowsSelection;  // default is YES.
 @property (nonatomic) BOOL allowsMultipleSelection; // default is NO.
@@ -231,7 +232,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 @property (nonatomic, assign) NSTimeInterval rowAnimationDelay; // default is 0
 @property (nonatomic) UIViewAnimationOptions rowAnimationOptions; // default is UIViewAnimationOptionLayoutSubviews. If not, the animation effects may look unnatural when you using Autolayout and default table view animations.
 
-@property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload; // default is NO. If NO, table view will not reload data(mainly is height info) from data source for those off-screen views when updating, that will get better performance. If the updates will make contentOffset change, then you should set updateForceReload to YES.
+@property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload; // default is YES. If NO, table view will not reload data(mainly is height info) from data source for those off-screen views when updating, that will get better performance. If the updates will make contentOffset change, then you should set updateForceReload to YES.
 
 - (BOOL)isUpdating; // update animating
 
@@ -249,8 +250,9 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)moveRowAtIndexPath:(MPIndexPath *)indexPath toIndexPath:(MPIndexPath *)newIndexPath;
 
 @property (nonatomic, getter=isMoveModeEnabled) BOOL moveModeEnabled; // default is NO.
-@property (nonatomic) BOOL allowsSelectionDuringMoving;                                 // default is NO. Controls whether rows can be selected when in moving mode
+@property (nonatomic) CFTimeInterval minimumPressDurationForMovement; // default is 0.1.
 @property (nonatomic, assign) BOOL allowsDragCellOut; // default is NO.
+@property (nonatomic) BOOL allowsSelectionDuringMoving;                                 // default is NO. Controls whether rows can be selected when in moving mode
 - (MPIndexPath *)movingIndexPath; // default is nil.
 
 - (id)dequeueReusableCellWithIdentifier:(NSString *)identifier;
