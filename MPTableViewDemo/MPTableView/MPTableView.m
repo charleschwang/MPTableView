@@ -1946,7 +1946,7 @@ NS_INLINE CGRect _MP_SetViewWidth(UIView *view, CGFloat width) {
     [self _mpUpdateManager].newCount = _numberOfSections;
     
     if (![[self _mpUpdateManager] formatNodesStable:[self __isContentMoving]]) {
-        @throw @"check for update sections";
+        @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"check for update sections" userInfo:nil];
     }
     
     _updateAnimationStep++;
@@ -2350,7 +2350,7 @@ NS_INLINE CGRect _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
     
     if (cellHeight < 0 || cellHeight > MPTableViewMaxSize) {
-        @throw @"cell height";
+        @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"cell height" userInfo:nil];
     }
     
     return cellHeight;
@@ -2387,7 +2387,7 @@ NS_INLINE CGRect _MP_SetViewWidth(UIView *view, CGFloat width) {
     }
     
     if (cellHeight < 0 || cellHeight > MPTableViewMaxSize) {
-        @throw @"cell height";
+        @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"cell height" userInfo:nil];
     }
     
     return cellHeight;
@@ -3621,7 +3621,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
     }
     
     if (height < 0 || height >= MPTableViewMaxSize) {
-        @throw @"section header height";
+        @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"section header height" userInfo:nil];
     }
     
     section.headerHeight = height;
@@ -3645,7 +3645,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
             }
             
             if (cellHeight < 0 || cellHeight >= MPTableViewMaxSize) {
-                @throw @"cell height";
+                @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"cell height" userInfo:nil];
             }
             
             [section addRowWithPosition:step += cellHeight];
@@ -3666,7 +3666,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
     }
     
     if (height < 0 || height >= MPTableViewMaxSize) {
-        @throw @"section header height";
+        @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"section footer height" userInfo:nil];
     }
     
     section.footerHeight = height;
@@ -4146,7 +4146,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
 - (MPTableViewCell *)_getCellFromDataSourceAtIndexPath:(MPIndexPath *)indexPath {
     MPTableViewCell *cell = [_mpDataSource MPTableView:self cellForRowAtIndexPath:indexPath];
     if (!cell) {
-        @throw @"cell must not be null";
+        @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"cell must not be null" userInfo:nil];
     }
     
     return cell;
