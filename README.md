@@ -1,17 +1,17 @@
-# MPTableView
-·Lightweight subviews
+## MPTableView
+- Lightweight subviews
 
-·Customize animations
+- Customize animations
 
-·Allow to manage reuse views
+- Allow to manage reuse views
 
-·Support more APIs in lower versions of iOS
+- Support more APIs in lower versions of iOS
 
-# APIs
+## APIs
 The same as the UITableView
 
-#Requirements
+## Requirements
 iOS 6+
 
-#License
+## License
 MPTableView is available under the MIT license. See the LICENSE file for more info.
