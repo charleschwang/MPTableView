@@ -619,33 +619,36 @@ public:
     if ([self.delegate __updateNeedToAnimateSection:insertSection updateType:MPTableViewUpdateInsert andOffset:offset]) {
         for (NSInteger k = 0; k < insertSection.numberOfRows; ++k) {
             if (![self.delegate __updateSection:node.index insertCellAtIndex:k withAnimation:node.animation isSectionAnimation:insertSection]) {
-                [self.delegate._ignoredUpdateActions addObject:^{
+                void (^updateAction)(void) = ^{
                     if (!self.delegate) {
                         return ;
                     }
                     [self.delegate __updateSection:node.index insertCellAtIndex:k withAnimation:node.animation isSectionAnimation:insertSection];
-                }];
+                };
+                [self.delegate._ignoredUpdateActions addObject:updateAction];
             }
         }
         
         if (![self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeHeader withAnimation:node.animation withInsertSection:insertSection]) {
-            [self.delegate._ignoredUpdateActions addObject:^{
+            void (^updateAction)(void) = ^{
                 if (!self.delegate) {
-                return ;
-            }
+                    return ;
+                }
                 [self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeHeader withAnimation:node.animation withInsertSection:insertSection];
-            }];
+            };
+            [self.delegate._ignoredUpdateActions addObject:updateAction];
         }
         if (![self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeFooter withAnimation:node.animation withInsertSection:insertSection]) {
-            [self.delegate._ignoredUpdateActions addObject:^{
+            void (^updateAction)(void) = ^{
                 if (!self.delegate) {
                     return ;
                 }
                 [self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeFooter withAnimation:node.animation withInsertSection:insertSection];
-            }];
+            };
+            [self.delegate._ignoredUpdateActions addObject:updateAction];
         }
     } else {
-        [self.delegate._ignoredUpdateActions addObject:^{
+        void (^updateAction)(void) = ^{
             if (!self.delegate) {
                 return ;
             }
@@ -656,37 +659,41 @@ public:
             
             [self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeHeader withAnimation:node.animation withInsertSection:insertSection];
             [self.delegate __updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeFooter withAnimation:node.animation withInsertSection:insertSection];
-        }];
+        };
+        [self.delegate._ignoredUpdateActions addObject:updateAction];
     }
 }
 
 - (void)saveMovementsIfNecessaryForSection:(MPTableViewSection *)insertSection withBackup:(MPTableViewSection *)backup andNode:(MPTableViewUpdateNode)node andSectionIndex:(MPTableViewSectionIndex)sectionIndex withDistance:(CGFloat)distance {
     for (NSInteger k = 0; k < insertSection.numberOfRows; ++k) {
         if (![self.delegate __updateSection:node.index moveInCellAtIndex:k fromOriginIndexPath:[MPIndexPath indexPathForRow:k inSection:sectionIndex.originIndex] withOriginHeight:[backup rowHeightAt:k] withDistance:distance]) {
-            [self.delegate._ignoredUpdateActions addObject:^{
+            void (^updateAction)(void) = ^{
                 if (!self.delegate) {
                     return ;
                 }
                 [self.delegate __updateSection:node.index moveInCellAtIndex:k fromOriginIndexPath:[MPIndexPath indexPathForRow:k inSection:sectionIndex.originIndex] withOriginHeight:[backup rowHeightAt:k] withDistance:distance];
-            }];
+            };
+            [self.delegate._ignoredUpdateActions addObject:updateAction];
         }
     }
     
     if (![self.delegate __updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeHeader withOriginHeight:backup.headerHeight withDistance:distance]) {
-        [self.delegate._ignoredUpdateActions addObject:^{
+        void (^updateAction)(void) = ^{
             if (!self.delegate) {
                 return ;
             }
             [self.delegate __updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeHeader withOriginHeight:backup.headerHeight withDistance:distance];
-        }];
+        };
+        [self.delegate._ignoredUpdateActions addObject:updateAction];
     }
     if (![self.delegate __updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeFooter withOriginHeight:backup.footerHeight withDistance:distance]) {
-        [self.delegate._ignoredUpdateActions addObject:^{
+        void (^updateAction)(void) = ^{
             if (!self.delegate) {
                 return ;
             }
             [self.delegate __updateMoveInSectionViewAtIndex:node.index fromOriginIndex:sectionIndex.originIndex withType:MPSectionTypeFooter withOriginHeight:backup.footerHeight withDistance:distance];
-        }];
+        };
+        [self.delegate._ignoredUpdateActions addObject:updateAction];
     }
 }
 
@@ -1036,12 +1043,14 @@ public:
                 if (callback) {
                     if (![updateDelegate __updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil]) {
                         __weak typeof(updateDelegate) weak = updateDelegate;
-                        [updateDelegate._ignoredUpdateActions addObject:^{
+                        
+                        void (^updateAction)(void) = ^{
                             if (!weak) {
                                 return ;
                             }
                             [weak __updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil];
-                        }];
+                        };
+                        [updateDelegate._ignoredUpdateActions addObject:updateAction];
                     }
                 }
             } else {
@@ -1061,12 +1070,14 @@ public:
                 
                 if (![updateDelegate __updateSection:newSection moveInCellAtIndex:node.index fromOriginIndexPath:rowInfo.indexPath withOriginHeight:cellHeight withDistance:distance]) {
                     __weak typeof(updateDelegate) weak = updateDelegate;
-                    [updateDelegate._ignoredUpdateActions addObject:^{
+                    
+                    void (^updateAction)(void) = ^{
                         if (!weak) {
                             return ;
                         }
                         [weak __updateSection:newSection moveInCellAtIndex:node.index fromOriginIndexPath:rowInfo.indexPath withOriginHeight:cellHeight withDistance:distance];
-                    }];
+                    };
+                    [updateDelegate._ignoredUpdateActions addObject:updateAction];
                 }
             }
             

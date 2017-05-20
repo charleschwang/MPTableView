@@ -2159,50 +2159,7 @@ NS_INLINE CGRect _MP_SetViewWidth(UIView *view, CGFloat width) {
         
         [super setContentSize:contentSize];
     } completion:^(BOOL finished) {
-        _updateAnimationStep--;
-        
-        if (_respond_didEndDisplayingCellForRowAtIndexPath) {
-            for (MPIndexPath *indexPath in deleteCellsDic.allKeys) {
-                MPTableViewCell *cell = [deleteCellsDic objectForKey:indexPath];
-                [cell removeFromSuperview]; // alpha is hard to reset...
-                
-                [_mpDelegate MPTableView:self didEndDisplayingCell:cell forRowAtIndexPath:indexPath];
-            }
-        } else {
-            [deleteCellsDic.allValues makeObjectsPerformSelector:@selector(removeFromSuperview)];
-        }
-        
-        if (_respond_didEndDisplayingHeaderViewForSection || _respond_didEndDisplayingFooterViewForSection) {
-            for (MPIndexPath *indexPath in deleteSectionViewsDic.allKeys) {
-                MPTableReusableView *sectionView = [deleteSectionViewsDic objectForKey:indexPath];
-                [sectionView removeFromSuperview];
-                
-                if (indexPath.row == MPSectionTypeHeader && _respond_didEndDisplayingHeaderViewForSection) {
-                    [_mpDelegate MPTableView:self didEndDisplayingHeaderView:sectionView forSection:indexPath.section];
-                }
-                if (indexPath.row == MPSectionTypeFooter && _respond_didEndDisplayingFooterViewForSection) {
-                    [_mpDelegate MPTableView:self didEndDisplayingFooterView:sectionView forSection:indexPath.section];
-                }
-            }
-        } else {
-            [deleteSectionViewsDic.allValues makeObjectsPerformSelector:@selector(removeFromSuperview)];
-        }
-        
-        if (_updateAnimationStep == 0) {
-            [self _getDisplayingArea];
-            MPIndexPathStruct beginIndexPathStruct;
-            MPIndexPathStruct endIndexPathStruct;
-            if (_contentDrawArea.beginPos >= _contentDrawArea.endPos) {
-                beginIndexPathStruct = _beginIndexPath = MPIndexPathStructMake(NSIntegerMax, MPSectionTypeFooter);
-                endIndexPathStruct = _endIndexPath = MPIndexPathStructMake(NSIntegerMin, MPSectionTypeHeader);
-            } else {
-                beginIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
-                endIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.endPos];
-            }
-            [self _clipCellsBetween:beginIndexPathStruct and:endIndexPathStruct];
-            [self _clipSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
-            [_updateExchangedOffscreenIndexPaths removeAllObjects];
-        }
+        [self _updateAnimationCompletionWithDeleteCells:deleteCellsDic deleteSectionViews:deleteSectionViewsDic];
     }];
     
     _contentOffsetChanged = NO;
@@ -2210,31 +2167,80 @@ NS_INLINE CGRect _MP_SetViewWidth(UIView *view, CGFloat width) {
     [self _unlockLayoutSubviews];
 }
 
-// 
+- (void)_updateAnimationCompletionWithDeleteCells:(NSDictionary *)deleteCellsDic deleteSectionViews:(NSDictionary *)deleteSectionViewsDic {
+    _updateAnimationStep--;
+    
+    if (_respond_didEndDisplayingCellForRowAtIndexPath) {
+        for (MPIndexPath *indexPath in deleteCellsDic.allKeys) {
+            MPTableViewCell *cell = [deleteCellsDic objectForKey:indexPath];
+            [cell removeFromSuperview]; // alpha is hard to reset...
+            
+            [_mpDelegate MPTableView:self didEndDisplayingCell:cell forRowAtIndexPath:indexPath];
+        }
+    } else {
+        [deleteCellsDic.allValues makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    }
+    
+    if (_respond_didEndDisplayingHeaderViewForSection || _respond_didEndDisplayingFooterViewForSection) {
+        for (MPIndexPath *indexPath in deleteSectionViewsDic.allKeys) {
+            MPTableReusableView *sectionView = [deleteSectionViewsDic objectForKey:indexPath];
+            [sectionView removeFromSuperview];
+            
+            if (indexPath.row == MPSectionTypeHeader && _respond_didEndDisplayingHeaderViewForSection) {
+                [_mpDelegate MPTableView:self didEndDisplayingHeaderView:sectionView forSection:indexPath.section];
+            }
+            if (indexPath.row == MPSectionTypeFooter && _respond_didEndDisplayingFooterViewForSection) {
+                [_mpDelegate MPTableView:self didEndDisplayingFooterView:sectionView forSection:indexPath.section];
+            }
+        }
+    } else {
+        [deleteSectionViewsDic.allValues makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    }
+    
+    if (_updateAnimationStep == 0) {
+        [self _getDisplayingArea];
+        MPIndexPathStruct beginIndexPathStruct;
+        MPIndexPathStruct endIndexPathStruct;
+        if (_contentDrawArea.beginPos >= _contentDrawArea.endPos) {
+            beginIndexPathStruct = _beginIndexPath = MPIndexPathStructMake(NSIntegerMax, MPSectionTypeFooter);
+            endIndexPathStruct = _endIndexPath = MPIndexPathStructMake(NSIntegerMin, MPSectionTypeHeader);
+        } else {
+            beginIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
+            endIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.endPos];
+        }
+        [self _clipCellsBetween:beginIndexPathStruct and:endIndexPathStruct];
+        [self _clipSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
+        [_updateExchangedOffscreenIndexPaths removeAllObjects];
+    }
+}
+
+//
 - (void)_contentOffsetChangedResetSectionView:(MPTableReusableView *)sectionView inSection:(MPTableViewSection *)section withType:(MPSectionType)type {
     if ([sectionView isHidden]) {
         return;
     }
     
+    void (^animationBlock)(void);
     if (type == MPSectionTypeHeader) {
-        [_updateAnimationBlocks addObject:^{
+        animationBlock = ^{
             CGRect frame;
             frame.origin.x = 0;
             frame.origin.y = section.beginPos + _contentDrawArea.beginPos;
             frame.size.width = self.frame.size.width;
             frame.size.height = section.headerHeight;
             sectionView.frame = frame;
-        }];
+        };
     } else {
-        [_updateAnimationBlocks addObject:^{
+        animationBlock = ^{
             CGRect frame;
             frame.origin.x = 0;
             frame.origin.y = section.endPos - section.footerHeight + _contentDrawArea.beginPos;
             frame.size.width = self.frame.size.width;
             frame.size.height = section.footerHeight;
             sectionView.frame = frame;
-        }];
+        };
     }
+    [_updateAnimationBlocks addObject:animationBlock];
 }
 
 // frame.size.height must be bigger than the target height.
