@@ -7,7 +7,6 @@
 //
 
 #import "MPTableViewCell.h"
-#import "MPIndexPath.h"
 
 @class MPTableView;
 
@@ -228,16 +227,23 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 - (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated;
 
-@property (nonatomic, assign) NSTimeInterval rowAnimationDuration; // default is 0.3
-@property (nonatomic, assign) NSTimeInterval rowAnimationDelay; // default is 0
-@property (nonatomic) UIViewAnimationOptions rowAnimationOptions; // default is UIViewAnimationOptionLayoutSubviews. If not, the animation effects may look unnatural when you using Autolayout and default table view animations.
-
 @property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload; // default is YES. If NO, table view will not reload data(mainly is height info) from data source for those off-screen views when updating, that will get better performance. If the updates will make contentOffset change, then you should set updateForceReload to YES.
+
+@property (nonatomic) BOOL updateLayoutSubviewsOptionEnabled; // default is YES, table view will use UIViewAnimationOptionLayoutSubviews as an option in animations of updating. If not, the animation effects may look unnatural when you using Autolayout and default table view animations.
 
 - (BOOL)isUpdating; // update animating
 
 - (void)beginUpdates; // allow multiple insert/delete/reload/move of rows and sections to be animated simultaneously. Nestable
 - (void)endUpdates; // only call insert/delete/reload/move calls inside an update block.  otherwise things like row count, etc. may be invalid.
+
+- (void)performBatchUpdates:(void (^)(void))updates completion:(void (^)(BOOL finished))completion; // allow multiple insert/delete/reload/move of rows and sections to be animated simultaneously. Nestable
+
+/**
+ similar to -performBatchUpdates:completion:, more animation options have been provided
+ */
+- (void)performBatchUpdates:(void (^)(void))updates duration:(NSTimeInterval)duration delay:(NSTimeInterval)delay options:(UIViewAnimationOptions)options completion:(void (^)(BOOL finished))completion;
+
+- (void)performBatchUpdates:(void (^)(void))updates duration:(NSTimeInterval)duration delay:(NSTimeInterval)delay usingSpringWithDamping:(CGFloat)dampingRatio initialSpringVelocity:(CGFloat)velocity options:(UIViewAnimationOptions)options completion:(void (^)(BOOL finished))completion;
 
 - (void)deleteSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation;
 - (void)insertSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation;

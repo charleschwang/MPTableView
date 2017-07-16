@@ -82,35 +82,43 @@
 
 - (void)tableViewDelete {
     --self.sectionCount;
-    self.tableView.rowAnimationDuration = 1.5;
-    [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
-    self.tableView.rowAnimationDuration = 0.25;
+    // set the default animation duration of cells equals to those customizations
+    [self.tableView performBatchUpdates:^{
+        [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
+    } duration:1.5 delay:0 options:UIViewAnimationOptionCurveEaseOut completion:nil];
 }
 
 - (void)tableViewInsert {
     ++self.sectionCount;
-    self.tableView.rowAnimationDuration = 1.5;
     [self.tableView insertSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
-    self.tableView.rowAnimationDuration = 0.25;
 }
 
 - (void)tableViewUpdate {
     if (self.sectionCount < 6) {
         return;
     }
-    [self.tableView beginUpdates];
-    
-    [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
-    [self.tableView insertSections:[NSIndexSet indexSetWithIndex:1] withRowAnimation:MPTableViewRowAnimationRandom];
-    [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:2] withRowAnimation:MPTableViewRowAnimationRandom];
-    [self.tableView moveSection:3 toSection:4];
-    
-    [self.tableView deleteRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
-    [self.tableView insertRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
-    [self.tableView reloadRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
-    [self.tableView moveRowAtIndexPath:[MPIndexPath indexPathForRow:3 inSection:5] toIndexPath:[MPIndexPath indexPathForRow:4 inSection:5]];
-    
-    [self.tableView endUpdates];
+    [self.tableView performBatchUpdates:^{
+        // step 1, delete section 0 and insert a section at 1
+        [self.tableView performBatchUpdates:^{
+            [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
+            [self.tableView insertSections:[NSIndexSet indexSetWithIndex:1] withRowAnimation:MPTableViewRowAnimationRandom];
+        } duration:1.5 delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
+        
+        // step 2, start after step 1 is finished
+        [self.tableView performBatchUpdates:^{
+            [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:2] withRowAnimation:MPTableViewRowAnimationRandom];
+            [self.tableView moveSection:3 toSection:4];
+        } duration:1.5 delay:1.5 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
+        
+        // start together with step 1, but these animations duration is 3
+        [self.tableView deleteRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView insertRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView reloadRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView moveRowAtIndexPath:[MPIndexPath indexPathForRow:3 inSection:5] toIndexPath:[MPIndexPath indexPathForRow:4 inSection:5]];
+    } duration:3 delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:^(BOOL finished) {
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"提示" message:@"一组updates完成" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
+        [alert show];
+    }];
 }
 
 - (void)tableViewReload {
@@ -129,7 +137,7 @@
     return NO;
 }
 
-#pragma mark -dataSource
+#pragma mark - dataSource
 
 - (NSUInteger)numberOfSectionsInMPTableView:(MPTableView *)tableView {
     return self.sectionCount;
@@ -177,7 +185,7 @@
     return [cell rectForMoving];
 }
 
-#pragma mark -delegate
+#pragma mark - delegate
 
 - (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
     if ([indexPath compare:tableView.beginIndexPath] != NSOrderedDescending || [tableView isUpdating]) {
@@ -224,7 +232,7 @@
     cell.layer.shadowRadius = 0;
 }
 
-#pragma mark -table view update custom
+#pragma mark - table view update custom
 
 //...delete
 
@@ -270,7 +278,7 @@ void _insertAnimation(UIView *view) {
     _insertAnimation(view);
 }
 
-#pragma mark -prefetchDataSource
+#pragma mark - prefetchDataSource
 
 - (void)MPTableView:(MPTableView *)tableView prefetchRowsAtIndexPaths:(NSArray *)indexPaths {
     //NSLog(@"prefetch %@", indexPaths);

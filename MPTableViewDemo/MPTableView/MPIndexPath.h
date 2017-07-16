@@ -16,6 +16,10 @@
 #endif
 #endif
 
+#if !(__has_feature(objc_instancetype))
+#define instancetype id
+#endif
+
 @interface MPIndexPath : NSObject<NSCopying, NSMutableCopying> {
     @protected
     NSInteger *_indexes;

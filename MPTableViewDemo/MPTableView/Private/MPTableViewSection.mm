@@ -14,6 +14,9 @@
 
 using namespace std;
 
+NSExceptionName const MPTableViewException = @"MPTableViewException";
+NSExceptionName const MPTableViewUpdateException = @"MPTableViewUpdateException";
+
 @implementation MPTableViewPosition
 
 - (instancetype)init {
@@ -182,8 +185,8 @@ _updateNodesReverseBoundaryCheck(MPTableViewUpdateNodesVec *_updateNodesVec, NSU
 
 - (instancetype)init {
     if (self = [super init]) {
-        _existingStableIndexes = [NSMutableIndexSet indexSet];
-        _existingUnstableIndexes = [NSMutableIndexSet indexSet];
+        _existingStableIndexes = [[NSMutableIndexSet alloc] init];
+        _existingUnstableIndexes = [[NSMutableIndexSet alloc] init];
         _differ = 0;
         _newCount = NSNotFound;
         _originCount = NSNotFound;
@@ -238,7 +241,7 @@ public:
 
 - (instancetype)init {
     if (self = [super init]) {
-        _existingUpdatePartsIndexes = [NSMutableIndexSet indexSet];
+        _existingUpdatePartsIndexes = [[NSMutableIndexSet alloc] init];
         
         _moveOutSectionsMap = map<NSInteger, MPTableViewSectionIndex>();
     }
@@ -267,10 +270,10 @@ public:
 }
 
 - (BOOL)hasUpdateNodes {
-    if (_updateNodesVec->size() == 0) {
-        return NO;
-    } else {
+    if (_updateNodesVec->size() != 0 || _existingUpdatePartsIndexes.count != 0) {
         return YES;
+    } else {
+        return NO;
     }
 }
 
@@ -389,7 +392,7 @@ public:
     return YES;
 }
 
-#pragma mark -update cells-
+#pragma mark - -update cells-
 
 - (MPTableViewUpdatePart *)getPartAt:(NSUInteger)index {
     MPTableViewSection *section = _sections[index];
@@ -466,15 +469,20 @@ public:
                 isNeedCallback = isNeedCallback && section.section < node.originIndex;
             }
             
+            NSUInteger numberOfRows = [_delegate.dataSource MPTableView:_delegate numberOfRowsInSection:j];
             if (section.updatePart) {
-                [section updatePart].newCount = [_delegate.dataSource MPTableView:_delegate numberOfRowsInSection:j];
+                [section updatePart].newCount = numberOfRows;
                 
                 if (![section.updatePart formatNodesStable:[self.delegate __isContentMoving]]) {
-                    @throw [NSException exceptionWithName:@"MPTableView update exception" reason:@"check for update indexpaths" userInfo:nil];
+                    MPTableViewThrowUpdateException(@"check for update indexpaths");
                 }
                 
                 offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
             } else {
+                if (numberOfRows != section.numberOfRows) {
+                    MPTableViewThrowUpdateException(@"check for the number of sections from data source");
+                }
+                
                 offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
             }
         }
@@ -599,15 +607,20 @@ public:
         
         BOOL isNeedCallback = [self.delegate __updateNeedToAnimateSection:section updateType:MPTableViewUpdateAdjust andOffset:offset];
         
+        NSUInteger numberOfRows = [_delegate.dataSource MPTableView:_delegate numberOfRowsInSection:j];
         if (section.updatePart) {
-            [section updatePart].newCount = [_delegate.dataSource MPTableView:_delegate numberOfRowsInSection:j];
+            [section updatePart].newCount = numberOfRows;
             
             if (![section.updatePart formatNodesStable:[self.delegate __isContentMoving]]) {
-                @throw [NSException exceptionWithName:@"MPTableView update exception" reason:@"check for update indexpaths" userInfo:nil];
+                MPTableViewThrowUpdateException(@"check for update indexpaths");
             }
             
             offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
         } else {
+            if (numberOfRows != section.numberOfRows) {
+                MPTableViewThrowUpdateException(@"check for the number of sections from data source");
+            }
+            
             offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needCallback:isNeedCallback];
         }
     }
@@ -1013,13 +1026,16 @@ public:
                 
                 NSInteger callBackIndex = j - step - 1;
                 
-                BOOL needToAdjust = [updateDelegate __updateSection:newSection originSection:originSection adjustCellAtIndex:callBackIndex toIndex:j - 1] || callback;
+                BOOL needToAdjust = NO;
+                if (isInsert || callBackIndex < node.originIndex) {
+                    needToAdjust = [updateDelegate __updateSection:newSection originSection:originSection adjustCellAtIndex:callBackIndex toIndex:j - 1] || callback;
+                }
                 
                 if ([updateDelegate __isContentMoving] && ((originSection == [updateDelegate __beginIndexPath].section && callBackIndex < [updateDelegate __beginIndexPath].row) || (originSection == [updateDelegate __endIndexPath].section && callBackIndex > [updateDelegate __endIndexPath].row))) {
                     continue;
                 }
                 
-                if (needToAdjust && (isInsert || callBackIndex < node.originIndex)) {
+                if (needToAdjust) {
                     CGFloat newOffset = [updateDelegate __updateSection:newSection originSection:originSection adjustCellAtIndex:callBackIndex toIndex:j - 1 withOffset:offset];
                     if (newOffset != 0) {
                         offset += newOffset;
@@ -1042,13 +1058,11 @@ public:
                 
                 if (callback) {
                     if (![updateDelegate __updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil]) {
-                        __weak typeof(updateDelegate) weak = updateDelegate;
-                        
                         void (^updateAction)(void) = ^{
-                            if (!weak) {
+                            if (!updateDelegate) {
                                 return ;
                             }
-                            [weak __updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil];
+                            [updateDelegate __updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil];
                         };
                         [updateDelegate._ignoredUpdateActions addObject:updateAction];
                     }
@@ -1069,13 +1083,11 @@ public:
                 }
                 
                 if (![updateDelegate __updateSection:newSection moveInCellAtIndex:node.index fromOriginIndexPath:rowInfo.indexPath withOriginHeight:cellHeight withDistance:distance]) {
-                    __weak typeof(updateDelegate) weak = updateDelegate;
-                    
                     void (^updateAction)(void) = ^{
-                        if (!weak) {
+                        if (!updateDelegate) {
                             return ;
                         }
-                        [weak __updateSection:newSection moveInCellAtIndex:node.index fromOriginIndexPath:rowInfo.indexPath withOriginHeight:cellHeight withDistance:distance];
+                        [updateDelegate __updateSection:newSection moveInCellAtIndex:node.index fromOriginIndexPath:rowInfo.indexPath withOriginHeight:cellHeight withDistance:distance];
                     };
                     [updateDelegate._ignoredUpdateActions addObject:updateAction];
                 }
@@ -1236,7 +1248,7 @@ public:
 }
 
 //
-- (MPTableViewSection *)rebuildAndBackup:(MPTableView *)updateDelegate fromOriginSection:(NSInteger)originSection  withDistance:(CGFloat)distance {
+- (MPTableViewSection *)rebuildAndBackup:(MPTableView *)updateDelegate fromOriginSection:(NSInteger)originSection withDistance:(CGFloat)distance {
     if ([updateDelegate __isEstimatedMode]) {
         if (![updateDelegate isUpdateForceReload] && ![updateDelegate __updateNeedToAnimateSection:self updateType:MPTableViewUpdateInsert andOffset:0]) {
             if (self.section == originSection) {
@@ -1299,7 +1311,7 @@ public:
     CGFloat footerHeight = [updateDelegate __updateGetFooterHeightInSection:self fromOriginSection:originSection withOffset:distance force:[updateDelegate isUpdateForceReload] || ![updateDelegate __isEstimatedMode]];
     if (footerHeight >= 0) {
         CGFloat newOffset = footerHeight - self.footerHeight;
-        offset += newOffset;
+        //offset += newOffset;
         self.endPos += newOffset;
         self.footerHeight = footerHeight;
     }

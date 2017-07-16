@@ -70,7 +70,9 @@ _CGColorMPSelectionDefault() {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         CGFloat color[4] = {0.85, 0.85, 0.85, 1.0};
-        selectionCGColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), color);
+        CGColorSpace *colorSpaceRef = CGColorSpaceCreateDeviceRGB();
+        selectionCGColor = CGColorCreate(colorSpaceRef, color);
+        CGColorSpaceRelease(colorSpaceRef);
     });
     return selectionCGColor;
 }
@@ -91,7 +93,9 @@ _CGColorClearColor() {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         CGFloat color[4] = {0, 0, 0, 0};
-        CGColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), color);
+        CGColorSpace *colorSpaceRef = CGColorSpaceCreateDeviceRGB();
+        CGColor = CGColorCreate(colorSpaceRef, color);
+        CGColorSpaceRelease(colorSpaceRef);
     });
     return CGColor;
 }

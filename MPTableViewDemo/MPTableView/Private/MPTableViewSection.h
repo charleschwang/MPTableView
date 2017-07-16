@@ -9,7 +9,7 @@
 #import "MPTableView.h"
 
 #define MPTableViewMaxCount 7883507
-#define MPTableViewMaxSize 7883507.0f
+#define MPTableViewMaxSize 7883507.0
 
 typedef struct struct_MPIndexPath {
     NSInteger section, row;
@@ -39,6 +39,11 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 #define MPTableViewUpdateTypeStable(_type_) (_type_ == MPTableViewUpdateInsert || _type_ == MPTableViewUpdateMoveIn)
 #define MPTableViewUpdateTypeUnstable(_type_) (_type_ == MPTableViewUpdateDelete || _type_ == MPTableViewUpdateMoveOut || _type_ == MPTableViewUpdateReload)
+
+UIKIT_EXTERN NSExceptionName const MPTableViewException;
+UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
+
+#define MPTableViewThrowUpdateException(_exception_) @throw [NSException exceptionWithName:MPTableViewUpdateException reason:_exception_ userInfo:nil]
 
 @class MPTableViewSection;
 

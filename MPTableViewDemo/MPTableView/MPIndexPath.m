@@ -126,7 +126,7 @@ _NSIntegerMalloc(size_t size) {
 
 @end
 
-#pragma mark-
+#pragma mark -
 
 @implementation MPMutableIndexPath {
     NSInteger _reserved;
