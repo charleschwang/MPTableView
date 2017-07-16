@@ -11,7 +11,7 @@
 The same as the UITableView
 
 ## Requirements
-iOS 6+
+iOS 7+
 
 ## License
 MPTableView is available under the MIT license. See the LICENSE file for more info.
