@@ -3709,6 +3709,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
 }
 
 - (void)_resetMovingLongGestureRecognizer {
+    [self _lockLayoutSubviews];
     [self _endMovingCellIfNeeded];
     
     _movingLongGestureRecognizer.enabled = NO;
