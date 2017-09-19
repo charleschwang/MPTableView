@@ -1041,9 +1041,8 @@ public:
                         offset += newOffset;
                         (*_rowPositionDeque)[j] += newOffset;
                     }
+                    updateDelegate._updateDeleteOriginTopPosition = (*_rowPositionDeque)[j];
                 }
-                
-                updateDelegate._updateDeleteOriginTopPosition = (*_rowPositionDeque)[j];
             }
         }
         
@@ -1145,9 +1144,8 @@ public:
                     offset += newOffset;
                     (*_rowPositionDeque)[i] += newOffset;
                 }
+                updateDelegate._updateDeleteOriginTopPosition = (*_rowPositionDeque)[i];
             }
-            
-            updateDelegate._updateDeleteOriginTopPosition = (*_rowPositionDeque)[i];
         }
     }
     
