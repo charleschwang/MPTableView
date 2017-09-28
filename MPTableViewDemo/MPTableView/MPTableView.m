@@ -4131,6 +4131,12 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
 }
 
 - (void)_updateDisplayingArea {
+    [UIView performWithoutAnimation:^{
+        [self _updateDisplayingAreaFunc];
+    }];
+}
+
+- (void)_updateDisplayingAreaFunc {
     if (_contentDrawArea.beginPos >= _contentDrawArea.endPos) {
         return;
     }
