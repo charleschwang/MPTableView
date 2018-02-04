@@ -233,9 +233,6 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 - (BOOL)isUpdating; // update animating
 
-- (void)beginUpdates; // allow multiple insert/delete/reload/move of rows and sections to be animated simultaneously. Nestable
-- (void)endUpdates; // only call insert/delete/reload/move calls inside an update block.  otherwise things like row count, etc. may be invalid.
-
 - (void)performBatchUpdates:(void (^)(void))updates completion:(void (^)(BOOL finished))completion; // allow multiple insert/delete/reload/move of rows and sections to be animated simultaneously. Nestable
 
 /**

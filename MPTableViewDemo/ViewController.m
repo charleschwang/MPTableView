@@ -221,6 +221,8 @@
     
     [UIView animateWithDuration:0.25 animations:^{
         cell.transform = CGAffineTransformMakeRotation(0);
+        // if the tableview frame be changed when we are dragging this cell, the way that only reset this cell's transform still will make some layout problems, and we have to set a correct frame for it.
+        cell.frame = [tableView rectForRowAtIndexPath:destinationIndexPath];
     }];
 }
 

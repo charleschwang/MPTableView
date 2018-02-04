@@ -1783,20 +1783,21 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
     [self _lockLayoutSubviews];
 }
 
-- (void)endUpdates {
-    NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil);
-    
-    if (_updateDataPreparing || _movingIndexPath || ![self _isLayoutSubviewsLock] || _reloadDataNeededFlag) {
-        return;
-    }
-    
-    _updateContextStep--;
-    NSAssert(_updateContextStep >= 0, @"every invocation of -endUpdates must have a -beginUpdates invoking in front");
-    
-    MPTableViewUpdateManager *updateManager = [self _getUpdateManagerFromStack];
-    [self _startUpdateAnimationWithUpdateManager:updateManager duration:MPTableViewDefaultAnimationDuration delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
-}
+// deprecated
+//- (void)endUpdates {
+//    NSParameterAssert(_mpDataSource);
+//    NSParameterAssert(_movingIndexPath == nil);
+//
+//    if (_updateDataPreparing || _movingIndexPath || ![self _isLayoutSubviewsLock] || _reloadDataNeededFlag) {
+//        return;
+//    }
+//
+//    _updateContextStep--;
+//    NSAssert(_updateContextStep >= 0, @"every invocation of -endUpdates must have a -beginUpdates invoking in front");
+//
+//    MPTableViewUpdateManager *updateManager = [self _getUpdateManagerFromStack];
+//    [self _startUpdateAnimationWithUpdateManager:updateManager duration:MPTableViewDefaultAnimationDuration delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
+//}
 
 - (void)performBatchUpdates:(void (^)(void))updates completion:(void (^)(BOOL finished))completion {
     [self performBatchUpdates:updates duration:MPTableViewDefaultAnimationDuration delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:completion];
@@ -1816,7 +1817,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
         updates();
     }
     
-    NSAssert(_updateContextStep > 0, @"every invocation of -endUpdates must have a -beginUpdates invoking in front");
+    //NSAssert(_updateContextStep > 0, @"every invocation of -endUpdates must have a -beginUpdates invoking in front");
     
     [self _startUpdateAnimationWithUpdateManager:updateManager duration:duration delay:delay options:options completion:completion];
     [self _popUpdateManagerFromStack];
@@ -1837,7 +1838,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
         updates();
     }
     
-    NSAssert(_updateContextStep > 0, @"every invocation of -endUpdates must have a -beginUpdates invoking in front");
+    //NSAssert(_updateContextStep > 0, @"every invocation of -endUpdates must have a -beginUpdates invoking in front");
     
     NSParameterAssert(dampingRatio < MPTableViewMaxSize);
     [self _startUpdateAnimationWithUpdateManager:updateManager duration:duration delay:delay options:options usingSpringWithDamping:dampingRatio initialSpringVelocity:velocity completion:completion];

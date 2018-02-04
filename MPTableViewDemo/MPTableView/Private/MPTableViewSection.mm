@@ -42,7 +42,7 @@ NSExceptionName const MPTableViewUpdateException = @"MPTableViewUpdateException"
 }
 
 - (NSUInteger)hash {
-    return 0;
+    return (NSUInteger)fabs(_endPos);
 }
 
 - (id)copyWithZone:(NSZone *)zone {
