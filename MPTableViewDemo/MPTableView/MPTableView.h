@@ -21,7 +21,7 @@
 - (NSUInteger)numberOfSectionsInMPTableView:(MPTableView *)tableView; // Default is 1 if not implemented
 
 // Variable height support
-- (CGFloat)MPTableView:(MPTableView *)tableView heightForIndexPath:(MPIndexPath *)indexPath;
+- (CGFloat)MPTableView:(MPTableView *)tableView heightForRowAtIndexPath:(MPIndexPath *)indexPath;
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForHeaderInSection:(NSUInteger)section;
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForFooterInSection:(NSUInteger)section;
 
@@ -84,12 +84,12 @@
 - (void)MPTableView:(MPTableView *)tableView beginToDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
 
 // Called before the user changes the selection. Return a new indexPath, or nil, to change the proposed selection.
-- (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
+- (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectRowForCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
 - (MPIndexPath *)MPTableView:(MPTableView *)tableView willDeselectRowAtIndexPath:(MPIndexPath *)indexPath;
 
 // Called after the user changes the selection.
 
-- (void)MPTableView:(MPTableView *)tableView didSelectCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didSelectRowForCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
 - (void)MPTableView:(MPTableView *)tableView didDeselectRowAtIndexPath:(MPIndexPath *)indexPath;
 
 // -MPTableView:shouldHighlightRowAtIndexPath: is called when a touch comes down on a row.

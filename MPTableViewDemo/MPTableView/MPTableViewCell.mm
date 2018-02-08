@@ -11,10 +11,10 @@
 
 @implementation MPTableReusableView
 
-- (instancetype)initWithReuseIdentifier:(NSString *)identifier {
+- (instancetype)initWithReuseIdentifier:(NSString *)reuseIdentifier {
     if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, MPTableViewDefaultCellHeight)]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
-        self.identifier = identifier;
+        self.reuseIdentifier = reuseIdentifier;
     }
     return self;
 }
@@ -30,18 +30,22 @@
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
         [super setAutoresizingMask:UIViewAutoresizingNone];
-        self.identifier = [aDecoder decodeObjectForKey:@"_identifier"];
+        self.reuseIdentifier = [aDecoder decodeObjectForKey:@"_reuseIdentifier"];
     }
     return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
-    [aCoder encodeObject:_identifier forKey:@"_identifier"];
+    [aCoder encodeObject:_reuseIdentifier forKey:@"_reuseIdentifier"];
     [super encodeWithCoder:aCoder];
 }
 
-- (void)setIdentifier:(NSString *)identifier {
-    _identifier = [identifier copy];
+- (UIResponder *)nextResponder {
+    return nil;
+}
+
+- (void)setReuseIdentifier:(NSString *)reuseIdentifier {
+    _reuseIdentifier = [reuseIdentifier copy];
 }
 
 - (void)prepareForRecovery {
@@ -55,7 +59,7 @@
 - (NSString *)description {
     NSString *description = [super description];
     
-    return [NSString stringWithFormat:@"%@, identifier:%@", description, _identifier];
+    return [NSString stringWithFormat:@"%@, reuseIdentifier:%@", description, _reuseIdentifier];
 }
 
 @end
@@ -187,8 +191,8 @@ _MPCellSetSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::
     [self.layer insertSublayer:_fadeAnimationLayer atIndex:0];
 }
 
-- (instancetype)initWithReuseIdentifier:(NSString *)identifier {
-    if (self = [super initWithReuseIdentifier:identifier]) {
+- (instancetype)initWithReuseIdentifier:(NSString *)reuseIdentifier {
+    if (self = [super initWithReuseIdentifier:reuseIdentifier]) {
         [self _initializeData];
     }
     return self;
@@ -209,6 +213,10 @@ _MPCellSetSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::
     [super encodeWithCoder:aCoder];
     
     [self.layer insertSublayer:_fadeAnimationLayer atIndex:0];
+}
+
+- (UIResponder *)nextResponder {
+    return [self superview];
 }
 
 - (void)dealloc {

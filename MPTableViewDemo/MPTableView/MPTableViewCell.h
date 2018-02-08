@@ -12,10 +12,10 @@
 
 @interface MPTableReusableView : UIView
 
-@property (nonatomic, copy, readonly) NSString *identifier;
+@property (nonatomic, copy, readonly) NSString *reuseIdentifier;
 
 // If the view can be reused, you must pass in a reuse identifier, or it will not be reused.  You should use the same reuse identifier for all reusable views of the same form.
-- (instancetype)initWithReuseIdentifier:(NSString *)identifier NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithReuseIdentifier:(NSString *)reuseIdentifier NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithCoder:(NSCoder *)aDecoder NS_DESIGNATED_INITIALIZER;
 
 - (void)prepareForRecovery; // called when the reusable view end displaying (enter the reuse queue).

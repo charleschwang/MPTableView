@@ -10,8 +10,8 @@
 
 @implementation MyDemoCell
 
-- (instancetype)initWithReuseIdentifier:(NSString *)identifier {
-    if (self = [super initWithReuseIdentifier:identifier]) {
+- (instancetype)initWithReuseIdentifier:(NSString *)reuseIdentifier {
+    if (self = [super initWithReuseIdentifier:reuseIdentifier]) {
         self.backgroundColor = [UIColor colorWithRed:arc4random() % 10 / 10. green:arc4random() % 10 / 10. blue:arc4random() % 10 / 10. alpha:1];
         
         CGRect frame = self.frame;
