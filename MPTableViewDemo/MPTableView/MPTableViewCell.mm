@@ -105,43 +105,87 @@ _CGColorClearColor() {
 }
 
 struct MPCellCachedStatus {
-    BOOL highlighted;
+    BOOL opaqueRetain;
+    BOOL highlightedRetain;
     UIColor *backgroundColor;
+    BOOL backgroundColorRetain;
 };
 
-static bool
-_UIColorEqualToClearColor(UIColor *color) {
-    if (!color) {
-        return YES;
-    } else {
-        CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
-        return [color getRed:&red green:&green blue:&blue alpha:&alpha];
-    }
+static MPCellCachedStatus MPCellCachedStatusGet() {
+    MPCellCachedStatus status;
+    status.opaqueRetain = NO;
+    status.highlightedRetain = NO;
+    status.backgroundColor = nil;
+    status.backgroundColorRetain = NO;
+    return status;
 }
 
+NS_INLINE bool MPCellCachedStatusNeedRecord(MPCellCachedStatus status) {
+    return status.opaqueRetain || status.highlightedRetain || status.backgroundColorRetain;
+}
+
+//static bool
+//_UIColorEqualToClearColor(UIColor *color) {
+//    if (!color) {
+//        return YES;
+//    } else {
+//        CGFloat red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0;
+//        return [color getRed:&red green:&green blue:&blue alpha:&alpha];
+//    }
+//}
+
 static void
-_MPCellSetSubviewHighlighted(id subview, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap, bool highlighted, bool removeIfUnhighlighted) {
+_MPCellSetSubviewsHighlighted(NSArray *, bool , std::map<NSUInteger, MPCellCachedStatus> *);
+
+static void
+_MPCellSetSubviewHighlighted(UIView *subview, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap, bool highlighted, bool removeIfUnhighlighted) {
+    static Class _UIButtonClass_MP_ = [UIButton class];
+    
     if (highlighted) {
-        MPCellCachedStatus status;
-        status.backgroundColor = [(UIView *)subview backgroundColor];
-        [(UIView *)subview setBackgroundColor:[UIColor clearColor]];
+        MPCellCachedStatus status = MPCellCachedStatusGet();
         
-        if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)]) {
-            status.highlighted = [subview isHighlighted];
-            [subview setHighlighted:YES];
+        if (subview.backgroundColor != [UIColor clearColor]) { // this '!=' was verified
+            status.backgroundColor = [subview backgroundColor];
+            status.backgroundColorRetain = YES;
+            [subview setBackgroundColor:[UIColor clearColor]];
         }
         
-        cacheColorsMap->insert(std::pair<NSUInteger, MPCellCachedStatus>((NSUInteger)subview, status));
+        if ([subview isOpaque]) {
+            status.opaqueRetain = YES;
+            subview.opaque = NO;
+        }
+        
+        if (![subview isKindOfClass:_UIButtonClass_MP_]) {
+            if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)] && ![(id)subview isHighlighted]) {
+                status.highlightedRetain = YES;
+                [(id)subview setHighlighted:YES];
+            }
+            
+            _MPCellSetSubviewsHighlighted([subview subviews], highlighted, cacheColorsMap);
+        }
+        
+        if (MPCellCachedStatusNeedRecord(status)) {
+            cacheColorsMap->insert(std::pair<NSUInteger, MPCellCachedStatus>((NSUInteger)subview, status));
+        }
     } else {
         std::map<NSUInteger, MPCellCachedStatus>::iterator iter = cacheColorsMap->find((NSUInteger)subview);
         if (iter != cacheColorsMap->end()) {
             MPCellCachedStatus status = iter->second;
             
-            if (_UIColorEqualToClearColor([(UIView *)subview backgroundColor])) {
-                [(UIView *)subview setBackgroundColor:status.backgroundColor];
+            if (status.backgroundColorRetain && subview.backgroundColor == [UIColor clearColor]) {
+                [subview setBackgroundColor:status.backgroundColor];
             }
-            if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)] && [subview isHighlighted]) {
-                [subview setHighlighted:status.highlighted];
+            
+            if (status.opaqueRetain && ![subview isOpaque]) {
+                subview.opaque = YES;
+            }
+            
+            if (![subview isKindOfClass:_UIButtonClass_MP_]) {
+                if (status.highlightedRetain && [(id)subview isHighlighted]) {
+                    [(id)subview setHighlighted:NO];
+                }
+                
+                _MPCellSetSubviewsHighlighted([subview subviews], highlighted, cacheColorsMap);
             }
             
             if (removeIfUnhighlighted) {
@@ -152,16 +196,9 @@ _MPCellSetSubviewHighlighted(id subview, std::map<NSUInteger, MPCellCachedStatus
 }
 
 static void
-_MPCellSetSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap) {
-    for (id subview in subviews) {
-        static Class _UIButtonClass_MP_ = [UIButton class];
-        
-        if ([subview isKindOfClass:_UIButtonClass_MP_]) {
-            continue;
-        }
-        
+_MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap) {
+    for (UIView *subview in subviews) {
         _MPCellSetSubviewHighlighted(subview, cacheColorsMap, highlighted, NO);
-        _MPCellSetSubviewsHighlightedIfNeeded([subview subviews], highlighted, cacheColorsMap);
     }
 }
 
@@ -234,6 +271,8 @@ _MPCellSetSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::
     }
 }
 
+
+// This can only affect subviews of MPTableViewCell, but not other lower-level descendents. The UITableViewCell using a private API named -[UIView _descendent:willMoveFromSuperview:toSuperview:] to solve it.
 - (void)willRemoveSubview:(UIView *)subview {
     if (_selected || _highlighted) {
         _MPCellSetSubviewHighlighted(subview, &_cachedSubviewStatusMap, NO, YES);
@@ -328,7 +367,7 @@ _MPCellSetSubviewsHighlightedIfNeeded(NSArray *subviews, bool highlighted, std::
         return;
     }
     
-    _MPCellSetSubviewsHighlightedIfNeeded(self.subviews, highlighted, &_cachedSubviewStatusMap);
+    _MPCellSetSubviewsHighlighted(self.subviews, highlighted, &_cachedSubviewStatusMap);
 }
 
 @end

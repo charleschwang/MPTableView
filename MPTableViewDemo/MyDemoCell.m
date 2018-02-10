@@ -40,6 +40,10 @@
     return self;
 }
 
+- (void)setHighlighted:(BOOL)highlighted {
+    [super setHighlighted:highlighted animated:YES];
+}
+
 - (void)layoutSubviews {
     self.label_title.frame = self.bounds;
     self.btn_movement.frame = [self rectForMoving];
