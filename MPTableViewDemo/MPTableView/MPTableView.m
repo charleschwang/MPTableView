@@ -2253,15 +2253,13 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
     
     if (_contentOffsetChanged) {
         if ([self __isEstimatedMode]) {
-            if ([self isUpdateForceReload]) {
-                CGFloat newOffset = [[self _mpEstimatedUpdateManager] startUpdate:beginIndexPath];
-                if (newOffset != 0) {
-                    MPTableViewThrowUpdateException(@"a critical bug");
-                }
-                _beginIndexPath = beginIndexPath;
-                _endIndexPath = endIndexPath;
-                [self _prefetchDataIfNeeded];
+            CGFloat newOffset = [[self _mpEstimatedUpdateManager] startUpdate:beginIndexPath];
+            if (newOffset != 0) {
+                MPTableViewThrowUpdateException(@"a critical bug");
             }
+            _beginIndexPath = beginIndexPath;
+            _endIndexPath = endIndexPath;
+            [self _prefetchDataIfNeeded];
         } else {
             if (self.style == MPTableViewStylePlain) {
                 if (_currSuspendHeaderSection == NSNotFound && _contentOffset.beginPos - [self _contentInset].top >= _contentDrawArea.beginPos) {
@@ -3775,6 +3773,12 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
             [self _clear];
             
             _estimatedUpdateManager.sections = _sectionsAreaList = newSections;
+            if (_updateManagerStack.count) {
+                for (MPTableViewUpdateManager *updateManager in _updateManagerStack) {
+                    updateManager.sections = newSections;
+                }
+            }
+            
             [self _unlockLayoutSubviews];
             if (height != MPTableViewMaxSize && [self superview]) {
                 [self _setVerticalContentHeight:height];
@@ -4135,7 +4139,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
             }
         }
         
-        if ([indexPath compareIndexPathAt:_beginIndexPath] == NSOrderedAscending || [indexPath compareIndexPathAt:_endIndexPath] == NSOrderedDescending) {
+        if ([indexPath compareIndexPathAt:beginIndexPathStruct] == NSOrderedAscending || [indexPath compareIndexPathAt:endIndexPathStruct] == NSOrderedDescending) {
             if (!_movingIndexPath && [self isUpdating]) {
                 [_updateExchangedOffscreenIndexPaths addObject:indexPath];
                 continue;
@@ -4208,7 +4212,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
                 _endIndexPath = endIndexPathStruct;
             }
         } else if (self.style == MPTableViewStylePlain) {
-            [self _clipAndAdjustSectionViewsBetween:beginIndexPathStruct and:endIndexPathStruct];
+            [self _clipAndAdjustSectionViewsBetween:_beginIndexPath and:_endIndexPath];
         }
         
         _updateDataPreparing = NO;

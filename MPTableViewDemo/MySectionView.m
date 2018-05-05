@@ -10,7 +10,7 @@
 
 @implementation MySectionView
 
-// By default, the nextResponder return nil in MPTableReusableView, but if we want to let the cell which below in this sectionview can be selected when we are touching this sectionview, we should do this.
+// By default, the nextResponder return nil in MPTableReusableView, but if we want to touch a cell which below in a sectionview by through this sectionview, we should do this.
 - (UIResponder *)nextResponder {
     return self.superview;
 }
