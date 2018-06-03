@@ -230,7 +230,13 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 - (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated;
 
-@property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload; // default is YES. If NO, table view will not reload data(mainly is height info) from data source for those off-screen views when updating, that will get better performance. If the updates will make contentOffset change, then you should set updateForceReload to YES.
+/**
+ default is YES.
+ If NO, table view will not reload heights info from data source for those off-screen views when updating.
+ So if you could confirm that change cells heights not by -MPTableView:heightForRowAtIndexPath: when updating, then you should set it NO to get best performance.
+ But if you couldn't, and the updates will make contentOffset change, then you should set it YES.
+ */
+@property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload;
 
 @property (nonatomic) BOOL updateLayoutSubviewsOptionEnabled; // default is YES, table view will use UIViewAnimationOptionLayoutSubviews as an option in animations of updating. If not, the animation effects may look unnatural when you using Autolayout and default table view animations.
 
