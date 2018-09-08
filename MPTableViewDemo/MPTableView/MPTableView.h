@@ -28,7 +28,7 @@
 // Use the estimatedHeight methods to quickly calcuate guessed values which will allow for fast load times of the table.
 // If these methods are implemented, the above -MPTableView:heightForXXX calls will be deferred until views are ready to be displayed, so more expensive logic can be placed there.
 
-// There is no estimatedRowHeight、estimatedSectionHeaderHeight and estimatedSectionFooterHeight, because they can be modified at any time, and that will cause some trouble.
+// There are no estimatedRowHeight、estimatedSectionHeaderHeight and estimatedSectionFooterHeight to be properties in MPTableView, because they can be modified at any time, and that will cause some trouble.
 
 - (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForRowAtIndexPath:(MPIndexPath *)indexPath;
 - (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForHeaderInSection:(NSUInteger)section;
@@ -43,7 +43,7 @@
 - (BOOL)MPTableView:(MPTableView *)tableView canMoveRowAtIndexPath:(MPIndexPath *)indexPath;
 - (BOOL)MPTableView:(MPTableView *)tableView canMoveRowToIndexPath:(MPIndexPath *)indexPath;
 
-// If not implemented, touch any position of cell will make it begin to move. Default is [cell bounds].
+// If not implemented, touch any position in cell will make it begin to move. Default is [cell bounds].
 - (CGRect)MPTableView:(MPTableView *)tableView rectForCellToMoveRowAtIndexPath:(MPIndexPath *)indexPath;
 
 // Called when the dragging action is stopping.
@@ -69,12 +69,12 @@
 // Customize animations for updating. a reload-update is composed of a delete and a insert function.
 
 // Called when updating.
-// The pathPosition is the origin.y of those animating views that in front of the current cell. In the MPTableViewRowAnimation, the pathPosition is the cell's starting position.
+// The pathPosition is the origin.y of those animating views that in front of the current cell. In the default table view animations, the pathPosition is the cell's starting position.
 - (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
-// The pathPosition in delete is a target position that views will move to. In the MPTableViewRowAnimation, the pathPosition is the cell's target position that make it looks like always follow the font one.
+// The pathPosition in delete is a target position that views will move to. In the default table view animations, the pathPosition is the cell's target position that make it looks like always follow the font one.
 
-// ※※※※※※※※※※ WARNING: That deleted cell need to be manually removed. ※※※※※※※※※※
+// ※※※※※※※※※※ WARNING: This deleted cell need to be manually removed. ※※※※※※※※※※
 - (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
 - (void)MPTableView:(MPTableView *)tableView beginToInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
@@ -100,7 +100,7 @@
 
 // Enter move mode
 - (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath;
-// Called when the moving animation is completed.
+// Called when the dragging is completed in move mode.
 - (void)MPTableView:(MPTableView *)tableView didEndMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath;
 
 @end
@@ -204,7 +204,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @property (nonatomic, getter=isCachesReloadEnabled) BOOL cachesReloadEnabled; // default is YES, when reloading the table view, without clear reusable views and cache all displayed views to reuse(It is best to make sure that table view will reload with the same cell/reusable class objects);
 
- // Sometimes we frequently make table view updating, that may produce many caches(reusable views) and you can not make the most of them.
+ // Sometimes we frequently update table view(using those update APIs but not reloadData), that may produce many caches(reusable views) and table view can not make the most of them.
 - (void)clearReusableCells;
 - (void)clearReusableSectionViews;
 
@@ -232,13 +232,13 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 /**
  default is YES.
- If NO, table view will not reload heights info from data source for those off-screen views when updating.
- So if you could confirm that change cells heights not by -MPTableView:heightForRowAtIndexPath: when updating, then you should set it NO to get best performance.
- But if you couldn't, and the updates will make contentOffset change, then you should set it YES.
+ If NO, table view will not reload the heights info from data source for those off-screen views when updating.
+ So if you can confirm that do not need to change all cells heights when updating, then you should set it NO to get best performance.
+ But if you can't, and the updates will make contentOffset change, then you should set it YES.
  */
 @property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload;
 
-@property (nonatomic) BOOL updateLayoutSubviewsOptionEnabled; // default is YES, table view will use UIViewAnimationOptionLayoutSubviews as an option in animations of updating. If not, the animation effects may look unnatural when you using Autolayout and default table view animations.
+@property (nonatomic) BOOL updateLayoutSubviewsOptionEnabled; // default is YES, table view will use UIViewAnimationOptionLayoutSubviews as an option in animations of updating. If not, the animation effects may look unnatural when you using the Autolayout and those default table view animations.
 
 - (BOOL)isUpdating; // update animating
 
