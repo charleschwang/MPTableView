@@ -169,13 +169,13 @@
 		65B6D13D2185FC5E00C100F7 /* MPTableView */ = {
 			isa = PBXGroup;
 			children = (
-				65B6D1412185FC5E00C100F7 /* Private */,
 				65B6D13E2185FC5E00C100F7 /* MPTableView.h */,
-				65B6D13F2185FC5E00C100F7 /* MPIndexPath.h */,
+				65B6D1452185FC5E00C100F7 /* MPTableView.m */,
 				65B6D1462185FC5E00C100F7 /* MPTableViewCell.h */,
 				65B6D1402185FC5E00C100F7 /* MPTableViewCell.mm */,
+				65B6D13F2185FC5E00C100F7 /* MPIndexPath.h */,
 				65B6D1442185FC5E00C100F7 /* MPIndexPath.m */,
-				65B6D1452185FC5E00C100F7 /* MPTableView.m */,
+				65B6D1412185FC5E00C100F7 /* Private */,
 			);
 			path = MPTableView;
 			sourceTree = "<group>";
@@ -183,8 +183,8 @@
 		65B6D1412185FC5E00C100F7 /* Private */ = {
 			isa = PBXGroup;
 			children = (
-				65B6D1422185FC5E00C100F7 /* MPTableViewSection.mm */,
 				65B6D1432185FC5E00C100F7 /* MPTableViewSection.h */,
+				65B6D1422185FC5E00C100F7 /* MPTableViewSection.mm */,
 			);
 			path = Private;
 			sourceTree = "<group>";
