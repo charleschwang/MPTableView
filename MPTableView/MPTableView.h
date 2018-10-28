@@ -233,12 +233,14 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 /**
  default is YES.
  If NO, table view will not reload the heights info from data source for those off-screen views when updating.
- So if you can confirm that do not need to change all cells heights when updating, then you should set it NO to get best performance.
- But if you can't, and the updates will make contentOffset change, then you should set it YES.
+ So if you can confirm that do not need to change all cells heights when updating, then you should set it to NO to get best performance.
+ But if you can't, and the updates will make contentOffset change, then you should set it to YES.
  */
 @property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload;
 
 @property (nonatomic) BOOL updateLayoutSubviewsOptionEnabled; // default is YES, table view will use UIViewAnimationOptionLayoutSubviews as an option in animations of updating. If not, the animation effects may look unnatural when you using the Autolayout and those default table view animations.
+
+@property (nonatomic) BOOL updateAllowUserInteraction; // default is YES, table view can be scrolled when updating(using UIViewAnimationOptionAllowUserInteraction for all animations), and all subviews can be selected, or you can turn it off and set the userInteractionEnabled of those animated cells to NO.
 
 - (BOOL)isUpdating; // update animating
 

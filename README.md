@@ -1,14 +1,18 @@
 ## MPTableView
-- Lightweight subviews
+I work mostly in e-commerce now, so i just fix its bugs sometimes. For now, it still works well in iOS7~iOS12.
 
-- Customize animations
+- Faster in scrolling and updating than the UITableView, and lower CPU usage.
 
-- Allow to manage reuse views
+- Lightweight subviews.
 
-- Support more APIs in lower versions of iOS
+- Custom animations and Group animations for updating.
 
-## APIs
-The same as the UITableView
+- Manage reuse views manually.
+
+- Support more advanced features in lower versions of iOS.
+
+## How to use
+The same APIs as the UITableView. For more new features, see the demo.
 
 ## Requirements
 iOS 7+

@@ -354,7 +354,7 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
     NSMutableArray *_updateAnimationBlocks;
     NSMutableSet *_updateExchangedOffscreenIndexPaths, *_updateExchangedSelectedIndexPaths;
     
-    // for keeping animations natural when content offset has been changed in updating.
+    // for keeping animations natural when content offset has been changed in updating process.
     NSMutableArray *_ignoredUpdateActions;
     BOOL _contentOffsetChanged;
     //
@@ -455,6 +455,7 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
         _allowsMultipleSelection = [aDecoder decodeBoolForKey:@"_allowsMultipleSelection"];
         _updateForceReload = [aDecoder decodeBoolForKey:@"_updateForceReload"];
         _updateLayoutSubviewsOptionEnabled = [aDecoder decodeBoolForKey:@"_updateLayoutSubviewsOptionEnabled"];
+        _updateAllowUserInteraction = [aDecoder decodeBoolForKey:@"_updateAllowUserInteraction"];
         _moveModeEnabled = [aDecoder decodeBoolForKey:@"_moveModeEnabled"];
         _allowsSelectionDuringMoving = [aDecoder decodeBoolForKey:@"_allowsSelectionDuringMoving"];
         _allowsDragCellOut = [aDecoder decodeBoolForKey:@"_allowsDragCellOut"];
@@ -489,6 +490,7 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
     [aCoder encodeBool:_allowsMultipleSelection forKey:@"_allowsMultipleSelection"];
     [aCoder encodeBool:_updateForceReload forKey:@"_updateForceReload"];
     [aCoder encodeBool:_updateLayoutSubviewsOptionEnabled forKey:@"_updateLayoutSubviewsOptionEnabled"];
+    [aCoder encodeBool:_updateAllowUserInteraction forKey:@"_updateAllowUserInteraction"];
     [aCoder encodeBool:_moveModeEnabled forKey:@"_moveModeEnabled"];
     [aCoder encodeBool:_allowsSelectionDuringMoving forKey:@"_allowsSelectionDuringMoving"];
     [aCoder encodeBool:_allowsDragCellOut forKey:@"_allowsDragCellOut"];
@@ -550,6 +552,7 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
     _cachesReloadEnabled = YES;
     _updateForceReload = YES;
     _updateLayoutSubviewsOptionEnabled = YES;
+    _updateAllowUserInteraction = YES;
     _moveModeEnabled = NO;
     _allowsSelectionDuringMoving = NO;
     _allowsDragCellOut = NO;
@@ -2002,7 +2005,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
 #pragma mark - -update-
 
 - (MPTableViewUpdateManager *)_pushUpdateManagerToStack {
-    if (!_updateManagerStack) { // update init
+    if (!_updateManagerStack) { // init
         _updateManagerStack = [[NSMutableArray alloc] init];
         _deleteCellsDic = [[NSMutableDictionary alloc] init];
         _deleteSectionViewsDic = [[NSMutableDictionary alloc] init];
@@ -2032,7 +2035,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
 }
 
 - (void)_popUpdateManagerFromStack {
-    if (_updateManagerStack.count > 1) { // at least one for reuse
+    if (_updateManagerStack.count > 1) { // at least one to be reused
         [_updateManagerStack removeLastObject];
     }
 }
@@ -2128,7 +2131,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
         _beginIndexPath = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
         _endIndexPath = [self _indexPathAtContentOffset:_currDrawArea.endPos];
         
-        if (_contentOffset.beginPos > [self _inner_contentInset].top && (self.contentSize.height + [self _inner_contentInset].bottom + offset < _contentOffset.endPos)) { // when scrolling to the bottom, it needs to change content offset
+        if (_contentOffset.beginPos > [self _inner_contentInset].top && (self.contentSize.height + [self _inner_contentInset].bottom + offset < _contentOffset.endPos)) { // when scrolling to the bottom, the contentOffset needs to be changed
             _contentOffsetChanged = YES;
             
             _contentOffset.endPos = self.contentSize.height + [self _inner_contentInset].bottom + offset;
@@ -2145,7 +2148,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
             beginIndexPath = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
             endIndexPath = [self _indexPathAtContentOffset:_currDrawArea.endPos];
             
-            // insertions off-screen before
+            // because the contentOffset has been changed, some actions can not be ignored
             if ([self isUpdateForceReload] || ![self __isEstimatedMode]) {
                 for (void (^action)(void) in _ignoredUpdateActions) {
                     action();
@@ -2197,7 +2200,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
                 continue;
             }
             
-            [_updateExchangedOffscreenIndexPaths addObject:indexPath]; // it should be cached when moving, but there is no bug
+            [_updateExchangedOffscreenIndexPaths addObject:indexPath]; // it works when cell dragging, but there is no bug
         }
     }
     
@@ -2253,7 +2256,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
         if ([indexPath compareIndexPathAt:beginIndexPath] == NSOrderedAscending || [indexPath compareIndexPathAt:endIndexPath] == NSOrderedDescending) {
             [_updateExchangedOffscreenIndexPaths addObject:indexPath];
         } else {
-            if (_contentOffsetChanged && self.style == MPTableViewStylePlain) { // all adjusting reset
+            if (_contentOffsetChanged && self.style == MPTableViewStylePlain) { // reset all adjusting
                 MPTableReusableView *sectionView = [_displayedSectionViewsDic objectForKey:indexPath];
                 if (!section) {
                     section = _sectionsAreaList[indexPath.section];
@@ -2278,7 +2281,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
                 if (_currSuspendHeaderSection == NSNotFound && _contentOffset.beginPos - [self _inner_contentInset].top >= _contentDrawArea.beginPos) {
                     [self _suspendSectionHeaderIfNeededAt:beginIndexPath];
                 }
-                // ...no need footer
+                // ...no need the footer
             }
             [self _updateDisplayingBegin:beginIndexPath and:endIndexPath];
             [self _prefetchDataIfNeeded];
@@ -2328,6 +2331,11 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
     if (self.updateLayoutSubviewsOptionEnabled) {
         options |= UIViewAnimationOptionLayoutSubviews;
     }
+    
+    if (self.updateAllowUserInteraction) {
+        options |= UIViewAnimationOptionAllowUserInteraction;
+    }
+    
     if (dampingRatio < MPTableViewMaxSize) {
         [UIView animateWithDuration:duration delay:delay usingSpringWithDamping:dampingRatio initialSpringVelocity:velocity options:options animations:animations completion:animationCompletion];
     } else {
@@ -2345,7 +2353,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
     if (_respond_didEndDisplayingCellForRowAtIndexPath) {
         for (MPIndexPath *indexPath in deleteCellsDic.allKeys) {
             MPTableViewCell *cell = [deleteCellsDic objectForKey:indexPath];
-            [cell removeFromSuperview]; // alpha is hard to reset...
+            [cell removeFromSuperview];
             
             [_mpDelegate MPTableView:self didEndDisplayingCell:cell forRowAtIndexPath:indexPath];
         }
@@ -2433,7 +2441,9 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
         }
         
         frame.origin.y = temp;
-        if (targetY < _contentOffset.beginPos && CGRectGetMaxY(frame) >= _contentOffset.beginPos) { // deletion and contentOffset has been changed.
+        // deletion
+        // contentOffset has been changed.
+        if (targetY < _contentOffset.beginPos && CGRectGetMaxY(frame) >= _contentOffset.beginPos) {
             temp = targetY;
         }
     } else {
@@ -5149,7 +5159,7 @@ NS_INLINE CGPoint MPPointsSubtraction(CGPoint point1, CGPoint point2) {
         }
         
         if ([self __isEstimatedMode] && (MPCompareIndexPath(newIndexPath_, _beginIndexPath) == NSOrderedAscending || MPCompareIndexPath(newIndexPath_, _endIndexPath) == NSOrderedDescending)) {
-            return; // view at new indexPath may not has been estimated, or we should make a complete updating——that's too much trouble
+            return; // view at a new indexPath may not has been estimated, or we should make a complete updating——that's too much trouble
         }
         
         MPIndexPath *newIndexPath = [MPIndexPath indexPathFromStruct:newIndexPath_];

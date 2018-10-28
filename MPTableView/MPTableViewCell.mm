@@ -317,7 +317,7 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
     if (selected && _highlighted) {
         return;
     }
-    [self _setFadeLayerEnable:selected animated:animated];
+    [self _setFadeLayerEnabled:selected animated:animated];
 }
 
 - (void)setHighlighted:(BOOL)highlighted {
@@ -333,12 +333,12 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
     if (_selected) {
         return;
     }
-    [self _setFadeLayerEnable:highlighted animated:animated];
+    [self _setFadeLayerEnabled:highlighted animated:animated];
 }
 
-- (void)_setFadeLayerEnable:(BOOL)enable animated:(BOOL)animated {
+- (void)_setFadeLayerEnabled:(BOOL)enabled animated:(BOOL)animated {
     if (!_selectionColor) {
-        if (enable) {
+        if (enabled) {
             return;
         } else {
             if (_cachedSubviewStatusMap.size() == 0) {
@@ -348,16 +348,16 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
     }
     
     if (animated) {
-        _fadeAnimationLayer.hidden = !enable;
+        _fadeAnimationLayer.hidden = !enabled;
     } else {
         [CATransaction begin];
         [CATransaction setDisableActions:YES];
-        _fadeAnimationLayer.hidden = !enable;
+        _fadeAnimationLayer.hidden = !enabled;
         [CATransaction commit];
     }
-    [self _setSubviewsHighlighted:enable];
+    [self _setSubviewsHighlighted:enabled];
     
-    if (!enable) {
+    if (!enabled) {
         _cachedSubviewStatusMap.clear();
     }
 }

@@ -18,10 +18,10 @@
 		188775EB1CA533320073A24C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 188775E91CA533320073A24C /* LaunchScreen.storyboard */; };
 		188775F61CA533320073A24C /* MPTableViewDemoTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 188775F51CA533320073A24C /* MPTableViewDemoTests.m */; };
 		188776011CA533320073A24C /* MPTableViewDemoUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 188776001CA533320073A24C /* MPTableViewDemoUITests.m */; };
-		188776181CA533600073A24C /* MPTableView.m in Sources */ = {isa = PBXBuildFile; fileRef = 188776101CA533600073A24C /* MPTableView.m */; };
-		188776191CA533600073A24C /* MPTableViewCell.mm in Sources */ = {isa = PBXBuildFile; fileRef = 188776121CA533600073A24C /* MPTableViewCell.mm */; };
-		1887761A1CA533600073A24C /* MPTableViewSection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 188776151CA533600073A24C /* MPTableViewSection.mm */; };
-		18B04EEC1CD1DA8B007E1E99 /* MPIndexPath.m in Sources */ = {isa = PBXBuildFile; fileRef = 18B04EEB1CD1DA8B007E1E99 /* MPIndexPath.m */; };
+		65B6D1472185FC5E00C100F7 /* MPTableViewCell.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1402185FC5E00C100F7 /* MPTableViewCell.mm */; };
+		65B6D1482185FC5E00C100F7 /* MPTableViewSection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1422185FC5E00C100F7 /* MPTableViewSection.mm */; };
+		65B6D1492185FC5E00C100F7 /* MPIndexPath.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1442185FC5E00C100F7 /* MPIndexPath.m */; };
+		65B6D14A2185FC5E00C100F7 /* MPTableView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1452185FC5E00C100F7 /* MPTableView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,14 +63,14 @@
 		188775FC1CA533320073A24C /* MPTableViewDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MPTableViewDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		188776001CA533320073A24C /* MPTableViewDemoUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MPTableViewDemoUITests.m; sourceTree = "<group>"; };
 		188776021CA533320073A24C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1887760F1CA533600073A24C /* MPTableView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableView.h; sourceTree = "<group>"; };
-		188776101CA533600073A24C /* MPTableView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MPTableView.m; sourceTree = "<group>"; };
-		188776111CA533600073A24C /* MPTableViewCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableViewCell.h; sourceTree = "<group>"; };
-		188776121CA533600073A24C /* MPTableViewCell.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MPTableViewCell.mm; sourceTree = "<group>"; };
-		188776141CA533600073A24C /* MPTableViewSection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableViewSection.h; sourceTree = "<group>"; };
-		188776151CA533600073A24C /* MPTableViewSection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MPTableViewSection.mm; sourceTree = "<group>"; };
-		18B04EEA1CD1DA8B007E1E99 /* MPIndexPath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPIndexPath.h; sourceTree = "<group>"; };
-		18B04EEB1CD1DA8B007E1E99 /* MPIndexPath.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MPIndexPath.m; sourceTree = "<group>"; };
+		65B6D13E2185FC5E00C100F7 /* MPTableView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableView.h; sourceTree = "<group>"; };
+		65B6D13F2185FC5E00C100F7 /* MPIndexPath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPIndexPath.h; sourceTree = "<group>"; };
+		65B6D1402185FC5E00C100F7 /* MPTableViewCell.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MPTableViewCell.mm; sourceTree = "<group>"; };
+		65B6D1422185FC5E00C100F7 /* MPTableViewSection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MPTableViewSection.mm; sourceTree = "<group>"; };
+		65B6D1432185FC5E00C100F7 /* MPTableViewSection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableViewSection.h; sourceTree = "<group>"; };
+		65B6D1442185FC5E00C100F7 /* MPIndexPath.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MPIndexPath.m; sourceTree = "<group>"; };
+		65B6D1452185FC5E00C100F7 /* MPTableView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MPTableView.m; sourceTree = "<group>"; };
+		65B6D1462185FC5E00C100F7 /* MPTableViewCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableViewCell.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +101,7 @@
 		188775CF1CA533320073A24C = {
 			isa = PBXGroup;
 			children = (
+				65B6D13D2185FC5E00C100F7 /* MPTableView */,
 				188775DA1CA533320073A24C /* MPTableViewDemo */,
 				188775F41CA533320073A24C /* MPTableViewDemoTests */,
 				188775FF1CA533320073A24C /* MPTableViewDemoUITests */,
@@ -121,7 +122,6 @@
 		188775DA1CA533320073A24C /* MPTableViewDemo */ = {
 			isa = PBXGroup;
 			children = (
-				1887760E1CA533600073A24C /* MPTableView */,
 				188775DE1CA533320073A24C /* AppDelegate.h */,
 				188775DF1CA533320073A24C /* AppDelegate.m */,
 				188775E11CA533320073A24C /* ViewController.h */,
@@ -166,25 +166,25 @@
 			path = MPTableViewDemoUITests;
 			sourceTree = "<group>";
 		};
-		1887760E1CA533600073A24C /* MPTableView */ = {
+		65B6D13D2185FC5E00C100F7 /* MPTableView */ = {
 			isa = PBXGroup;
 			children = (
-				188776131CA533600073A24C /* Private */,
-				18B04EEA1CD1DA8B007E1E99 /* MPIndexPath.h */,
-				18B04EEB1CD1DA8B007E1E99 /* MPIndexPath.m */,
-				1887760F1CA533600073A24C /* MPTableView.h */,
-				188776101CA533600073A24C /* MPTableView.m */,
-				188776111CA533600073A24C /* MPTableViewCell.h */,
-				188776121CA533600073A24C /* MPTableViewCell.mm */,
+				65B6D1412185FC5E00C100F7 /* Private */,
+				65B6D13E2185FC5E00C100F7 /* MPTableView.h */,
+				65B6D13F2185FC5E00C100F7 /* MPIndexPath.h */,
+				65B6D1462185FC5E00C100F7 /* MPTableViewCell.h */,
+				65B6D1402185FC5E00C100F7 /* MPTableViewCell.mm */,
+				65B6D1442185FC5E00C100F7 /* MPIndexPath.m */,
+				65B6D1452185FC5E00C100F7 /* MPTableView.m */,
 			);
 			path = MPTableView;
 			sourceTree = "<group>";
 		};
-		188776131CA533600073A24C /* Private */ = {
+		65B6D1412185FC5E00C100F7 /* Private */ = {
 			isa = PBXGroup;
 			children = (
-				188776141CA533600073A24C /* MPTableViewSection.h */,
-				188776151CA533600073A24C /* MPTableViewSection.mm */,
+				65B6D1422185FC5E00C100F7 /* MPTableViewSection.mm */,
+				65B6D1432185FC5E00C100F7 /* MPTableViewSection.h */,
 			);
 			path = Private;
 			sourceTree = "<group>";
@@ -320,14 +320,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				188776181CA533600073A24C /* MPTableView.m in Sources */,
+				65B6D1482185FC5E00C100F7 /* MPTableViewSection.mm in Sources */,
 				183F88531CA914B800D0A903 /* MySectionView.m in Sources */,
+				65B6D1492185FC5E00C100F7 /* MPIndexPath.m in Sources */,
 				188775E31CA533320073A24C /* ViewController.m in Sources */,
 				188775E01CA533320073A24C /* AppDelegate.m in Sources */,
+				65B6D14A2185FC5E00C100F7 /* MPTableView.m in Sources */,
 				1815186A1CAE7C3500CC3078 /* MyDemoCell.m in Sources */,
-				18B04EEC1CD1DA8B007E1E99 /* MPIndexPath.m in Sources */,
-				188776191CA533600073A24C /* MPTableViewCell.mm in Sources */,
-				1887761A1CA533600073A24C /* MPTableViewSection.mm in Sources */,
+				65B6D1472185FC5E00C100F7 /* MPTableViewCell.mm in Sources */,
 				188775DD1CA533320073A24C /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
