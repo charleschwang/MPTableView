@@ -116,7 +116,7 @@
         [self.tableView reloadRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView moveRowAtIndexPath:[MPIndexPath indexPathForRow:3 inSection:5] toIndexPath:[MPIndexPath indexPathForRow:4 inSection:5]];
     } duration:3 delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:^(BOOL finished) {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"提示" message:@"一组updates完成" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"An updates group is completed" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
         [alert show];
     }];
 }
@@ -125,7 +125,7 @@
     self.cellCount = 150;
     self.sectionCount = 150;
     [self.tableView reloadDataAsyncWithCompletion:^{
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"提示" message:@"加载完毕" delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"Data reload is completed" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
         [alert show];
     }];
 }
@@ -164,7 +164,7 @@
 }
 
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForRowAtIndexPath:(MPIndexPath *)indexPath {
-    // useless calculation,
+    // useless calculation, for simulating real project condition.
     CGSize labelSize = [@"Goliath online. Acknowledged HQ." boundingRectWithSize:CGSizeMake(375, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
     labelSize = [@"Battlecruiser operational. Receiving transmission. Good day, commander." boundingRectWithSize:CGSizeMake(375, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
     
