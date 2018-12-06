@@ -663,12 +663,12 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
     _respond_cancelPrefetchingForRowsAtIndexPaths = [_prefetchDataSource respondsToSelector:@selector(MPTableView:cancelPrefetchingForRowsAtIndexPaths:)];
 }
 
-#pragma mark - public-
+#pragma mark - public
 
 - (void)setDataSource:(id<MPTableViewDataSource>)dataSource {
+    NSParameterAssert(![self isUpdating]);
+    
     if (dataSource) {
-        NSParameterAssert(![self isUpdating]);
-        
         if (![dataSource respondsToSelector:@selector(MPTableView:cellForRowAtIndexPath:)] || ![dataSource respondsToSelector:@selector(MPTableView:numberOfRowsInSection:)]) {
             NSAssert(NO, @"dataSource @required");
             return;
@@ -689,12 +689,9 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
 }
 
 - (void)setDelegate:(id<MPTableViewDelegate>)delegate {
-    if (delegate) {
-        NSParameterAssert(![self isUpdating]);
-    }
-    _mpDelegate = delegate;
+    NSParameterAssert(![self isUpdating]);
     
-    [super setDelegate:delegate];
+    [super setDelegate:_mpDelegate = delegate];
     [self _respondsToDelegate];
 }
 
@@ -2002,7 +1999,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
     [_registerReusableViewsNibDic setObject:nib forKey:identifier];
 }
 
-#pragma mark - -update-
+#pragma mark - update
 
 - (MPTableViewUpdateManager *)_pushUpdateManagerToStack {
     if (!_updateManagerStack) { // init
@@ -2091,7 +2088,9 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
         [self _clipAndAdjustSectionViewsBetween:_beginIndexPath and:_endIndexPath];
     }
     [self _lockLayoutSubviews];
-    _updateDataPreparing = YES; // when _updateDataPreparing is true, we can not start a new update transaction.
+    _updateDataPreparing = YES; // when _updateDataPreparing is true, unable to start a new update transaction.
+    
+    _updateAnimationStep++;
     _lastSuspendFooterSection = _lastSuspendHeaderSection = NSNotFound;
     __updateInsertOriginTopPosition = __updateDeleteOriginTopPosition = 0;
     
@@ -2110,8 +2109,6 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
     if (![updateManager formatNodesStable:[self __isContentMoving]]) {
         MPTableViewThrowUpdateException(@"check for update sections");
     }
-    
-    _updateAnimationStep++;
     
     CGFloat offset = [updateManager startUpdate];
     [updateManager resetManager];
@@ -2637,8 +2634,11 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
     CGFloat updateDeleteOriginTopPosition = __updateDeleteOriginTopPosition + _contentDrawArea.beginPos;
     
     if (animation == MPTableViewRowAnimationCustom) {
+        NSAssert(_respond_beginToDeleteCellForRowAtIndexPath, @"need the delegate function");
         if (_respond_beginToDeleteCellForRowAtIndexPath) {
             [_mpDelegate MPTableView:self beginToDeleteCell:cell forRowAtIndexPath:indexPath withAnimationPathPosition:updateDeleteOriginTopPosition];
+        } else {
+            [self _cacheCell:cell];
         }
     } else {
         if (animation == MPTableViewRowAnimationNone) {
@@ -2696,6 +2696,7 @@ static void _UIFrameWithoutAnimation(UIView *view, CGRect frame) {
         
         CGFloat updateInsertOriginTopPosition = __updateInsertOriginTopPosition + _contentDrawArea.beginPos;
         if (animation == MPTableViewRowAnimationCustom) {
+            NSAssert(_respond_beginToInsertCellForRowAtIndexPath, @"need the delegate function");
             if (_respond_beginToInsertCellForRowAtIndexPath) {
                 [_mpDelegate MPTableView:self beginToInsertCell:cell forRowAtIndexPath:indexPath withAnimationPathPosition:updateInsertOriginTopPosition];
             }
@@ -3100,12 +3101,18 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
     
     if (animation == MPTableViewRowAnimationCustom) {
         if (type == MPSectionTypeHeader) {
+            NSAssert(_respond_beginToDeleteHeaderViewForSection, @"need the delegate function");
             if (_respond_beginToDeleteHeaderViewForSection) {
                 [_mpDelegate MPTableView:self beginToDeleteHeaderView:sectionView forSection:index withAnimationPathPosition:updateDeleteOriginTopPosition];
+            } else {
+                [self _cacheSectionView:sectionView];
             }
         } else {
+            NSAssert(_respond_beginToDeleteFooterViewForSection, @"need the delegate function");
             if (_respond_beginToDeleteFooterViewForSection) {
                 [_mpDelegate MPTableView:self beginToDeleteFooterView:sectionView forSection:index withAnimationPathPosition:updateDeleteOriginTopPosition];
+            } else {
+                [self _cacheSectionView:sectionView];
             }
         }
     } else {
@@ -3190,18 +3197,18 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForCell(MPTableViewCell *cell, CGFloat wid
         CGFloat updateInsertOriginTopPosition = __updateInsertOriginTopPosition + _contentDrawArea.beginPos;
         if (animation == MPTableViewRowAnimationCustom) {
             if (type == MPSectionTypeHeader) {
+                NSAssert(_respond_beginToInsertHeaderViewForSection, @"need the delegate function");
                 if (_respond_beginToInsertHeaderViewForSection) {
                     [_mpDelegate MPTableView:self beginToInsertHeaderView:sectionView forSection:index withAnimationPathPosition:updateInsertOriginTopPosition];
                 }
             } else {
+                NSAssert(_respond_beginToInsertFooterViewForSection, @"need the delegate function");
                 if (_respond_beginToInsertFooterViewForSection) {
                     [_mpDelegate MPTableView:self beginToInsertFooterView:sectionView forSection:index withAnimationPathPosition:updateInsertOriginTopPosition];
                 }
             }
         } else {
-            if (animation == MPTableViewRowAnimationNone) {
-                
-            } else {
+            if (animation != MPTableViewRowAnimationNone) {
                 if (animation == MPTableViewRowAnimationTop) {
                     [self insertSubview:sectionView aboveSubview:_contentWrapperView];
                 }

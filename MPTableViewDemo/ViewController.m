@@ -81,6 +81,11 @@
 }
 
 - (void)tableViewDelete {
+    if (self.sectionCount == 0) {
+        NSLog(@"we need at least 1 section");
+        return;
+    }
+    
     --self.sectionCount;
     // set the default animation duration of cells equals to those customizations
     [self.tableView performBatchUpdates:^{
@@ -95,8 +100,17 @@
 
 - (void)tableViewUpdate {
     if (self.sectionCount < 6) {
+        NSLog(@"this update needs at least 6 sections");
         return;
     }
+    
+    for (NSInteger i = 1, rows = [self.tableView numberOfRowsInSection:0]; i < self.tableView.numberOfSections; i++) {
+        if (rows != [self.tableView numberOfRowsInSection:i]) {
+            NSLog(@"need the same number of rows in every section");
+            return;
+        }
+    }
+    
     [self.tableView performBatchUpdates:^{
         // step 1, delete section 0 and insert a section at 1
         [self.tableView performBatchUpdates:^{
@@ -110,7 +124,7 @@
             [self.tableView moveSection:3 toSection:4];
         } duration:1.5 delay:1.5 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
         
-        // start together with step 1, but these animations duration is 3
+        // these animations start together with step 1, but their duration is 3 seconds
         [self.tableView deleteRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView insertRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView reloadRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];

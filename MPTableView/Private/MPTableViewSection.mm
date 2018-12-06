@@ -145,11 +145,11 @@ _converge(vector<_Vec_update> *__updateNodesVec) {
                     if (_cellNode->index <= _backTrackingNode->index) { // stable <= unstable
                         _MPUpdateMove(__updateNodesVec, i, __backTracking);
                         ++__step;
-                        NSInteger temp = ++__backTracking;
+                        NSInteger tracking = ++__backTracking;
                         do {
-                            _cellNode = &(*__updateNodesVec)[temp++];
+                            _cellNode = &(*__updateNodesVec)[tracking++];
                             ++_cellNode->index;
-                        } while (temp <= i);
+                        } while (tracking <= i);
                         break;
                     }
                     ++__backTracking;
@@ -392,7 +392,7 @@ public:
     return YES;
 }
 
-#pragma mark - -update cells-
+#pragma mark - update cells
 
 - (MPTableViewUpdatePart *)getPartAt:(NSUInteger)index {
     MPTableViewSection *section = _sections[index];
@@ -512,7 +512,7 @@ public:
                 CGFloat currBeginPos;
                 if (node.index == 0) {
                     currBeginPos = 0;
-                } else { // _sections[node.index] has not been offsetting, so its position is not accurate
+                } else { // _sections[node.index] has not been calculated, so its position is not accurate
                     MPTableViewSection *currSection = _sections[node.index - 1];
                     currBeginPos = currSection.endPos;
                 }
@@ -531,9 +531,7 @@ public:
         } else if (node.updateType == MPTableViewUpdateReload) {
             MPTableViewSection *deleteSection = _sections[node.index];
             MPTableViewSection *insertSection = [self.delegate __updateGetSectionAt:node.index];
-            if (node.originIndex != deleteSection.section) {
-                assert(0); // beyond the bug
-            }
+            assert(node.originIndex == deleteSection.section); // beyond the bug
             
             [_sections replaceObjectAtIndex:node.index withObject:insertSection];
             [insertSection rebuildAndBackup:self.delegate fromOriginSection:node.index withDistance:0];
@@ -601,9 +599,7 @@ public:
     
     for (; j < sectionCount; ++j) {
         MPTableViewSection *section = _sections[j];
-        if (section.section != j - step) {
-            assert(0);
-        }
+        assert(section.section == j - step);
         
         BOOL isNeedCallback = [self.delegate __updateNeedToAnimateSection:section updateType:MPTableViewUpdateAdjust andOffset:offset];
         
