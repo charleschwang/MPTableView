@@ -72,7 +72,7 @@
 // The pathPosition is the origin.y of those animating views that in front of the current cell. In the default table view animations, the pathPosition is the cell's starting position.
 - (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
-// The pathPosition in delete is a target position that views will move to. In the default table view animations, the pathPosition is the cell's target position that make it looks like always follow the font one.
+// The pathPosition in delete methods is a target position that views will move to. In the default table view animations, the pathPosition is the cell's target position that make it looks like always follow the font one.
 
 // ※※※※※※※※※※ WARNING: This deleted cell need to be manually removed. ※※※※※※※※※※
 - (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
@@ -148,7 +148,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationBottom,
     MPTableViewRowAnimationMiddle,
     MPTableViewRowAnimationNone,
-    MPTableViewRowAnimationCustom,
+    MPTableViewRowAnimationCustom, // require to use those protocols of MPTableViewDelegate to customize cells(and section header/footer) animations
     MPTableViewRowAnimationRandom = 100
 };
 
@@ -266,7 +266,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)reloadRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
 - (void)moveRowAtIndexPath:(MPIndexPath *)indexPath toIndexPath:(MPIndexPath *)newIndexPath;
 
-@property (nonatomic, getter=isMoveModeEnabled) BOOL moveModeEnabled; // default is NO.
+@property (nonatomic, getter=isMoveModeEnabled) BOOL moveModeEnabled; // default is NO. if enable it, use the protocols of MPTableViewDataSource and MPTableViewDelegate to control and track dragging state of cells.
 @property (nonatomic) CFTimeInterval minimumPressDurationForMovement; // default is 0.1.
 @property (nonatomic, assign) BOOL allowsDragCellOut; // default is NO.
 @property (nonatomic) BOOL allowsSelectionDuringMoving;                                 // default is NO. Controls whether rows can be selected when in moving mode
