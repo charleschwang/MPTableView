@@ -15,7 +15,7 @@ I work mostly in e-commerce now, but i still will fix the new bugs. For now, MPT
 The same APIs as the UITableView. For more new features, see the demo.
 
 ## Requirements
-Xcode 5+
+Xcode 5+  
 iOS 7+
 
 ## License

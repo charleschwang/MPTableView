@@ -33,7 +33,7 @@
 - (NSInteger)indexAtPosition:(NSUInteger)position;
 - (NSInteger *)indexesInRange:(NSRange)range;
 
-- (NSComparisonResult)compare:(MPIndexPath *)indexPath;
+- (NSComparisonResult)compare:(MPIndexPath *)otherIndexPath;
 
 @end
 
@@ -42,16 +42,16 @@
 @interface MPMutableIndexPath : MPIndexPath
 
 + (instancetype)indexPath;
-+ (instancetype)indexPathWithIndexPath:(MPIndexPath *)indexPath;
++ (instancetype)indexPathWithIndexPath:(MPIndexPath *)otherIndexPath;
 
 - (instancetype)init NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithCapacity:(NSUInteger)numItems NS_DESIGNATED_INITIALIZER;
 
-- (void)addIndexPaths:(MPIndexPath *)indexPath;
-- (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length;
-- (void)removeLastIndexes:(NSUInteger)length;
-
 - (void)addIndex:(NSInteger)index;
 - (void)removeLastIndex;
+
+- (void)addIndexPath:(MPIndexPath *)otherIndexPath;
+- (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length;
+- (void)removeLastIndexes:(NSUInteger)length;
 
 @end

@@ -8,6 +8,9 @@
 
 #import "MPIndexPath.h"
 
+//#define _NSIntegers_len_check(_indexes_, _length_) assert((sizeof(_indexes_) / sizeof(NSInteger)) == _length_)
+#define _NSInteger_sizeof(_size_) ((_size_) * sizeof(NSInteger))
+
 NS_INLINE NSInteger *
 _NSIntegerMalloc(size_t size) {
     NSInteger *integers = (NSInteger *)malloc(size);
@@ -23,7 +26,7 @@ _NSIntegerMalloc(size_t size) {
         
         if (length > 0) {
             NSParameterAssert(indexes);
-            size_t size = length * sizeof(NSInteger);
+            size_t size = _NSInteger_sizeof(length);
             _indexes = _NSIntegerMalloc(size);
             memmove(_indexes, indexes, size);
         }
@@ -51,7 +54,7 @@ _NSIntegerMalloc(size_t size) {
     if (!range.length) {
         return NULL;
     } else {
-        size_t size = range.length * sizeof(NSInteger);
+        size_t size = _NSInteger_sizeof(range.length);
         NSInteger *indexes = _NSIntegerMalloc(size);
         return memmove(indexes, _indexes + range.location, size);
     }
@@ -68,7 +71,7 @@ _NSIntegerMalloc(size_t size) {
         if (!object || _length != object->_length) {
             return NO;
         } else {
-            return memcmp(_indexes, object->_indexes, _length * sizeof(NSInteger)) == 0;
+            return memcmp(_indexes, object->_indexes, _NSInteger_sizeof(_length)) == 0;
         }
     }
 }
@@ -79,16 +82,16 @@ _NSIntegerMalloc(size_t size) {
     } else if (_length > indexPath.length) {
         return NSOrderedDescending;
     } else {
-        int result = memcmp(_indexes, indexPath->_indexes, _length * sizeof(NSInteger));
+        int result = memcmp(_indexes, indexPath->_indexes, _NSInteger_sizeof(_length));
         return (result == 0) ? NSOrderedSame : (result > 0 ? NSOrderedDescending : NSOrderedAscending);
     }
 }
 
 - (id)copyWithZone:(NSZone *)zone {
-    MPIndexPath *copyObj = [MPIndexPath allocWithZone:zone];
+    MPIndexPath *copyObj = [[MPIndexPath allocWithZone:zone] init];
     copyObj->_length = _length;
     if (_length) {
-        size_t size = _length * sizeof(NSInteger);
+        size_t size = _NSInteger_sizeof(_length);
         copyObj->_indexes = _NSIntegerMalloc(size);
         memmove(copyObj->_indexes, _indexes, size);
     }
@@ -98,7 +101,7 @@ _NSIntegerMalloc(size_t size) {
 - (id)mutableCopyWithZone:(NSZone *)zone {
     MPMutableIndexPath *mutableCopyObj = [[MPMutableIndexPath allocWithZone:zone] init];
     if (_length) {
-        [mutableCopyObj addIndexPaths:self];
+        [mutableCopyObj addIndexPath:self];
     }
     return mutableCopyObj;
 }
@@ -112,11 +115,19 @@ _NSIntegerMalloc(size_t size) {
 }
 
 - (NSString *)description {
-
-    NSMutableString *description = [NSMutableString stringWithFormat:@"length = %zd", _length];
+    NSMutableString *description = [NSMutableString stringWithFormat:@"%@ {length = %zd, path = ", [super description], _length];
     for (NSInteger i = 0; i < _length; i++) {
-        [description appendString:[NSString stringWithFormat:@", path%zd = %zd", i, _indexes[i]]];
+        [description appendString:[NSString stringWithFormat:@"%zd - ", _indexes[i]]];
     }
+    NSRange range;
+    if (_length) {
+        range = NSMakeRange(description.length - 3, 3);
+    } else {
+        range = NSMakeRange(description.length - 9, 9);
+    }
+    [description deleteCharactersInRange:range];
+    [description appendString:@"}"];
+    
     return description;
 }
 
@@ -139,24 +150,26 @@ _NSIntegerMalloc(size_t size) {
 
 + (instancetype)indexPathWithIndexPath:(MPIndexPath *)indexPath {
     MPMutableIndexPath *mutableIndexPath = [[MPMutableIndexPath alloc] init];
-    [mutableIndexPath addIndexPaths:indexPath];
+    [mutableIndexPath addIndexPath:indexPath];
     return mutableIndexPath;
 }
 
 + (instancetype)indexPathWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
-    
     MPMutableIndexPath *mutableIndexPath = [[MPMutableIndexPath alloc] init];
     [mutableIndexPath addIndexes:indexes length:length];
     return mutableIndexPath;
 }
 
 - (instancetype)initWithIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
-    return [self init];
+    if (self = [self init]) {
+        [self addIndexes:indexes length:length];
+    }
+    return self;
 }
 
 - (instancetype)init {
     if (self = [super initWithIndexes:NULL length:0]) {
-        _reservedStep = 2;
+        _reservedStep = 1;
         _reserved = 0;
     }
     return self;
@@ -164,66 +177,27 @@ _NSIntegerMalloc(size_t size) {
 
 - (instancetype)initWithCapacity:(NSUInteger)numItems {
     if (self = [super initWithIndexes:NULL length:0]) {
-        _reservedStep = 2;
+        _reservedStep = 0;
         _reserved = numItems;
-        [self _reserve:numItems];
+        [self _reserve];
+        _reserved = _reservedStep = numItems;
     }
     return self;
 }
 
-- (void)_reserve:(NSUInteger)length {
-    NSInteger *temp = _NSIntegerMalloc(length * sizeof(NSInteger));
-    if (_length) {
-        memmove(temp, _indexes, _length * sizeof(NSInteger));
+- (void)_reserve {
+    NSInteger *temp = realloc(_indexes, _NSInteger_sizeof(_length + _reserved + _reservedStep * 2));
+    if (!temp) {
+        free(_indexes);
     }
-    free(_indexes);
     _indexes = temp;
-}
-
-- (void)addIndexPaths:(MPIndexPath *)indexPath {
-    if (indexPath && [indexPath length]) {
-        if ([indexPath length] > _length + _reserved) {
-            if (_reserved <= 0) {
-                _reserved = _reservedStep;
-            }
-            [self _reserve:_length + [indexPath length] + _reserved];
-        }
-        NSInteger *dest = _indexes + _length;
-        memmove(dest, indexPath->_indexes, [indexPath length] * sizeof(NSInteger));
-        
-        _length += [indexPath length];
-    }
-}
-
-- (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
-    if (length == 0) {
-        return;
-    }
-    NSParameterAssert(indexes);
-    
-    if (length > _length + _reserved) {
-        if (_reserved <= 0) {
-            _reserved = _reservedStep;
-        }
-        [self _reserve:_length + length + _reserved];
-    }
-    NSInteger *dest = _indexes + _length;
-    memmove(dest, indexes, length * sizeof(NSInteger));
-    
-    _length += length;
-}
-
-- (void)removeLastIndexes:(NSUInteger)length {
-    NSParameterAssert(length <= _length);
-    
-    memset(_indexes + (_length -= length), 0, length * sizeof(NSInteger));
-    _reserved += length;
+    _reservedStep *= 2;
+    _reserved += _reservedStep;
 }
 
 - (void)addIndex:(NSInteger)index {
-    if (_reserved <= 0) {
-        _reserved = _reservedStep *= 2;
-        [self _reserve:_length + _reserved];
+    if (_reserved < 1) {
+        [self _reserve];
     }
     _indexes[_length] = index;
     _reserved--;
@@ -231,10 +205,71 @@ _NSIntegerMalloc(size_t size) {
 }
 
 - (void)removeLastIndex {
+    NSParameterAssert(_length > 0);
     if (_length > 0) {
         _indexes[--_length] = 0;
         _reserved++;
     }
+}
+
+- (void)addIndexPath:(MPIndexPath *)indexPath {
+    NSUInteger length = [indexPath length];
+    if (!indexPath || !length) {
+        return;
+    }
+    
+    if (length > _reserved) {
+        if (_reservedStep < length) {
+            _reservedStep = length;
+        }
+        [self _reserve];
+    }
+    NSInteger *dest = _indexes + _length;
+    memmove(dest, indexPath->_indexes, _NSInteger_sizeof(length));
+    
+    _reserved -= length;
+    _length += length;
+}
+
+- (void)addIndexes:(const NSInteger [])indexes length:(NSUInteger)length {
+    NSParameterAssert(indexes);
+    if (!indexes || !length) {
+        return;
+    }
+    
+    if (length > _reserved) {
+        if (_reservedStep < length) {
+            _reservedStep = length;
+        }
+        [self _reserve];
+    }
+    NSInteger *dest = _indexes + _length;
+    memmove(dest, indexes, _NSInteger_sizeof(length));
+    
+    _reserved -= length;
+    _length += length;
+}
+
+- (void)removeLastIndexes:(NSUInteger)length {
+    NSParameterAssert(_length >= length);
+    if (_length >= length) {
+        memset(_indexes + (_length -= length), 0, _NSInteger_sizeof(length));
+        _reserved += length;
+    }
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    MPMutableIndexPath *mutableCopyObj = [[MPMutableIndexPath allocWithZone:zone] init];
+    mutableCopyObj->_length = _length;
+    mutableCopyObj->_reserved = _reserved;
+    mutableCopyObj->_reservedStep = _reservedStep;
+    if (_length) {
+        size_t size = _NSInteger_sizeof(_length + _reserved);
+        mutableCopyObj->_indexes = _NSIntegerMalloc(size);
+        memmove(mutableCopyObj->_indexes, _indexes, _NSInteger_sizeof(_length));
+    }
+    
+    return mutableCopyObj;
 }
 
 @end

@@ -1382,6 +1382,7 @@ public:
 
 - (void)dealloc {
     delete _rowPositionDeque;
+    _rowPositionDeque = NULL;
 }
 
 @end
