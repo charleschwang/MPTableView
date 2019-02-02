@@ -204,13 +204,10 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @property (nonatomic, getter=isCachesReloadEnabled) BOOL cachesReloadEnabled; // default is YES, when reloading the table view, without clear reusable views and cache all displayed views to reuse(It is best to make sure that table view will reload with the same cell/reusable class objects);
 
- // Sometimes we frequently update table view(using those update APIs but not reloadData), that may produce many caches(reusable views) and table view can not make the most of them.
-- (void)clearReusableCells;
-- (void)clearReusableSectionViews;
-
 - (void)reloadData;
+
 /**
- reload data asynchronously. In this process, the table view will work as usual, but its dataSource APIs will be invoked asynchronously. Allows working in a async thread
+ Reload data asynchronously. In this process, the table view will work as usual, but its dataSource APIs will be invoked asynchronously. Allows working in a async thread.
  */
 - (void)reloadDataAsyncWithCompletion:(void (^)(void))completion;
 
@@ -231,12 +228,31 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated;
 
 /**
- default is YES.
+ Default is YES.
  If NO, table view will not reload the heights info from data source for those off-screen views when updating.
  So if you can confirm that do not need to change all cells heights when updating, then you should set it to NO to get best performance.
  But if you can't, and the updates will make contentOffset change, then you should set it to YES.
  */
 @property (nonatomic, getter=isUpdateForceReload) BOOL updateForceReload;
+
+/**
+ Default is NO.
+ Sometimes table view will create some subviews(cells and section views) to display update animations, or in other words these subviews have never be added to table view before update and they will be hidden when update is finished.
+ That should make too many subviews to join reusable queues, we must release them manually(call -clearReusableCellsAndViews).
+ If YES, table view will not create this kind of subviews for updating, that will influence the animation effect. But there still may create too many reusable subviews if we start too many updates at the same time.
+ */
+@property (nonatomic, getter=isUpdateOptimizeViews) BOOL updateOptimizeViews;
+
+// Sometimes we frequently update table view(using those update APIs but not reloadData), that may produce many caches(reusable views) and table view can not make the most of them.
+- (NSArray *)identifiersForReusableCells;
+- (NSArray *)identifiersForReusableViews;
+
+- (NSUInteger)numberOfReusableCellsWithIdentifier:(NSString *)identifier;
+- (NSUInteger)numberOfReusableViewsWithIdentifier:(NSString *)identifier;
+
+- (void)clearReusableCellsInCount:(NSUInteger)count withIdentifier:(NSString *)identifier;
+- (void)clearReusableViewsInCount:(NSUInteger)count withIdentifier:(NSString *)identifier;
+- (void)clearReusableCellsAndViews;
 
 @property (nonatomic) BOOL updateLayoutSubviewsOptionEnabled; // default is YES, table view will use UIViewAnimationOptionLayoutSubviews as an option in animations of updating. If not, the animation effects may look unnatural when you using the Autolayout and those default table view animations.
 
@@ -247,12 +263,12 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)performBatchUpdates:(void (^)(void))updates completion:(void (^)(BOOL finished))completion; // allow multiple insert/delete/reload/move of rows and sections to be animated simultaneously. Nestable
 
 /**
- similar to -performBatchUpdates:completion: , provided more animation options
+ Similar to -performBatchUpdates:completion: , provided more animation options.
  */
 - (void)performBatchUpdates:(void (^)(void))updates duration:(NSTimeInterval)duration delay:(NSTimeInterval)delay options:(UIViewAnimationOptions)options completion:(void (^)(BOOL finished))completion;
 
 /**
- similar to -performBatchUpdates:completion: , provided many animation options
+ Similar to -performBatchUpdates:completion: , provided many animation options.
  */
 - (void)performBatchUpdates:(void (^)(void))updates duration:(NSTimeInterval)duration delay:(NSTimeInterval)delay usingSpringWithDamping:(CGFloat)dampingRatio initialSpringVelocity:(CGFloat)velocity options:(UIViewAnimationOptions)options completion:(void (^)(BOOL finished))completion;
 

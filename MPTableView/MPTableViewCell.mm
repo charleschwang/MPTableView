@@ -44,6 +44,10 @@
     return nil;
 }
 
+- (UIResponder *)_backup_nextResponder {
+    return [super nextResponder];
+}
+
 - (void)setReuseIdentifier:(NSString *)reuseIdentifier {
     _reuseIdentifier = [reuseIdentifier copy];
 }
@@ -253,7 +257,7 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
 }
 
 - (UIResponder *)nextResponder {
-    return [self superview];
+    return [super _backup_nextResponder];
 }
 
 - (void)dealloc {

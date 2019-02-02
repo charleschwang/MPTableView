@@ -24,7 +24,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"title";
+    self.title = @"MPTableView";
     
     self.tableView = [[MPTableView alloc] initWithFrame:(CGRect){0, 0, self.view.frame.size.width, self.view.frame.size.height} style:MPTableViewStylePlain];
     self.tableView.dataSource = self;
@@ -111,20 +111,20 @@
         }
     }
     
+    // step 1, delete section 0 and insert a section at 1
     [self.tableView performBatchUpdates:^{
-        // step 1, delete section 0 and insert a section at 1
-        [self.tableView performBatchUpdates:^{
-            [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
-            [self.tableView insertSections:[NSIndexSet indexSetWithIndex:1] withRowAnimation:MPTableViewRowAnimationRandom];
-        } duration:1.5 delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
-        
-        // step 2, start after step 1 is finished
-        [self.tableView performBatchUpdates:^{
-            [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:2] withRowAnimation:MPTableViewRowAnimationRandom];
-            [self.tableView moveSection:3 toSection:4];
-        } duration:1.5 delay:1.5 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
-        
-        // these animations start together with step 1, but their duration is 3 seconds
+        [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView insertSections:[NSIndexSet indexSetWithIndex:1] withRowAnimation:MPTableViewRowAnimationRandom];
+    } duration:1.5 delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
+    
+    // step 2, start after step 1 is finished
+    [self.tableView performBatchUpdates:^{
+        [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:2] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView moveSection:3 toSection:4];
+    } duration:1.5 delay:1.5 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
+    
+    // these animations start together with step 1, but their duration is 3 seconds
+    [self.tableView performBatchUpdates:^{
         [self.tableView deleteRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView insertRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView reloadRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];

@@ -43,7 +43,8 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 UIKIT_EXTERN NSExceptionName const MPTableViewException;
 UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
-#define MPTableViewThrowUpdateException(_exception_) @throw [NSException exceptionWithName:MPTableViewUpdateException reason:_exception_ userInfo:nil]
+#define MPTableViewThrowException(_reason_) @throw [NSException exceptionWithName:MPTableViewException reason:_reason_ userInfo:nil];
+#define MPTableViewThrowUpdateException(_reason_) @throw [NSException exceptionWithName:MPTableViewUpdateException reason:_reason_ userInfo:nil];
 
 @class MPTableViewSection;
 
@@ -93,7 +94,7 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 - (BOOL)_updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index fromOriginIndexPath:(MPIndexPath *)originIndexPath withOriginHeight:(CGFloat)originHeight withDistance:(CGFloat)distance;
 
-- (BOOL)_updateSection:(NSInteger)section originSection:(NSInteger)originSection adjustCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex; // selectedIndexPaths change
+- (BOOL)_updateSection:(NSInteger)section originSection:(NSInteger)originSection exchangeCellIndex:(NSInteger)originIndex forIndex:(NSInteger)currIndex; // selectedIndexPaths change
 
 - (CGFloat)_updateSection:(NSInteger)section originSection:(NSInteger)originSection adjustCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withOffset:(CGFloat)cellOffset;
 
@@ -103,7 +104,7 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 - (BOOL)_updateMoveInSectionViewAtIndex:(NSInteger)index fromOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type withOriginHeight:(CGFloat)originHeight withDistance:(CGFloat)distance;
 
-- (BOOL)_updateAdjustSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type;
+- (BOOL)_updateExchangeSectionViewAtIndex:(NSInteger)originIndex forIndex:(NSInteger)currIndex withType:(MPSectionType)type;
 
 - (void)_updateAdjustSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type withOriginHeight:(CGFloat)originHeight withSectionOffset:(CGFloat)sectionOffset;
 
