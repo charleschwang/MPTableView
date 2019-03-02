@@ -974,7 +974,7 @@ public:
 }
 
 - (CGFloat)updateUsingPartWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback {
-    updateDelegate._updateInsertOriginTopPosition = self.beginPos + self.headerHeight;
+    [updateDelegate _setUpdateInsertOriginTopPosition:self.beginPos + self.headerHeight];
     
     self.beginPos += offset;
     MPTableViewUpdatePart *part = self.updatePart;
@@ -992,7 +992,7 @@ public:
         }
     }
     
-    updateDelegate._updateDeleteOriginTopPosition = self.beginPos + self.headerHeight;
+    [updateDelegate _setUpdateDeleteOriginTopPosition:self.beginPos + self.headerHeight];
     
     (*_rowPositionDeque)[0] += offset; // the deque may be empty, but this seems to be safe...
     
@@ -1014,7 +1014,7 @@ public:
         
         if (![updateDelegate _isContentMoving] || offset != 0) {
             for (NSInteger j = index; j <= idx; ++j) {
-                updateDelegate._updateInsertOriginTopPosition = (*_rowPositionDeque)[j];
+                [updateDelegate _setUpdateInsertOriginTopPosition:(*_rowPositionDeque)[j]];
                 
                 if (offset != 0) {
                     (*_rowPositionDeque)[j] += offset;
@@ -1037,7 +1037,7 @@ public:
                         offset += newOffset;
                         (*_rowPositionDeque)[j] += newOffset;
                     }
-                    updateDelegate._updateDeleteOriginTopPosition = (*_rowPositionDeque)[j];
+                    [updateDelegate _setUpdateDeleteOriginTopPosition:(*_rowPositionDeque)[j]];
                 }
             }
         }
@@ -1121,7 +1121,7 @@ public:
     
     if (![updateDelegate _isContentMoving] || step != 0) {
         for (NSInteger i = index; i <= _numberOfRows; ++i) {
-            updateDelegate._updateInsertOriginTopPosition = (*_rowPositionDeque)[i];
+            [updateDelegate _setUpdateInsertOriginTopPosition:(*_rowPositionDeque)[i]];
             
             if (offset != 0) {
                 (*_rowPositionDeque)[i] += offset;
@@ -1140,12 +1140,12 @@ public:
                     offset += newOffset;
                     (*_rowPositionDeque)[i] += newOffset;
                 }
-                updateDelegate._updateDeleteOriginTopPosition = (*_rowPositionDeque)[i];
+                [updateDelegate _setUpdateDeleteOriginTopPosition:(*_rowPositionDeque)[i]];
             }
         }
     }
     
-    updateDelegate._updateInsertOriginTopPosition = self.endPos;
+    [updateDelegate _setUpdateInsertOriginTopPosition:self.endPos];
     
     self.endPos += offset;
     CGFloat footerOffset = offset;
@@ -1160,7 +1160,7 @@ public:
         }
     }
     
-    updateDelegate._updateDeleteOriginTopPosition = self.endPos;
+    [updateDelegate _setUpdateDeleteOriginTopPosition:self.endPos];
     
     BOOL needToAdjustHeader = [updateDelegate _updateExchangeSectionViewAtIndex:originSection forIndex:newSection withType:MPSectionTypeHeader] || callback; // can't put callback on left
     BOOL needToAdjustFooter = [updateDelegate _updateExchangeSectionViewAtIndex:originSection forIndex:newSection withType:MPSectionTypeFooter] || callback;
@@ -1212,7 +1212,7 @@ public:
         }
     }
     
-    updateDelegate._updateInsertOriginTopPosition = self.endPos;
+    [updateDelegate _setUpdateInsertOriginTopPosition:self.endPos];
     
     self.endPos += offset;
     CGFloat footerOffset = offset;
@@ -1227,7 +1227,7 @@ public:
         }
     }
     
-    updateDelegate._updateDeleteOriginTopPosition = self.endPos;
+    [updateDelegate _setUpdateDeleteOriginTopPosition:self.endPos];
     
     BOOL needToAdjustHeader = [updateDelegate _updateExchangeSectionViewAtIndex:originSection forIndex:newSection withType:MPSectionTypeHeader] || callback;
     BOOL needToAdjustFooter = [updateDelegate _updateExchangeSectionViewAtIndex:originSection forIndex:newSection withType:MPSectionTypeFooter] || callback;

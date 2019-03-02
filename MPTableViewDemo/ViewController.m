@@ -104,6 +104,11 @@
         return;
     }
     
+    if (self.cellCount < 6) {
+        NSLog(@"this update needs at least 6 rows in every section");
+        return;
+    }
+    
     for (NSInteger i = 1, rows = [self.tableView numberOfRowsInSection:0]; i < self.tableView.numberOfSections; i++) {
         if (rows != [self.tableView numberOfRowsInSection:i]) {
             NSLog(@"need the same number of rows in every section");

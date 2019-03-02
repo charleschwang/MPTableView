@@ -66,13 +66,13 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 @interface MPTableView (MPTableView_UpdatePrivate)
 
-@property (nonatomic, assign) CGFloat _updateDeleteOriginTopPosition;
-@property (nonatomic, assign) CGFloat _updateInsertOriginTopPosition;
-
 - (NSMutableArray *)_ignoredUpdateActions; // insertion and movement
 
 - (MPIndexPathStruct)_beginIndexPath;
 - (MPIndexPathStruct)_endIndexPath;
+
+- (void)_setUpdateDeleteOriginTopPosition:(CGFloat)updateDeleteOriginTopPosition;
+- (void)_setUpdateInsertOriginTopPosition:(CGFloat)updateInsertOriginTopPosition;
 
 - (BOOL)_isContentMoving;
 
