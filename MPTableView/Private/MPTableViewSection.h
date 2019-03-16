@@ -74,12 +74,12 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 - (void)_setUpdateDeleteOriginTopPosition:(CGFloat)updateDeleteOriginTopPosition;
 - (void)_setUpdateInsertOriginTopPosition:(CGFloat)updateInsertOriginTopPosition;
 
-- (BOOL)_isContentMoving;
+- (BOOL)_isCellDragging;
 
 - (MPTableViewSection *)_updateGetSectionAt:(NSInteger)section;
 
-- (CGFloat)_updateInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath;
-- (CGFloat)_updateMoveInCellHeightAtIndexPath:(MPIndexPath *)indexPath originIndexPath:(MPIndexPath *)originIndexPath originHeight:(CGFloat)originHeight withDistance:(CGFloat)distance;
+- (CGFloat)_updateGetInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath;
+- (CGFloat)_updateGetMoveInCellHeightAtIndexPath:(MPIndexPath *)indexPath originIndexPath:(MPIndexPath *)originIndexPath originHeight:(CGFloat)originHeight withDistance:(CGFloat)distance;
 - (CGFloat)_updateGetHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection withOffset:(CGFloat)offset force:(BOOL)force;
 - (CGFloat)_updateGetFooterHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection withOffset:(CGFloat)offset force:(BOOL)force;
 
@@ -87,8 +87,7 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 - (BOOL)_updateNeedToAnimateSection:(MPTableViewSection *)section updateType:(MPTableViewUpdateType)type andOffset:(CGFloat)offset;
 
-//
-
+// adjust cells
 - (void)_updateSection:(NSInteger)originSection deleteCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition;
 - (BOOL)_updateSection:(NSInteger)section insertCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation isSectionAnimation:(MPTableViewSection *)sectionPosition;
 
@@ -98,7 +97,7 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 - (CGFloat)_updateSection:(NSInteger)section originSection:(NSInteger)originSection adjustCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withOffset:(CGFloat)cellOffset;
 
-//
+// adjust section views
 - (void)_updateDeleteSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withDeleteSection:(MPTableViewSection *)deleteSection;
 - (BOOL)_updateInsertSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection;
 
@@ -108,7 +107,7 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 - (void)_updateAdjustSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type withOriginHeight:(CGFloat)originHeight withSectionOffset:(CGFloat)sectionOffset;
 
-//
+// estimated mode layout
 - (BOOL)_isEstimatedMode;
 
 - (BOOL)_estimatedNeedToAdjustAt:(MPTableViewSection *)section withOffset:(CGFloat)offset;

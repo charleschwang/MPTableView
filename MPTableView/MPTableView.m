@@ -306,43 +306,45 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
 
 @implementation MPTableView {
     UIView *_contentWrapperView;
-    MPTableViewPosition *_contentDrawArea; // area between header and footer
+    MPTableViewPosition *_contentDrawArea; // the area between header and footer
     MPTableViewPosition *_contentOffset;
-    MPTableViewPosition *_currDrawArea; // should be content-offset minus the _contentDrawArea.beginPos
+    MPTableViewPosition *_currDrawArea; // the area of content-offset minus the _contentDrawArea.beginPos
     
     MPIndexPathStruct _beginIndexPath, _endIndexPath;
     
     NSMutableSet *_selectedIndexPaths;
     MPIndexPath *_highlightedIndexPath;
     
-    BOOL _layoutSubviewsLock, _reloadDataLock, _updateSubviewsLock;
+    BOOL
+    _layoutSubviewsLock,
+    _reloadDataLock, // will be YES when reloading data(if asserted it, you should not call that function in a data-source function).
+    _updateSubviewsLock; // will be YES when invoking -layoutSubviews or starting a new update transaction
     
-    NSUInteger _currSuspendHeaderSection, _currSuspendFooterSection; //
+    NSUInteger _currSuspendHeaderSection, _currSuspendFooterSection;
     
     NSUInteger _numberOfSections;
     
-    NSMutableDictionary *_displayedCellsDic, *_displayedSectionViewsDic; //
+    NSMutableDictionary *_displayedCellsDic, *_displayedSectionViewsDic;
     NSMutableArray *_sectionsAreaList;
-    NSMutableDictionary *_reusableCellsDic, *_registerCellsClassDic, *_registerCellsNibDic; //
+    NSMutableDictionary *_reusableCellsDic, *_registerCellsClassDic, *_registerCellsNibDic;
     NSMutableDictionary *_reusableReusableViewsDic, *_registerReusableViewsClassDic, *_registerReusableViewsNibDic;
     
     __weak id <MPTableViewDelegate> _mpDelegate;
     __weak id <MPTableViewDataSource> _mpDataSource;
-    BOOL _reloadDataNeededFlag; // changed a datasource will set it to YES
+    BOOL _reloadDataNeededFlag; // change the dataSource will set it to YES
     BOOL _reloadDataLayoutNeededFlag;
     
-    //
     MPTableViewEstimatedManager *_estimatedUpdateManager;
     NSMutableDictionary *_estimatedCellsDic, *_estimatedSectionViewsDic;
     
-    //
+    // update
     NSMutableArray *_updateManagerStack;
     NSInteger _updateContextStep;
     
-    //BOOL _updateTranslationalOptimization; // private, default is NO. Appropriately reducing the moving distance of views.
+    //BOOL _updateTranslationalOptimization; // appropriately reducing the move distance of subviews
     NSUInteger _updateAnimationStep;
     
-    CGFloat _updateInsertOriginTopPosition, _updateDeleteOriginTopPosition; //
+    CGFloat _updateInsertOriginTopPosition, _updateDeleteOriginTopPosition;
     
     NSMutableDictionary *_insertCellsDic, *_insertSectionViewsDic;
     
@@ -351,10 +353,11 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
     NSMutableArray *_updateAnimationBlocks;
     NSMutableSet *_updateExchangedOffscreenIndexPaths, *_updateExchangedSelectedIndexPaths;
     
-    // for keeping animations natural when content offset has been changed in updating process.
+    // for keeping animation effects to natural when content-offset has been changed in update process
     NSMutableArray *_ignoredUpdateActions;
     BOOL _contentOffsetChanged;
-    //
+    
+    // movement
     BOOL _moveModeEnabled;
     CGPoint _movingMinuendPoint;
     CGFloat _movingScrollFate, _movingDistanceToOffset;
@@ -363,11 +366,11 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
     MPTableViewCell *_movingDraggedCell;
     CADisplayLink *_movingScrollDisplayLink;
     
-    //
+    // prefetching
     CGFloat _previousContentOffset;
     NSMutableArray *_prefetchIndexPaths;
     
-    //
+    // protocols
     BOOL
     _respond_numberOfSectionsInMPTableView,
     
@@ -506,7 +509,7 @@ const NSTimeInterval MPTableViewDefaultAnimationDuration = 0.3;
     }
     [sectionViews makeObjectsPerformSelector:@selector(removeFromSuperview)];
     
-    [super encodeWithCoder:aCoder]; //
+    [super encodeWithCoder:aCoder];
     
     [self addSubview:_contentWrapperView];
     [self sendSubviewToBack:_contentWrapperView];
@@ -1633,9 +1636,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)deleteSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -1658,9 +1661,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)insertSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -1692,9 +1695,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)reloadSections:(NSIndexSet *)sections withRowAnimation:(MPTableViewRowAnimation)animation {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -1717,9 +1720,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)moveSection:(NSUInteger)section toSection:(NSUInteger)newSection {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if (section == newSection) {
         MPTableViewThrowUpdateException(@"original section can not be equal to the new section")
@@ -1757,9 +1760,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)deleteRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -1787,9 +1790,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)insertRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -1822,9 +1825,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)reloadRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if (animation == MPTableViewRowAnimationRandom) {
         animation = MPTableViewGetRandomRowAnimation();
@@ -1852,9 +1855,9 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)moveRowAtIndexPath:(MPIndexPath *)indexPath toIndexPath:(MPIndexPath *)newIndexPath {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil); // dragging a cell
-    NSParameterAssert(!_reloadDataLock); // call this function in a data source function when reloading data
-    NSParameterAssert(!_updateSubviewsLock); // call this function in a data source or delegate function which is invoked by -layoutSubviews
+    NSParameterAssert(![self _isCellDragging]);
+    NSParameterAssert(!_reloadDataLock);
+    NSParameterAssert(!_updateSubviewsLock);
     
     if ([indexPath compareRowSection:newIndexPath] == NSOrderedSame) {
         MPTableViewThrowUpdateException(@"original indexpath can not be equal to the new indexpath")
@@ -1905,9 +1908,10 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     return _updateOptimizeViews;
 }
 
+// deprecated
 //- (void)beginUpdates {
 //    NSParameterAssert(_mpDataSource);
-//    NSParameterAssert(_movingIndexPath == nil);
+//    NSParameterAssert(![self _isCellDragging]);
 //    NSParameterAssert(!_reloadDataLock);
 //
 //    if (_updateSubviewsLock || _movingIndexPath) {
@@ -1921,7 +1925,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 // deprecated
 //- (void)endUpdates {
 //    NSParameterAssert(_mpDataSource);
-//    NSParameterAssert(_movingIndexPath == nil);
+//    NSParameterAssert(![self _isCellDragging]);
 //    NSParameterAssert(!_reloadDataLock);
 //
 //    if (_updateSubviewsLock || _movingIndexPath) {
@@ -1941,7 +1945,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)performBatchUpdates:(void (^)(void))updates duration:(NSTimeInterval)duration delay:(NSTimeInterval)delay options:(UIViewAnimationOptions)options completion:(void (^)(BOOL))completion {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil);
+    NSParameterAssert(![self _isCellDragging]);
     NSParameterAssert(!_reloadDataLock);
     
     if (_updateSubviewsLock || _movingIndexPath) {
@@ -1974,7 +1978,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 - (void)performBatchUpdates:(void (^)(void))updates duration:(NSTimeInterval)duration delay:(NSTimeInterval)delay usingSpringWithDamping:(CGFloat)dampingRatio initialSpringVelocity:(CGFloat)velocity options:(UIViewAnimationOptions)options completion:(void (^)(BOOL))completion {
     NSParameterAssert(_mpDataSource);
-    NSParameterAssert(_movingIndexPath == nil);
+    NSParameterAssert(![self _isCellDragging]);
     NSParameterAssert(!_reloadDataLock);
     
     if (_updateSubviewsLock || _movingIndexPath) {
@@ -2033,9 +2037,8 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
         if (nib) {
             reusableCell = [nib instantiateWithOwner:self options:nil][0];
             NSParameterAssert([reusableCell isKindOfClass:[MPTableViewCell class]]);
+            NSAssert(!reusableCell.reuseIdentifier || [reusableCell.reuseIdentifier isEqualToString:identifier], @"cell reuse indentifier in nib does not match the identifier used to register the nib");
             
-            // cell reuse indentifier in nib does not match the identifier used to register the nib
-            NSParameterAssert(!reusableCell.reuseIdentifier || [reusableCell.reuseIdentifier isEqualToString:identifier]);
             reusableCell.reuseIdentifier = identifier;
         } else {
             reusableCell = nil;
@@ -2074,9 +2077,8 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
         if (nib) {
             reusableView = [nib instantiateWithOwner:self options:nil][0];
             NSParameterAssert([reusableView isKindOfClass:[MPTableReusableView class]]);
+            NSAssert(!reusableView.reuseIdentifier || [reusableView.reuseIdentifier isEqualToString:identifier], @"reusable view reuse indentifier in nib does not match the identifier used to register the nib");
             
-            // reusable view reuse indentifier in nib does not match the identifier used to register the nib
-            NSParameterAssert(!reusableView.reuseIdentifier || [reusableView.reuseIdentifier isEqualToString:identifier]);
             reusableView.reuseIdentifier = identifier;
         } else {
             reusableView = nil;
@@ -2127,7 +2129,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 #pragma mark - update
 
 - (MPTableViewUpdateManager *)_pushUpdateManagerToStack {
-    if (!_updateManagerStack) { // init
+    if (!_updateManagerStack) {
         _updateManagerStack = [[NSMutableArray alloc] init];
         _deleteCellsDic = [[NSMutableDictionary alloc] init];
         _deleteSectionViewsDic = [[NSMutableDictionary alloc] init];
@@ -2216,7 +2218,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     }
     updateManager.newCount = _numberOfSections;
     
-    if (![updateManager formatNodesStable:[self _isContentMoving]]) {
+    if (![updateManager formatNodesStable:[self _isCellDragging]]) {
         MPTableViewThrowUpdateException(@"check for update sections")
     }
     
@@ -2231,7 +2233,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
         _contentDrawArea.endPos = _contentDrawArea.beginPos;
     }
     
-    MPIndexPathStruct beginIndexPath, endIndexPath; // ...
+    MPIndexPathStruct beginIndexPath, endIndexPath; // temp
     
     if (_contentDrawArea.beginPos >= _contentDrawArea.endPos) {
         beginIndexPath = _beginIndexPath = MPIndexPathStructMake(NSIntegerMax, MPSectionTypeFooter);
@@ -2241,7 +2243,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
         _endIndexPath = [self _indexPathAtContentOffset:_currDrawArea.endPos];
         
         UIEdgeInsets contentInset = [self _innerContentInset];
-        if (_contentOffset.beginPos > -contentInset.top && (self.contentSize.height + contentInset.bottom + offset < _contentOffset.endPos)) { // when scrolling to the bottom, the contentOffset needs to be changed
+        if (_contentOffset.beginPos > -contentInset.top && (self.contentSize.height + contentInset.bottom + offset < _contentOffset.endPos)) { // when scrolling to the bottom, the contentOffset needs to be changed.
             _contentOffsetChanged = YES;
             
             _contentOffset.endPos = self.contentSize.height + contentInset.bottom + offset;
@@ -2258,7 +2260,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
             beginIndexPath = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
             endIndexPath = [self _indexPathAtContentOffset:_currDrawArea.endPos];
             
-            // because the contentOffset has been changed, some actions can not be ignored
+            // because the contentOffset has been changed, so some update actions can not be ignored.
             if ([self isUpdateForceReload] || ![self _isEstimatedMode]) {
                 for (void (^action)(void) in _ignoredUpdateActions) {
                     action();
@@ -2290,7 +2292,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     [_selectedIndexPaths unionSet:_updateExchangedSelectedIndexPaths];
     [_updateExchangedSelectedIndexPaths removeAllObjects];
     
-    if (_estimatedCellsDic.count) { //
+    if (_estimatedCellsDic.count) {
         for (MPTableViewCell *cell in _estimatedCellsDic.allValues) {
             [self _cacheCell:cell];
         }
@@ -2310,7 +2312,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
                 continue;
             }
             
-            [_updateExchangedOffscreenIndexPaths addObject:indexPath]; // it works when cell dragging, but there is no bug
+            [_updateExchangedOffscreenIndexPaths addObject:indexPath]; // it also works when cell dragging, but there is no bug.
         }
     }
     
@@ -2328,7 +2330,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
                 if ([sectionView isHidden]) { // MPTableViewRowAnimationNone
                     sectionView.frame = [self _suspendingFrameInSection:section type:type];
                 } else {
-                    void (^animationBlock)(void) = ^{ // includes MPTableViewRowAnimationCustom
+                    void (^animationBlock)(void) = ^{ // include MPTableViewRowAnimationCustom
                         sectionView.frame = [self _suspendingFrameInSection:section type:type];
                     };
                     [_updateAnimationBlocks addObject:animationBlock];
@@ -2338,7 +2340,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
                 if ([self _isSuspendingAtIndexPath:indexPath]) {
                     if (_contentOffsetChanged) {
                         if (type == MPSectionTypeHeader) {
-                            _currSuspendHeaderSection = NSNotFound; // ↓ reset the frame
+                            _currSuspendHeaderSection = NSNotFound; // ↓ need to reset the section view frame
                         } else {
                             _currSuspendFooterSection = NSNotFound;
                         }
@@ -2352,7 +2354,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
                 if (_contentOffsetChanged) {
                     MPTableReusableView *sectionView = [_displayedSectionViewsDic objectForKey:indexPath];
                     
-                    if ([sectionView isHidden]) { // animationNone
+                    if ([sectionView isHidden]) { // MPTableViewRowAnimationNone
                         sectionView.frame = [self _prepareToSuspendViewFrameAt:section withType:type];
                     } else {
                         void (^animationBlock)(void) = ^{
@@ -2382,9 +2384,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     if (_contentOffsetChanged) {
         if ([self _isEstimatedMode]) {
             CGFloat newOffset = [[self _mpEstimatedUpdateManager] startUpdate:beginIndexPath];
-            if (newOffset != 0) {
-                MPTableViewThrowUpdateException(@"a critical bug")
-            }
+            NSAssert(newOffset == 0, @"A critical bug, please contact the author");
             _beginIndexPath = beginIndexPath;
             _endIndexPath = endIndexPath;
             [self _prefetchDataIfNeeded];
@@ -2393,7 +2393,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
                 if (_currSuspendHeaderSection == NSNotFound) {
                     [self _suspendSectionHeaderIfNeededAt:beginIndexPath];
                 }
-                // ...no need the footer
+                // no need the footer
             }
             [self _updateDisplayingBegin:beginIndexPath and:endIndexPath];
             [self _prefetchDataIfNeeded];
@@ -2503,7 +2503,6 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     _updateSubviewsLock = NO;
 }
 
-//
 - (void)_contentOffsetChangedResetSectionView:(MPTableReusableView *)sectionView inSection:(MPTableViewSection *)section withType:(MPSectionType)type {
     if ([sectionView isHidden]) {
         return;
@@ -2532,11 +2531,11 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     [_updateAnimationBlocks addObject:animationBlock];
 }
 
-// frame.size.height must be bigger than the target height.
+// frame.size.height must be larger than the target height
 - (CGFloat)_updateGetOptimizedYWithFrame:(CGRect)frame toTargetY:(CGFloat)targetY {
     CGFloat temp = frame.origin.y;
     frame.origin.y = targetY;
-    if (/*_updateTranslationalOptimization || */MPTableView_Onscreen) { //
+    if (/*_updateTranslationalOptimization || */MPTableView_Onscreen) {
         return targetY;
     }
     frame.origin.y = temp;
@@ -2550,8 +2549,8 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
         }
         
         frame.origin.y = temp;
-        // deletion
-        // contentOffset has been changed.
+        // in a deletion
+        // contentOffset has been changed
         if (targetY < _contentOffset.beginPos && CGRectGetMaxY(frame) >= _contentOffset.beginPos) {
             temp = targetY;
         }
@@ -2626,7 +2625,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
 
 #pragma mark - cell update delegate
 
-- (CGFloat)_updateInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath {
+- (CGFloat)_updateGetInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath {
     CGFloat cellHeight;
     if (_respond_estimatedHeightForRowAtIndexPath) {
         MPTableViewSection *section = _sectionsAreaList[indexPath.section];
@@ -2661,10 +2660,10 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     return cellHeight;
 }
 
-- (CGFloat)_updateMoveInCellHeightAtIndexPath:(MPIndexPath *)indexPath originIndexPath:(MPIndexPath *)originIndexPath originHeight:(CGFloat)originHeight withDistance:(CGFloat)distance {
+- (CGFloat)_updateGetMoveInCellHeightAtIndexPath:(MPIndexPath *)indexPath originIndexPath:(MPIndexPath *)originIndexPath originHeight:(CGFloat)originHeight withDistance:(CGFloat)distance {
     if (_respond_estimatedHeightForRowAtIndexPath && ![self isUpdateForceReload]) {
         CGRect frame = [self _cellFrameAtIndexPath:indexPath];
-        if (![self _updateNeedToAdjustingBegin:frame.origin.y andEnd:CGRectGetMaxY(frame) withOffset:distance]) { // this frame has not yet updated, so it need not to subtract the distance
+        if (![self _updateNeedToAdjustingBegin:frame.origin.y andEnd:CGRectGetMaxY(frame) withOffset:distance]) { // this frame has not yet updated, so it need not to subtract the distance.
             return originHeight;
         }
     }
@@ -2792,7 +2791,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     MPIndexPath *indexPath = [MPIndexPath indexPathForRow:index inSection:section];
     
     CGRect frame = [self _cellFrameAtIndexPath:indexPath];
-    if (MPTableView_Offscreen) { //
+    if (MPTableView_Offscreen) {
         return NO;
     } else {
         MPTableViewCell *cell = nil;
@@ -3077,7 +3076,7 @@ NS_INLINE void _MP_SetViewOffset(UIView *view, CGFloat offset) {
     if (sectionView) {
         height = _MP_UpdateLayoutSizeForSubview(sectionView, self.bounds.size.width);
         
-        if ([self isUpdating] && [self isUpdateForceReload] && ![self _updateSectionViewNeedDisplayAt:section andType:type withOffset:offset]) { // correct
+        if ([self isUpdating] && [self isUpdateForceReload] && ![self _updateSectionViewNeedDisplayAt:section andType:type withOffset:offset]) { // verified
             [self _cacheSectionView:sectionView];
         } else {
             MPIndexPath *indexPath = [MPIndexPath indexPathForRow:type inSection:section.section];
@@ -3234,7 +3233,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
         frame = [self _sectionViewFrameAtIndexPath:indexPath];
     }
     
-    if (MPTableView_Offscreen) { //
+    if (MPTableView_Offscreen) {
         return NO;
     } else {
         MPTableReusableView *sectionView = nil;
@@ -3540,7 +3539,6 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
         [_estimatedSectionViewsDic removeAllObjects];
     }
     
-    // clip...
     [self _clipCellsBetween:_beginIndexPath and:_endIndexPath];
     
     [self _clipAndAdjustSectionViewsBetween:_beginIndexPath and:_endIndexPath];
@@ -3551,7 +3549,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
     if (!CGSizeEqualToSize(self.contentSize, contentSize)) {
         [self setContentSize:contentSize];
         
-        // Change a scrollview's content size when it is bouncing will make -layoutSubviews not be called in the next runloop. This situation is possibly caused by an UIKit bug.
+        // Change a scrollview's content size when it is bouncing will make -layoutSubviews can not be called in the next runloop. This situation is possibly caused by an UIKit bug.
         if (_contentOffset.beginPos < -[self _innerContentInset].top || _contentOffset.beginPos > self.contentSize.height - self.bounds.size.height + [self _innerContentInset].bottom) {
             CFRunLoopRef runLoop = CFRunLoopGetCurrent();
             CFStringRef runLoopMode = kCFRunLoopCommonModes;
@@ -3720,7 +3718,6 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
     return _cachesReloadEnabled;
 }
 
-//
 - (void)_clear {
     _layoutSubviewsLock = YES;
     
@@ -3749,7 +3746,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
 - (void)_resetMovingLongGestureRecognizer {
     [self _endMovingCellIfNeededImmediately:YES];
     
-    _movingLongGestureRecognizer.enabled = NO; // cancel touching
+    _movingLongGestureRecognizer.enabled = NO; // cancel interaction
     _movingLongGestureRecognizer.enabled = _moveModeEnabled;
 }
 
@@ -3972,7 +3969,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
     _reloadDataLock = NO;
     return step;
 }
-// header、footer、contentSize
+// adjust header、footer、contentSize
 - (void)_setVerticalContentHeight:(CGFloat)height {
     if (self.tableHeaderView) {
         _contentDrawArea.beginPos = self.tableHeaderView.frame.size.height;
@@ -3999,22 +3996,22 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
 }
 
 - (NSInteger)_sectionIndexAtContentOffset:(CGFloat)target {
-    NSInteger _count = _sectionsAreaList.count;
-    NSInteger _start = 0;
-    NSInteger _end = _count - 1;
-    NSInteger _middle = 0;
-    while (_start <= _end) {
-        _middle = (_start + _end) / 2;
-        MPTableViewSection *section = _sectionsAreaList[_middle];
+    NSInteger count = _sectionsAreaList.count;
+    NSInteger start = 0;
+    NSInteger end = count - 1;
+    NSInteger middle = 0;
+    while (start <= end) {
+        middle = (start + end) / 2;
+        MPTableViewSection *section = _sectionsAreaList[middle];
         if (section.endPos < target) {
-            _start = _middle + 1;
+            start = middle + 1;
         } else if (section.beginPos > target) {
-            _end = _middle - 1;
+            end = middle - 1;
         } else {
-            return _middle;
+            return middle;
         }
     }
-    return _count - 1; // floating-point precision, target > _sectionsAreaList.lastObject.endPos
+    return count - 1; // floating-point precision, target > _sectionsAreaList.lastObject.endPos
 }
 
 - (MPIndexPathStruct)_indexPathAtContentOffset:(CGFloat)target {
@@ -4175,7 +4172,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
                     MPTableReusableView *sectionView = [_displayedSectionViewsDic objectForKey:indexPath];
                     CGRect frame = sectionView.frame;
                     frame.origin.y -= _contentDrawArea.beginPos;
-                    if (type == MPSectionTypeHeader) { // if there are two or more prepare-headers, then we set a new content-offset without animation, those headers may need to be reset.
+                    if (type == MPSectionTypeHeader) { // if there are two or more headers prepare to suspend, and then we change the content-offset(no animated), those headers may need to be reset.
                         if (frame.origin.y != section.beginPos) {
                             frame.origin.y = section.beginPos + _contentDrawArea.beginPos;
                             _UISetFrameWithoutAnimation(sectionView, frame);
@@ -4248,7 +4245,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
             if (_respond_didEndDisplayingFooterViewForSection && type == MPSectionTypeFooter) {
                 [_mpDelegate MPTableView:self didEndDisplayingFooterView:sectionView forSection:indexPath.section];
             }
-        } else { // for real-time updates
+        } else { // for real-time update(scroll the table view when updating)
             MPTableViewSection *section = _sectionsAreaList[indexPath.section];
             MPTableReusableView *sectionView = [_displayedSectionViewsDic objectForKey:indexPath];
             CGRect frame = sectionView.frame;
@@ -4277,7 +4274,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
     MPIndexPathStruct beginIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.beginPos];
     MPIndexPathStruct endIndexPathStruct = [self _indexPathAtContentOffset:_currDrawArea.endPos];
     
-    if ([self _isEstimatedMode]) { // estimated update
+    if ([self _isEstimatedMode]) { // estimated
         if (!MPEqualIndexPaths(_beginIndexPath, beginIndexPathStruct) || !MPEqualIndexPaths(_endIndexPath, endIndexPathStruct)) {
             MPIndexPathStruct estimatedFirstIndexPath;
             
@@ -4305,7 +4302,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
         } else if (_style == MPTableViewStylePlain) {
             [self _clipAndAdjustSectionViewsBetween:_beginIndexPath and:_endIndexPath];
         }
-    } else { // normal update
+    } else { // normal layout
         if (_style == MPTableViewStylePlain) {
             [self _suspendSectionHeaderIfNeededAt:beginIndexPathStruct];
             [self _suspendSectionFooterIfNeededAt:endIndexPathStruct];
@@ -4377,7 +4374,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
             if (MPCompareIndexPath(indexPath_, _beginIndexPath) == NSOrderedAscending || MPCompareIndexPath(indexPath_, _endIndexPath) == NSOrderedDescending) {
                 MPIndexPath *indexPath = [MPIndexPath indexPathFromStruct:indexPath_];
                 
-                if (([self isUpdating] || [self _isContentMoving]) && [_displayedCellsDic objectForKey:indexPath]) {
+                if (([self isUpdating] || [self _isCellDragging]) && [_displayedCellsDic objectForKey:indexPath]) {
                     continue;
                 }
                 
@@ -4576,7 +4573,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
     if (lastSuspendHeader) {
         MPTableViewSection *lastSection = _sectionsAreaList[indexPath.section];
         CGRect frame = lastSuspendHeader.frame;
-        if ([self _needPrepareToSuspendViewAt:lastSection withType:MPSectionTypeHeader]) { // prepare suspending
+        if ([self _needPrepareToSuspendViewAt:lastSection withType:MPSectionTypeHeader]) { // prepare to suspend
             frame.origin.y = lastSection.endPos - lastSection.footerHeight - lastSection.headerHeight;
         } else {
             frame.origin.y = lastSection.beginPos;
@@ -4859,7 +4856,6 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
         return;
     }
     
-    // row selected
     UITouch *touch = touches.anyObject;
     CGPoint location = [touch locationInView:self];
     CGFloat touchPosition = location.y;
@@ -4878,7 +4874,7 @@ NS_INLINE CGFloat _MP_UpdateLayoutSizeForSubview(UIView *view, CGFloat width) {
         
         if (_moveModeEnabled) {
             if (_allowsSelectionDuringMoving) {
-                 // If the rect for start moving in cell is not specified, this selection is depending on whether the _allowsSelectionDuringMoving is YES
+                 // If the rect for start moving in cell is not specified, and the allowsSelectionDuringMoving is YES, then the cell can be selected.
                 if (_respond_rectForCellToMoveRowAtIndexPath && [self _rectForCell:cell toMoveRowAtIndexPath:touchedIndexPath availableInLocation:location]) {
                     return;
                 }
@@ -4996,7 +4992,7 @@ NS_INLINE CGPoint MPPointsSubtraction(CGPoint point1, CGPoint point2) {
     return [_movingIndexPath copy];
 }
 
-- (BOOL)_isContentMoving {
+- (BOOL)_isCellDragging {
     return _movingIndexPath ? YES : NO;
 }
 
@@ -5216,7 +5212,7 @@ NS_INLINE CGPoint MPPointsSubtraction(CGPoint point1, CGPoint point2) {
             CGFloat endPos = [section rowPositionEndAt:newIndexPath_.row];
             CGFloat targetCenter = beginPos + (endPos - beginPos) / 2 + _contentDrawArea.beginPos;
             
-            if (targetCenter < _movingDraggedCell.frame.origin.y || targetCenter > CGRectGetMaxY(_movingDraggedCell.frame)) { // must move across target's center.y
+            if (targetCenter < _movingDraggedCell.frame.origin.y || targetCenter > CGRectGetMaxY(_movingDraggedCell.frame)) { // must move across center.y of the target cell
                 return;
             }
         }
@@ -5226,7 +5222,7 @@ NS_INLINE CGPoint MPPointsSubtraction(CGPoint point1, CGPoint point2) {
         }
         
         if ([self _isEstimatedMode] && (MPCompareIndexPath(newIndexPath_, _beginIndexPath) == NSOrderedAscending || MPCompareIndexPath(newIndexPath_, _endIndexPath) == NSOrderedDescending)) {
-            return; // view at a new indexPath may not has been estimated, or we should make a complete updating——that's too much trouble
+            return; // this cell height may not has been estimated, or we should make a complete update, but that's too much trouble.
         }
         
         MPIndexPath *newIndexPath = [MPIndexPath indexPathFromStruct:newIndexPath_];
@@ -5250,7 +5246,12 @@ NS_INLINE CGPoint MPPointsSubtraction(CGPoint point1, CGPoint point2) {
 }
 
 - (void)_endMovingCellIfNeededImmediately:(BOOL)immediately {
-    if (!_movingScrollDisplayLink) { // moveModeEnabled = NO;[this reloadData];
+    /*
+     for a situation like:
+     moveModeEnabled = NO;
+     [this reloadData];
+     */
+    if (!_movingScrollDisplayLink) {
         if (immediately) {
             if (!_movingDraggedCell) {
                 return;

@@ -116,26 +116,26 @@
         }
     }
     
-    // step 1, delete section 0 and insert a section at 1
+    // step 1, delete section 0 and insert a section at 1.
     [self.tableView performBatchUpdates:^{
         [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView insertSections:[NSIndexSet indexSetWithIndex:1] withRowAnimation:MPTableViewRowAnimationRandom];
     } duration:1.5 delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
     
-    // step 2, start after step 1 is finished
+    // step 2, start after step 1 is finished.
     [self.tableView performBatchUpdates:^{
         [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:2] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView moveSection:3 toSection:4];
     } duration:1.5 delay:1.5 options:UIViewAnimationOptionCurveEaseInOut completion:nil];
     
-    // these animations start together with step 1, but their duration is 3 seconds
+    // these animations start together with step 1, but their duration is 3 seconds.
     [self.tableView performBatchUpdates:^{
         [self.tableView deleteRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView insertRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView reloadRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView moveRowAtIndexPath:[MPIndexPath indexPathForRow:3 inSection:5] toIndexPath:[MPIndexPath indexPathForRow:4 inSection:5]];
     } duration:3 delay:0 options:UIViewAnimationOptionCurveEaseInOut completion:^(BOOL finished) {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"An updates group is completed" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"An update group is completed" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
         [alert show];
     }];
 }
@@ -255,8 +255,7 @@
 
 #pragma mark - table view update custom
 
-//...delete
-
+// delete
 void _deleteAnimation(UIView *view) {
     [UIView animateWithDuration:1.5 animations:^{
         view.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(-view.frame.size.width, view.frame.size.height), 0.5 * M_PI);
@@ -278,7 +277,7 @@ void _deleteAnimation(UIView *view) {
     _deleteAnimation(view);
 }
 
-// ...insert
+// insert
 void _insertAnimation(UIView *view) {
     view.transform = CGAffineTransformMakeScale(0.1, 0.1);
     

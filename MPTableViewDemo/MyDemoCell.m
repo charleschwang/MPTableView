@@ -48,7 +48,7 @@
     [super setFrame:frame];
     self.label_title.frame = self.bounds;
     self.btn_movement.frame = [self rectForMoving];
-    [self.btn_movement layoutSubviews]; // The label of UIButton doesn't layout immediately after set a frame to this UIButton, that may cause the label layout in an animation block which working for the cell
+    [self.btn_movement layoutSubviews]; // The label of UIButton doesn't layout immediately after set a new frame to this UIButton, that may cause the label layout in an animation block when the table view is updating.
 }
 
 - (CGRect)rectForMoving {
