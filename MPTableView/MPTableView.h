@@ -67,14 +67,14 @@
 - (void)MPTableView:(MPTableView *)tableView didEndDisplayingFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section;
 
 // Customize animations for updating. A reload-update is composed of a delete and a insert function.
-
 // Called when updating.
+
 // The pathPosition is the origin.y of those animating views which in front of the current cell. For those built-in animation types, the pathPosition is the cell's starting position.
+// ※※※※※※※※※※ If the table view should be scrolled during the update, we had better put the insertion functions in a performBatchUpdates, that will stop these cells(or section views) into the reusable queue and keep our custom animations uninterrupted. ※※※※※※※※※※
 - (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
 // The pathPosition in delete functions is a target position that deleted views will move to. For those built-in animation types, the pathPosition is a cell's target position that make it looks like always follow the font one.
-
-// ※※※※※※※※※※ WARNING: Those deleted views need to be manually removed. ※※※※※※※※※※
+// ※※※※※※※※※※ WARNING: These deleted views need to be manually removed. ※※※※※※※※※※
 - (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withAnimationPathPosition:(CGFloat)pathPosition;
 
 - (void)MPTableView:(MPTableView *)tableView beginToInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withAnimationPathPosition:(CGFloat)pathPosition;
@@ -237,9 +237,10 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 /**
  Default is NO.
- Sometimes table view will create some subviews(cells and section views) to display update animations, or in other words these subviews have not be added to table view before update and they will be hidden when update is finished.
- That should make many subviews to join reusable queues, then we must release them manually(call -clearReusableCellsAndViews).
- If YES, table view will not create this kind of subviews for updating, that will influence the animation effect. But there still may create too many reusable subviews if we start too many updates at the same time.
+ By default, table view will create some subviews(cells and section views) to display update animations, even though most of subviews are outside the screen, or in other words these subviews have not be added to table view before update and they will be hidden when update is finished.
+ That is good for animation effect but should make many subviews to join reusable queues, then we must release them manually(call -clearReusableCellsAndViews).
+ 
+ If YES, table view will not create this kind of subviews for updating, that will improve performance. But table view still may create too many reusable subviews if updateForceReload is YES and we start too many updates at the same time in the estimated-height mode.
  */
 @property (nonatomic, getter=isUpdateOptimizeViews) BOOL updateOptimizeViews;
 

@@ -480,13 +480,13 @@ public:
                     MPTableViewThrowUpdateException(@"check for update indexpaths")
                 }
                 
-                offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needCallback:needCallback];
+                offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needAnimated:needCallback];
             } else {
                 if (numberOfRows != section.numberOfRows) {
                     MPTableViewThrowUpdateException(@"check for the number of sections from data source")
                 }
                 
-                offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needCallback:needCallback];
+                offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needAnimated:needCallback];
             }
         }
         
@@ -545,7 +545,7 @@ public:
             
             if ([self.delegate _updateNeedToAnimateSection:deleteSection updateType:MPTableViewUpdateDelete andOffset:offset]) {
                 for (NSInteger k = 0; k < deleteSection.numberOfRows; ++k) {
-                    [self.delegate _updateSection:node.originIndex deleteCellAtIndex:k withAnimation:node.animation isSectionAnimation:deleteSection];
+                    [self.delegate _updateSection:node.originIndex deleteCellAtIndex:k withAnimation:node.animation inSectionPosition:deleteSection];
                 }
                 
                 [self.delegate _updateDeleteSectionViewAtIndex:node.originIndex withType:MPSectionTypeHeader withAnimation:node.animation withDeleteSection:deleteSection];
@@ -576,7 +576,7 @@ public:
             // node.index - step - 1 == node.originIndex
             if (node.updateType == MPTableViewUpdateDelete && [self.delegate _updateNeedToAnimateSection:deleteSection updateType:MPTableViewUpdateDelete andOffset:offset]) {
                 for (NSInteger k = 0; k < deleteSection.numberOfRows; ++k) {
-                    [self.delegate _updateSection:node.originIndex deleteCellAtIndex:k withAnimation:node.animation isSectionAnimation:deleteSection];
+                    [self.delegate _updateSection:node.originIndex deleteCellAtIndex:k withAnimation:node.animation inSectionPosition:deleteSection];
                 }
                 
                 [self.delegate _updateDeleteSectionViewAtIndex:node.originIndex withType:MPSectionTypeHeader withAnimation:node.animation withDeleteSection:deleteSection];
@@ -614,13 +614,13 @@ public:
                 MPTableViewThrowUpdateException(@"check for update indexpaths")
             }
             
-            offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needCallback:needCallback];
+            offset = [section updateUsingPartWithDelegate:self.delegate toSection:j withOffset:offset needAnimated:needCallback];
         } else {
             if (numberOfRows != section.numberOfRows) {
                 MPTableViewThrowUpdateException(@"check for the number of sections from data source")
             }
             
-            offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needCallback:needCallback];
+            offset = [section updateWithDelegate:self.delegate toSection:j withOffset:offset needAnimated:needCallback];
         }
     }
     
@@ -630,12 +630,12 @@ public:
 - (void)saveInsertionsIfNecessaryForSection:(MPTableViewSection *)insertSection andNode:(MPTableViewUpdateNode)node andOffset:(CGFloat)offset {
     if ([self.delegate _updateNeedToAnimateSection:insertSection updateType:MPTableViewUpdateInsert andOffset:offset]) {
         for (NSInteger k = 0; k < insertSection.numberOfRows; ++k) {
-            if (![self.delegate _updateSection:node.index insertCellAtIndex:k withAnimation:node.animation isSectionAnimation:insertSection]) {
+            if (![self.delegate _updateSection:node.index insertCellAtIndex:k withAnimation:node.animation inSectionPosition:insertSection]) {
                 void (^updateAction)(void) = ^{
                     if (!self.delegate) {
                         return;
                     }
-                    [self.delegate _updateSection:node.index insertCellAtIndex:k withAnimation:node.animation isSectionAnimation:insertSection];
+                    [self.delegate _updateSection:node.index insertCellAtIndex:k withAnimation:node.animation inSectionPosition:insertSection];
                 };
                 [self.delegate._ignoredUpdateActions addObject:updateAction];
             }
@@ -666,7 +666,7 @@ public:
             }
             
             for (NSInteger k = 0; k < insertSection.numberOfRows; ++k) {
-                [self.delegate _updateSection:node.index insertCellAtIndex:k withAnimation:node.animation isSectionAnimation:insertSection];
+                [self.delegate _updateSection:node.index insertCellAtIndex:k withAnimation:node.animation inSectionPosition:insertSection];
             }
             
             [self.delegate _updateInsertSectionViewAtIndex:node.index withType:MPSectionTypeHeader withAnimation:node.animation withInsertSection:insertSection];
@@ -856,7 +856,7 @@ public:
                 beginIndex = firstIndexPath.row;
             }
         }
-        offset = [section updateEstimatedWith:self.delegate beginIndex:beginIndex withOffset:offset needCallback:needCallback];
+        offset = [section updateEstimatedWith:self.delegate beginIndex:beginIndex withOffset:offset needAnimated:needCallback];
     }
     
     return offset;
@@ -976,7 +976,7 @@ public:
     }
 }
 
-- (CGFloat)updateUsingPartWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback {
+- (CGFloat)updateUsingPartWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needAnimated:(BOOL)callback {
     [updateDelegate _setUpdateInsertOriginTopPosition:self.beginPos + self.headerHeight];
     
     self.beginPos += offset;
@@ -1055,12 +1055,12 @@ public:
                 offset += cellHeight;
                 
                 if (callback) {
-                    if (![updateDelegate _updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil]) {
+                    if (![updateDelegate _updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation inSectionPosition:nil]) {
                         void (^updateAction)(void) = ^{
                             if (!updateDelegate) {
                                 return;
                             }
-                            [updateDelegate _updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil];
+                            [updateDelegate _updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation inSectionPosition:nil];
                         };
                         [updateDelegate._ignoredUpdateActions addObject:updateAction];
                     }
@@ -1098,9 +1098,9 @@ public:
             [self reloadRowAt:node.index withHeight:cellHeight];
             
             // node.index - step == node.originIndex
-            [updateDelegate _updateSection:originSection deleteCellAtIndex:node.originIndex withAnimation:node.animation isSectionAnimation:nil];
+            [updateDelegate _updateSection:originSection deleteCellAtIndex:node.originIndex withAnimation:node.animation inSectionPosition:nil];
             if (callback) {
-                [updateDelegate _updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation isSectionAnimation:nil];
+                [updateDelegate _updateSection:newSection insertCellAtIndex:node.index withAnimation:node.animation inSectionPosition:nil];
             }
             
             index = node.index + 2;
@@ -1113,7 +1113,7 @@ public:
             
             // node.index - step - 1 == node.originIndex
             if (node.updateType == MPTableViewUpdateDelete) {
-                [updateDelegate _updateSection:originSection deleteCellAtIndex:node.originIndex withAnimation:node.animation isSectionAnimation:nil];
+                [updateDelegate _updateSection:originSection deleteCellAtIndex:node.originIndex withAnimation:node.animation inSectionPosition:nil];
             }
             
             index = node.index + 1;
@@ -1179,7 +1179,7 @@ public:
     return offset;
 }
 
-- (CGFloat)updateWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needCallback:(BOOL)callback {
+- (CGFloat)updateWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needAnimated:(BOOL)callback {
     
     self.beginPos += offset;
     NSUInteger originSection = self.section;
@@ -1314,7 +1314,7 @@ public:
     return backup;
 }
 
-- (CGFloat)updateEstimatedWith:(MPTableView *)updateDelegate beginIndex:(NSInteger)beginIndex withOffset:(CGFloat)offset needCallback:(BOOL)callback {
+- (CGFloat)updateEstimatedWith:(MPTableView *)updateDelegate beginIndex:(NSInteger)beginIndex withOffset:(CGFloat)offset needAnimated:(BOOL)callback {
     self.beginPos += offset;
     
     CGFloat originSection = self.section;
