@@ -44,7 +44,7 @@
     return nil;
 }
 
-- (UIResponder *)_backup_nextResponder {
+- (UIResponder *)_mp_superNextResponder {
     return [super nextResponder];
 }
 
@@ -52,7 +52,7 @@
     _reuseIdentifier = [reuseIdentifier copy];
 }
 
-- (void)prepareForRecovery {
+- (void)prepareForRecycle {
     
 }
 
@@ -73,7 +73,7 @@
 const CGFloat MPTableViewDefaultCellHeight = 44.;
 
 static CGColor *
-_CGColorMPSelectionDefault() {
+_CGColorMPSelectionColor() {
     static CGColor *selectionCGColor;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -86,45 +86,47 @@ _CGColorMPSelectionDefault() {
 }
 
 static UIColor *
-_UIColorMPSelectionDefault() {
-    static UIColor *selectionColor;
+_UIColorMPSelectionColor() {
+    static UIColor *selectionUIColor;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        selectionColor = [UIColor colorWithCGColor:_CGColorMPSelectionDefault()];
+        selectionUIColor = [UIColor colorWithCGColor:_CGColorMPSelectionColor()];
     });
-    return selectionColor;
+    return selectionUIColor;
 }
 
 static CGColor *
 _CGColorClearColor() {
-    static CGColor *CGColor;
+    static CGColor *clearCGColor;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         CGFloat color[4] = {0, 0, 0, 0};
         CGColorSpace *colorSpaceRef = CGColorSpaceCreateDeviceRGB();
-        CGColor = CGColorCreate(colorSpaceRef, color);
+        clearCGColor = CGColorCreate(colorSpaceRef, color);
         CGColorSpaceRelease(colorSpaceRef);
     });
-    return CGColor;
+    return clearCGColor;
 }
 
 struct MPCellCachedStatus {
     BOOL opaqueRetain;
     BOOL highlightedRetain;
-    UIColor *backgroundColor;
     BOOL backgroundColorRetain;
+    UIColor *backgroundColor;
 };
 
-static MPCellCachedStatus MPCellCachedStatusGet() {
+static MPCellCachedStatus
+MPGetCellCachedStatus() {
     MPCellCachedStatus status;
     status.opaqueRetain = NO;
     status.highlightedRetain = NO;
-    status.backgroundColor = nil;
     status.backgroundColorRetain = NO;
+    status.backgroundColor = nil;
     return status;
 }
 
-NS_INLINE bool MPCellCachedStatusNeedRecord(MPCellCachedStatus status) {
+NS_INLINE bool
+MPNeedCacheCellStatus(MPCellCachedStatus status) {
     return status.opaqueRetain || status.highlightedRetain || status.backgroundColorRetain;
 }
 
@@ -139,14 +141,14 @@ NS_INLINE bool MPCellCachedStatusNeedRecord(MPCellCachedStatus status) {
 //}
 
 static void
-_MPCellSetSubviewsHighlighted(NSArray *, bool , std::map<NSUInteger, MPCellCachedStatus> *);
+MPCellSetSubviewsHighlighted(NSArray *, bool , std::map<NSUInteger, MPCellCachedStatus> *);
 
 static void
-_MPCellSetSubviewHighlighted(UIView *subview, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap, bool highlighted, bool removeIfUnhighlighted) {
-    static Class _UIButtonClass_MP_ = [UIButton class];
+MPCellSetSubviewHighlighted(UIView *subview, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap, bool highlighted, bool removeIfUnhighlighted) {
+    static Class _MP_UIButtonClass = [UIButton class];
     
     if (highlighted) {
-        MPCellCachedStatus status = MPCellCachedStatusGet();
+        MPCellCachedStatus status = MPGetCellCachedStatus();
         
         if (subview.backgroundColor != [UIColor clearColor]) { // this '!=' was verified
             status.backgroundColor = [subview backgroundColor];
@@ -159,16 +161,16 @@ _MPCellSetSubviewHighlighted(UIView *subview, std::map<NSUInteger, MPCellCachedS
             subview.opaque = NO;
         }
         
-        if (![subview isKindOfClass:_UIButtonClass_MP_]) {
+        if (![subview isKindOfClass:_MP_UIButtonClass]) {
             if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)] && ![(id)subview isHighlighted]) {
                 status.highlightedRetain = YES;
                 [(id)subview setHighlighted:YES];
             }
             
-            _MPCellSetSubviewsHighlighted([subview subviews], highlighted, cacheColorsMap);
+            MPCellSetSubviewsHighlighted([subview subviews], highlighted, cacheColorsMap);
         }
         
-        if (MPCellCachedStatusNeedRecord(status)) {
+        if (MPNeedCacheCellStatus(status)) {
             cacheColorsMap->insert(std::pair<NSUInteger, MPCellCachedStatus>((NSUInteger)subview, status));
         }
     } else {
@@ -184,12 +186,12 @@ _MPCellSetSubviewHighlighted(UIView *subview, std::map<NSUInteger, MPCellCachedS
                 subview.opaque = YES;
             }
             
-            if (![subview isKindOfClass:_UIButtonClass_MP_]) {
+            if (![subview isKindOfClass:_MP_UIButtonClass]) {
                 if (status.highlightedRetain && [(id)subview isHighlighted]) {
                     [(id)subview setHighlighted:NO];
                 }
                 
-                _MPCellSetSubviewsHighlighted([subview subviews], highlighted, cacheColorsMap);
+                MPCellSetSubviewsHighlighted([subview subviews], highlighted, cacheColorsMap);
             }
             
             if (removeIfUnhighlighted) {
@@ -200,9 +202,9 @@ _MPCellSetSubviewHighlighted(UIView *subview, std::map<NSUInteger, MPCellCachedS
 }
 
 static void
-_MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap) {
+MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUInteger, MPCellCachedStatus> *cacheColorsMap) {
     for (UIView *subview in subviews) {
-        _MPCellSetSubviewHighlighted(subview, cacheColorsMap, highlighted, NO);
+        MPCellSetSubviewHighlighted(subview, cacheColorsMap, highlighted, NO);
     }
 }
 
@@ -219,16 +221,30 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
     _selected = NO;
     
     _fadeAnimationLayer = [[CALayer alloc] init];
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
-    if (!_selectionColor) {
-        _selectionColor = _UIColorMPSelectionDefault();
-        _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionDefault();
+    
+    if ([CATransaction disableActions]) {
+        if (!_selectionColor) {
+            _selectionColor = _UIColorMPSelectionColor();
+            _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionColor();
+        } else {
+            _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
+        }
+        _fadeAnimationLayer.hidden = YES;
     } else {
-        _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        
+        if (!_selectionColor) {
+            _selectionColor = _UIColorMPSelectionColor();
+            _fadeAnimationLayer.backgroundColor = _CGColorMPSelectionColor();
+        } else {
+            _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
+        }
+        _fadeAnimationLayer.hidden = YES;
+        
+        [CATransaction commit];
     }
-    _fadeAnimationLayer.hidden = YES;
-    [CATransaction commit];
+    
     [self.layer insertSublayer:_fadeAnimationLayer atIndex:0];
 }
 
@@ -257,7 +273,7 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
 }
 
 - (UIResponder *)nextResponder {
-    return [super _backup_nextResponder];
+    return [super _mp_superNextResponder];
 }
 
 - (void)dealloc {
@@ -266,12 +282,18 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
 
 - (void)setFrame:(CGRect)frame {
     [super setFrame:frame];
-    if (!(CGSizeEqualToSize(self.frame.size, _fadeAnimationLayer.frame.size))) {
-        [CATransaction begin];
-        [CATransaction setDisableActions:YES];
+    if (!(CGSizeEqualToSize(frame.size, _fadeAnimationLayer.frame.size))) {
         frame.origin = CGPointZero;
-        _fadeAnimationLayer.frame = frame;
-        [CATransaction commit];
+        if ([CATransaction disableActions]) {
+            _fadeAnimationLayer.frame = frame;
+        } else {
+            [CATransaction begin];
+            [CATransaction setDisableActions:YES];
+            
+            _fadeAnimationLayer.frame = frame;
+            
+            [CATransaction commit];
+        }
     }
 }
 
@@ -279,7 +301,7 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
 // This can only affect subviews of MPTableViewCell, but not other lower-level descendents. The UITableViewCell using a private API named -[UIView _descendent:willMoveFromSuperview:toSuperview:] to solve it.
 - (void)willRemoveSubview:(UIView *)subview {
     if (_selected || _highlighted) {
-        _MPCellSetSubviewHighlighted(subview, &_cachedSubviewStatusMap, NO, YES);
+        MPCellSetSubviewHighlighted(subview, &_cachedSubviewStatusMap, NO, YES);
     }
     [super willRemoveSubview:subview];
 }
@@ -295,17 +317,30 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
         return;
     }
     
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
-    if (!(_selectionColor = selectionColor)) {
-        _fadeAnimationLayer.backgroundColor = _CGColorClearColor();
-        if (!_selected && !_highlighted) {
-            _cachedSubviewStatusMap.clear();
+    if ([CATransaction disableActions]) {
+        if (!(_selectionColor = selectionColor)) {
+            _fadeAnimationLayer.backgroundColor = _CGColorClearColor();
+            if (!_selected && !_highlighted) {
+                _cachedSubviewStatusMap.clear();
+            }
+        } else {
+            _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
         }
     } else {
-        _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        
+        if (!(_selectionColor = selectionColor)) {
+            _fadeAnimationLayer.backgroundColor = _CGColorClearColor();
+            if (!_selected && !_highlighted) {
+                _cachedSubviewStatusMap.clear();
+            }
+        } else {
+            _fadeAnimationLayer.backgroundColor = _selectionColor.CGColor;
+        }
+        
+        [CATransaction commit];
     }
-    [CATransaction commit];
 }
 
 - (void)setSelected:(BOOL)selected {
@@ -354,10 +389,16 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
     if (animated) {
         _fadeAnimationLayer.hidden = !enabled;
     } else {
-        [CATransaction begin];
-        [CATransaction setDisableActions:YES];
-        _fadeAnimationLayer.hidden = !enabled;
-        [CATransaction commit];
+        if ([CATransaction disableActions]) {
+            _fadeAnimationLayer.hidden = !enabled;
+        } else {
+            [CATransaction begin];
+            [CATransaction setDisableActions:YES];
+            
+            _fadeAnimationLayer.hidden = !enabled;
+            
+            [CATransaction commit];
+        }
     }
     [self _setSubviewsHighlighted:enabled];
     
@@ -371,7 +412,7 @@ _MPCellSetSubviewsHighlighted(NSArray *subviews, bool highlighted, std::map<NSUI
         return;
     }
     
-    _MPCellSetSubviewsHighlighted(self.subviews, highlighted, &_cachedSubviewStatusMap);
+    MPCellSetSubviewsHighlighted(self.subviews, highlighted, &_cachedSubviewStatusMap);
 }
 
 @end

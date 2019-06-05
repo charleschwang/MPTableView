@@ -11,32 +11,6 @@
 #define MPTableViewMaxCount 7883507
 #define MPTableViewMaxSize 7883507.0
 
-typedef struct struct_MPIndexPath {
-    NSInteger section, row;
-} MPIndexPathStruct;
-
-@interface MPTableViewPosition : NSObject<NSCopying>
-@property (nonatomic, assign) CGFloat beginPos;
-@property (nonatomic, assign) CGFloat endPos;
-+ (instancetype)positionWithBegin:(CGFloat)begin toEnd:(CGFloat)end;
-
-@end
-
-#pragma mark -
-
-typedef NS_ENUM(NSInteger, MPSectionType) {
-    MPSectionTypeHeader = NSIntegerMin + 32, MPSectionTypeFooter = NSIntegerMax - 32
-};
-
-typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
-    MPTableViewUpdateAdjust,
-    MPTableViewUpdateDelete,
-    MPTableViewUpdateInsert,
-    MPTableViewUpdateReload,
-    MPTableViewUpdateMoveIn,
-    MPTableViewUpdateMoveOut
-};
-
 #define MPTableViewUpdateTypeStable(_type_) (_type_ == MPTableViewUpdateInsert || _type_ == MPTableViewUpdateMoveIn)
 #define MPTableViewUpdateTypeUnstable(_type_) (_type_ == MPTableViewUpdateDelete || _type_ == MPTableViewUpdateMoveOut || _type_ == MPTableViewUpdateReload)
 
@@ -46,19 +20,47 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 #define MPTableViewThrowException(_reason_) @throw [NSException exceptionWithName:MPTableViewException reason:_reason_ userInfo:nil];
 #define MPTableViewThrowUpdateException(_reason_) @throw [NSException exceptionWithName:MPTableViewUpdateException reason:_reason_ userInfo:nil];
 
+#pragma mark -
+
+@interface MPTableViewPosition : NSObject<NSCopying>
+@property (nonatomic, assign) CGFloat startPos;
+@property (nonatomic, assign) CGFloat endPos;
++ (instancetype)positionStart:(CGFloat)start toEnd:(CGFloat)end;
+
+@end
+
+#pragma mark -
+
+typedef struct struct_MPIndexPath {
+    NSInteger section, row;
+} MPIndexPathStruct;
+
+typedef NS_ENUM(NSInteger, MPSectionType) {
+    MPSectionTypeHeader = NSIntegerMin + 32, MPSectionTypeFooter = NSIntegerMax - 32
+};
+
+typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
+    MPTableViewUpdateDelete,
+    MPTableViewUpdateInsert,
+    MPTableViewUpdateReload,
+    MPTableViewUpdateMoveOut,
+    MPTableViewUpdateMoveIn,
+    MPTableViewUpdateAdjust
+};
+
 @class MPTableViewSection;
 
 @interface MPTableViewUpdateBase : NSObject {
-@package
+    @package
     NSMutableIndexSet *_existingStableIndexes;
     NSMutableIndexSet *_existingUnstableIndexes;
-
+    
     NSInteger _differ;
 }
-@property (nonatomic, assign) NSUInteger originCount;
+@property (nonatomic, assign) NSUInteger lastCount;
 @property (nonatomic, assign) NSUInteger newCount;
 
-- (BOOL)formatNodesStable:(BOOL)countCheckIgnored; // For example, a section with 5 cells, it is unable to insert 5 after delete 0.
+- (BOOL)prepareAndIgnoreCheck:(BOOL)ignoreCheck; // For example, a section has 5 rows, it is unable to insert 5 after delete 0.
 
 @end
 
@@ -66,67 +68,73 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 @interface MPTableView (MPTableView_UpdatePrivate)
 
-- (NSMutableArray *)_ignoredUpdateActions; // insertion and movement
+- (NSMutableArray *)_updateExecutionActions; // for insertion and movement
 
 - (MPIndexPathStruct)_beginIndexPath;
 - (MPIndexPathStruct)_endIndexPath;
 
-- (void)_setUpdateDeleteOriginTopPosition:(CGFloat)updateDeleteOriginTopPosition;
-- (void)_setUpdateInsertOriginTopPosition:(CGFloat)updateInsertOriginTopPosition;
+- (CGFloat)_updateLastDeletionOriginY;
+- (void)_setUpdateLastDeletionOriginY:(CGFloat)updateLastDeletionOriginY;
+- (CGFloat)_updateLastInsertionOriginY;
+- (void)_setUpdateLastInsertionOriginY:(CGFloat)updateLastInsertionOriginY;
 
-- (BOOL)_isCellDragging;
+- (BOOL)_hasDragCell;
 
-- (MPTableViewSection *)_updateGetSectionAt:(NSInteger)section;
+- (MPTableViewSection *)_updateGetSection:(NSInteger)section;
 
 - (CGFloat)_updateGetInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath;
-- (CGFloat)_updateGetMoveInCellHeightAtIndexPath:(MPIndexPath *)indexPath originIndexPath:(MPIndexPath *)originIndexPath originHeight:(CGFloat)originHeight withDistance:(CGFloat)distance;
-- (CGFloat)_updateGetHeaderHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection withOffset:(CGFloat)offset force:(BOOL)force;
-- (CGFloat)_updateGetFooterHeightInSection:(MPTableViewSection *)section fromOriginSection:(NSInteger)originSection withOffset:(CGFloat)offset force:(BOOL)force;
+- (CGFloat)_updateGetMoveInCellOffsetAtIndexPath:(MPIndexPath *)indexPath fromLastIndexPath:(MPIndexPath *)lastIndexPath lastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
+- (CGFloat)_updateGetAdjustCellOffsetAtIndexPath:(MPIndexPath *)indexPath fromLastIndexPath:(MPIndexPath *)lastIndexPath withOffset:(CGFloat)cellOffset;
+- (CGFloat)_updateGetHeaderHeightInSection:(MPTableViewSection *)section fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset isMovement:(BOOL)isMovement;
+- (CGFloat)_updateGetFooterHeightInSection:(MPTableViewSection *)section fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset isMovement:(BOOL)isMovement;
 
-- (CGFloat)_rebuildCellAtSection:(NSInteger)section fromOriginSection:(NSInteger)originSection atIndex:(NSInteger)index;
+- (CGFloat)_updateGetRebuildCellOffsetInSection:(NSInteger)section atRow:(NSInteger)row fromLastSection:(NSInteger)lastSection withDistance:(CGFloat)distance;
 
-- (BOOL)_updateNeedToAnimateSection:(MPTableViewSection *)section updateType:(MPTableViewUpdateType)type andOffset:(CGFloat)offset;
+- (BOOL)_updateNeedToDisplaySection:(MPTableViewSection *)section updateType:(MPTableViewUpdateType)type withOffset:(CGFloat)offset;
+- (BOOL)_updateNeedToAdjustCellsFromLastSection:(NSInteger)lastSection;
+- (BOOL)_updateNecessaryToAdjustSection:(MPTableViewSection *)section withOffset:(CGFloat)offset;
 
-// adjust cells
-- (void)_updateSection:(NSInteger)originSection deleteCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation inSectionPosition:(MPTableViewSection *)sectionPosition;
-- (BOOL)_updateSection:(NSInteger)section insertCellAtIndex:(NSInteger)index withAnimation:(MPTableViewRowAnimation)animation inSectionPosition:(MPTableViewSection *)sectionPosition;
+// update cells
+- (void)_updateDeleteCellInSection:(NSInteger)lastSection atRow:(NSInteger)row withAnimation:(MPTableViewRowAnimation)animation inSectionPosition:(MPTableViewSection *)sectionPosition;
+- (void)_updateInsertCellToSection:(NSInteger)section atRow:(NSInteger)row withAnimation:(MPTableViewRowAnimation)animation inSectionPosition:(MPTableViewSection *)sectionPosition withLastInsertionOriginY:(CGFloat)updateLastInsertionOriginY;
 
-- (BOOL)_updateSection:(NSInteger)section moveInCellAtIndex:(NSInteger)index fromOriginIndexPath:(MPIndexPath *)originIndexPath withOriginHeight:(CGFloat)originHeight withDistance:(CGFloat)distance;
+- (void)_updateMoveCellToSection:(NSInteger)section atRow:(NSInteger)row fromLastIndexPath:(MPIndexPath *)lastIndexPath withLastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
 
-- (BOOL)_updateSection:(NSInteger)section originSection:(NSInteger)originSection exchangeCellIndex:(NSInteger)originIndex forIndex:(NSInteger)currIndex; // selectedIndexPaths change
+- (BOOL)_updateNeedToAdjustCellToSection:(NSInteger)section atRow:(NSInteger)row fromLastSection:(NSInteger)lastSection andLastRow:(NSInteger)lastRow;
 
-- (CGFloat)_updateSection:(NSInteger)section originSection:(NSInteger)originSection adjustCellAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withOffset:(CGFloat)cellOffset;
+- (void)_updateAdjustCellToSection:(NSInteger)section atRow:(NSInteger)row fromLastSection:(NSInteger)lastSection andLastRow:(NSInteger)lastRow withLastHeight:(CGFloat)lastHeight withOffset:(CGFloat)cellOffset;
 
-// adjust section views
-- (void)_updateDeleteSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withDeleteSection:(MPTableViewSection *)deleteSection;
-- (BOOL)_updateInsertSectionViewAtIndex:(NSInteger)index withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection;
+// update section views
+- (void)_updateDeleteSectionViewInSection:(NSInteger)section withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withDeleteSection:(MPTableViewSection *)deleteSection;
+- (void)_updateInsertSectionViewToSection:(NSInteger)section withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection withLastInsertionOriginY:(CGFloat)updateLastInsertionOriginY;
 
-- (BOOL)_updateMoveInSectionViewAtIndex:(NSInteger)index fromOriginIndex:(NSInteger)originIndex withType:(MPSectionType)type withOriginHeight:(CGFloat)originHeight withDistance:(CGFloat)distance;
+- (void)_updateMoveSectionViewToSection:(NSInteger)section fromLastSection:(NSInteger)lastSection withType:(MPSectionType)type withLastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
 
-- (BOOL)_updateExchangeSectionViewAtIndex:(NSInteger)originIndex forIndex:(NSInteger)currIndex withType:(MPSectionType)type;
+- (BOOL)_updateNeedToAdjustSectionViewInLastSection:(NSInteger)lastSection withType:(MPSectionType)type;
 
-- (void)_updateAdjustSectionViewAtIndex:(NSInteger)originIndex toIndex:(NSInteger)currIndex withType:(MPSectionType)type withOriginHeight:(CGFloat)originHeight withSectionOffset:(CGFloat)sectionOffset;
-
-// estimated mode layout
-- (BOOL)_isEstimatedMode;
-
-- (BOOL)_estimatedNeedToAdjustAt:(MPTableViewSection *)section withOffset:(CGFloat)offset;
-
-- (CGFloat)_estimateAdjustSectionViewHeight:(MPSectionType)type inSection:(MPTableViewSection *)section;
-
-- (CGFloat)_estimateAdjustCellAtSection:(NSInteger)section atIndex:(NSInteger)originIndex withOffset:(CGFloat)cellOffset;
-- (void)_estimateAdjustSectionViewAtSection:(NSInteger)originIndex withType:(MPSectionType)type;
+- (void)_updateAdjustSectionViewFromSection:(NSInteger)lastSection toSection:(NSInteger)section withType:(MPSectionType)type withLastHeight:(CGFloat)lastHeight withSectionOffset:(CGFloat)sectionOffset;
 
 @end
 
 #pragma mark -
 
-@interface MPTableViewEstimatedManager : NSObject
+@interface MPTableView (MPTableView_EstimatedPrivate)
 
-@property (nonatomic, weak) NSMutableArray *sections;
-@property (nonatomic, weak) MPTableView *delegate;
+// estimated mode layout
+- (BOOL)_isEstimatedMode;
+- (BOOL)_hasEstimatedHeightForRow;
+- (BOOL)_hasEstimatedHeightForHeader;
+- (BOOL)_hasEstimatedHeightForFooter;
 
-- (CGFloat)startUpdate:(MPIndexPathStruct)firstIndexPath;
+- (BOOL)_hasDisplayedSection:(MPTableViewSection *)section;
+
+- (BOOL)_estimatedNeedToDisplaySection:(MPTableViewSection *)section withOffset:(CGFloat)offset;
+
+- (CGFloat)_estimatedGetSectionViewHeightWithType:(MPSectionType)type inSection:(MPTableViewSection *)section;
+
+- (CGFloat)_estimatedDisplayCellInSection:(NSInteger)section atRow:(NSInteger)row withOffset:(CGFloat)cellOffset;
+
+- (void)_estimatedDisplaySectionViewInSection:(NSInteger)section withType:(MPSectionType)type;
 
 @end
 
@@ -135,29 +143,29 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 @interface MPTableViewUpdateManager : MPTableViewUpdateBase
 
 @property (nonatomic, weak) NSMutableArray *sections;
-@property (weak, readonly) MPTableView *delegate;
+@property (weak, readonly) MPTableView *tableView;
 
 @property (nonatomic, assign) NSUInteger moveFromSection;
-@property (nonatomic, assign) NSUInteger moveToSection; // optimize
+@property (nonatomic, assign) NSUInteger moveToSection; // for optimize
 
 - (BOOL)hasUpdateNodes;
 
-+ (MPTableViewUpdateManager *)managerWithDelegate:(MPTableView *)delegate andSections:(NSMutableArray *)sections;
-- (void)resetManager;
-
-- (BOOL)addMoveOutSection:(NSUInteger)section;
-- (BOOL)addMoveInSection:(NSUInteger)section withOriginIndex:(NSInteger)originSection;
++ (MPTableViewUpdateManager *)managerForTableView:(MPTableView *)tableView andSections:(NSMutableArray *)sections;
+- (void)reset;
 
 - (BOOL)addDeleteSection:(NSUInteger)section withAnimation:(MPTableViewRowAnimation)animation;
 - (BOOL)addInsertSection:(NSUInteger)section withAnimation:(MPTableViewRowAnimation)animation;
 - (BOOL)addReloadSection:(NSUInteger)section withAnimation:(MPTableViewRowAnimation)animation;
 
-- (BOOL)addMoveOutIndexPath:(MPIndexPath *)indexPath;
-- (BOOL)addMoveInIndexPath:(MPIndexPath *)indexPath withFrame:(CGRect)frame withOriginIndexPath:(MPIndexPath *)originIndexPath;
+- (BOOL)addMoveOutSection:(NSUInteger)section;
+- (BOOL)addMoveInSection:(NSUInteger)section withLastSection:(NSInteger)lastSection;
 
 - (BOOL)addDeleteIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
 - (BOOL)addInsertIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
 - (BOOL)addReloadIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
+
+- (BOOL)addMoveOutIndexPath:(MPIndexPath *)indexPath;
+- (BOOL)addMoveInIndexPath:(MPIndexPath *)indexPath withFrame:(CGRect)frame withLastIndexPath:(MPIndexPath *)lastIndexPath;
 
 - (CGFloat)startUpdate;
 
@@ -167,12 +175,20 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 @interface MPTableViewUpdatePart : MPTableViewUpdateBase
 
-- (BOOL)addMoveOutRow:(NSUInteger)row;
-- (BOOL)addMoveInRow:(NSUInteger)row withFrame:(CGRect)frame withOriginIndexPath:(MPIndexPath *)originIndexPath;
-
 - (BOOL)addDeleteRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation;
 - (BOOL)addInsertRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation;
 - (BOOL)addReloadRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation;
+
+- (BOOL)addMoveOutRow:(NSUInteger)row;
+- (BOOL)addMoveInRow:(NSUInteger)row withFrame:(CGRect)frame withLastIndexPath:(MPIndexPath *)lastIndexPath;
+
+@end
+
+#pragma mark -
+
+@interface MPTableViewEstimatedManager : NSObject
+
+- (CGFloat)startEstimatedForTableView:(MPTableView *)tableView atFirstIndexPath:(MPIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections; // the firstIndexPath is not always be [tableView _beginIndexPath]
 
 @end
 
@@ -186,24 +202,24 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
 @property (nonatomic, strong) MPTableViewUpdatePart *updatePart;
 
-@property (nonatomic, assign) CGFloat moveOutHeight;
+@property (nonatomic, assign) CGFloat moveOutHeight; // backup for update
 
 + (instancetype)section;
-- (void)resetSection;
+- (void)reset;
 
-- (void)addRowWithPosition:(CGFloat)position;
-- (CGFloat)rowPositionBeginAt:(NSInteger)index;
-- (CGFloat)rowHeightAt:(NSInteger)index;
-- (CGFloat)rowPositionEndAt:(NSInteger)index;
-- (NSInteger)rowAtContentOffset:(CGFloat)contentOffset;
+- (void)addRowPosition:(CGFloat)position;
+- (CGFloat)positionStartAtRow:(NSInteger)row;
+- (CGFloat)heightAtRow:(NSInteger)row;
+- (CGFloat)positionEndAtRow:(NSInteger)row;
+- (NSInteger)rowAtContentOffsetY:(CGFloat)contentOffsetY;
 
-- (void)setPositionOffset:(CGFloat)offset;
+- (void)makeOffset:(CGFloat)offset;
 
-- (MPTableViewSection *)rebuildAndBackup:(MPTableView *)updateDelegate fromOriginSection:(NSInteger)originSection withDistance:(CGFloat)distance;
+- (void)rebuildForTableView:(MPTableView *)tableView withLastSection:(NSInteger)lastSection withDistance:(CGFloat)distance; // return a backup
 
-- (CGFloat)updateUsingPartWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needAnimated:(BOOL)callback;
-- (CGFloat)updateWithDelegate:(MPTableView *)updateDelegate toSection:(NSInteger)newSection withOffset:(CGFloat)offset needAnimated:(BOOL)callback;
+- (CGFloat)startUpdateUsingPartForTableView:(MPTableView *)tableView toNewSection:(NSInteger)newSection withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
+- (CGFloat)startUpdateForTableView:(MPTableView *)tableView toNewSection:(NSInteger)newSection withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
 
-- (CGFloat)updateEstimatedWith:(MPTableView *)updateDelegate beginIndex:(NSInteger)beginIndex withOffset:(CGFloat)offset needAnimated:(BOOL)callback;
+- (CGFloat)startEstimatedForTableView:(MPTableView *)tableView atFirstRow:(NSInteger)firstRow withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
 
 @end

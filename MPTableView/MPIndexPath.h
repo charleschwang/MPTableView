@@ -21,7 +21,7 @@
 #endif
 
 @interface MPIndexPath : NSObject<NSCopying, NSMutableCopying> {
-    @protected
+@protected
     NSInteger *_indexes;
     NSUInteger _length;
 }

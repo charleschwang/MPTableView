@@ -27,12 +27,14 @@
         
         self.btn_movement = [[UIButton alloc] initWithFrame:frame];
         [self.btn_movement setTitle:@"drag" forState:UIControlStateNormal];
+        [self.btn_movement setTitle:@"dragging" forState:UIControlStateHighlighted];
         [self.btn_movement setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+        [self.btn_movement setTitleColor:[UIColor redColor] forState:UIControlStateHighlighted];
         self.btn_movement.titleLabel.font = [UIFont systemFontOfSize:11];
         self.btn_movement.backgroundColor = [UIColor whiteColor];
         
         // =========================================================
-        self.btn_movement.userInteractionEnabled = NO; // @required
+        self.btn_movement.userInteractionEnabled = NO; // we need the area of this button to start dragging the cell.
         // =========================================================
         
         [self addSubview:self.btn_movement];
@@ -47,15 +49,15 @@
 - (void)setFrame:(CGRect)frame {
     [super setFrame:frame];
     self.label_title.frame = self.bounds;
-    self.btn_movement.frame = [self rectForMoving];
+    self.btn_movement.frame = [self rectForDrag];
     [self.btn_movement layoutSubviews]; // The label of UIButton doesn't layout immediately after set a new frame to this UIButton, that may cause the label layout in an animation block when the table view is updating.
 }
 
-- (CGRect)rectForMoving {
+- (CGRect)rectForDrag {
     return CGRectMake(self.bounds.size.width / 4 * 3, 2, self.bounds.size.width / 4, self.bounds.size.height - 3);
 }
 
-- (void)prepareForRecovery {
+- (void)prepareForRecycle {
     self.transform = CGAffineTransformMakeScale(1, 1);
 }
 

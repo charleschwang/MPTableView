@@ -13,6 +13,6 @@
 @property (nonatomic, strong) UILabel *label_title;
 @property (nonatomic, strong) UIButton *btn_movement;
 
-- (CGRect)rectForMoving;
+- (CGRect)rectForDrag;
 
 @end
