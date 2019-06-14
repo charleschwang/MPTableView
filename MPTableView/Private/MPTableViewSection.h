@@ -35,8 +35,8 @@ typedef struct struct_MPIndexPath {
     NSInteger section, row;
 } MPIndexPathStruct;
 
-typedef NS_ENUM(NSInteger, MPSectionType) {
-    MPSectionTypeHeader = NSIntegerMin + 32, MPSectionTypeFooter = NSIntegerMax - 32
+typedef NS_ENUM(NSInteger, MPSectionViewType) {
+    MPSectionHeader = NSIntegerMin + 32, MPSectionFooter = NSIntegerMax - 32
 };
 
 typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
@@ -105,14 +105,14 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 - (void)_updateAdjustCellToSection:(NSInteger)section atRow:(NSInteger)row fromLastSection:(NSInteger)lastSection andLastRow:(NSInteger)lastRow withLastHeight:(CGFloat)lastHeight withOffset:(CGFloat)cellOffset;
 
 // update section views
-- (void)_updateDeleteSectionViewInSection:(NSInteger)section withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withDeleteSection:(MPTableViewSection *)deleteSection;
-- (void)_updateInsertSectionViewToSection:(NSInteger)section withType:(MPSectionType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection withLastInsertionOriginY:(CGFloat)updateLastInsertionOriginY;
+- (void)_updateDeleteSectionViewInSection:(NSInteger)section withType:(MPSectionViewType)type withAnimation:(MPTableViewRowAnimation)animation withDeleteSection:(MPTableViewSection *)deleteSection;
+- (void)_updateInsertSectionViewToSection:(NSInteger)section withType:(MPSectionViewType)type withAnimation:(MPTableViewRowAnimation)animation withInsertSection:(MPTableViewSection *)insertSection withLastInsertionOriginY:(CGFloat)updateLastInsertionOriginY;
 
-- (void)_updateMoveSectionViewToSection:(NSInteger)section fromLastSection:(NSInteger)lastSection withType:(MPSectionType)type withLastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
+- (void)_updateMoveSectionViewToSection:(NSInteger)section fromLastSection:(NSInteger)lastSection withType:(MPSectionViewType)type withLastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
 
-- (BOOL)_updateNeedToAdjustSectionViewInLastSection:(NSInteger)lastSection withType:(MPSectionType)type;
+- (BOOL)_updateNeedToAdjustSectionViewInLastSection:(NSInteger)lastSection withType:(MPSectionViewType)type;
 
-- (void)_updateAdjustSectionViewFromSection:(NSInteger)lastSection toSection:(NSInteger)section withType:(MPSectionType)type withLastHeight:(CGFloat)lastHeight withSectionOffset:(CGFloat)sectionOffset;
+- (void)_updateAdjustSectionViewFromSection:(NSInteger)lastSection toSection:(NSInteger)section withType:(MPSectionViewType)type withLastHeight:(CGFloat)lastHeight withSectionOffset:(CGFloat)sectionOffset;
 
 @end
 
@@ -130,11 +130,11 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 - (BOOL)_estimatedNeedToDisplaySection:(MPTableViewSection *)section withOffset:(CGFloat)offset;
 
-- (CGFloat)_estimatedGetSectionViewHeightWithType:(MPSectionType)type inSection:(MPTableViewSection *)section;
+- (CGFloat)_estimatedGetSectionViewHeightWithType:(MPSectionViewType)type inSection:(MPTableViewSection *)section;
 
 - (CGFloat)_estimatedDisplayCellInSection:(NSInteger)section atRow:(NSInteger)row withOffset:(CGFloat)cellOffset;
 
-- (void)_estimatedDisplaySectionViewInSection:(NSInteger)section withType:(MPSectionType)type;
+- (void)_estimatedDisplaySectionViewInSection:(NSInteger)section withType:(MPSectionViewType)type;
 
 @end
 
@@ -188,7 +188,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 @interface MPTableViewEstimatedManager : NSObject
 
-- (CGFloat)startEstimatedForTableView:(MPTableView *)tableView atFirstIndexPath:(MPIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections; // the firstIndexPath is not always be [tableView _beginIndexPath]
+- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstIndexPath:(MPIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections; // the firstIndexPath is not always be [tableView _beginIndexPath]
 
 @end
 
@@ -220,6 +220,6 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 - (CGFloat)startUpdateUsingPartForTableView:(MPTableView *)tableView toNewSection:(NSInteger)newSection withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
 - (CGFloat)startUpdateForTableView:(MPTableView *)tableView toNewSection:(NSInteger)newSection withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
 
-- (CGFloat)startEstimatedForTableView:(MPTableView *)tableView atFirstRow:(NSInteger)firstRow withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
+- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstRow:(NSInteger)firstRow withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
 
 @end

@@ -511,8 +511,8 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
                     [self.tableView _updateDeleteCellInSection:node.lastIndex atRow:k withAnimation:node.animation inSectionPosition:deleteSection];
                 }
                 
-                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionTypeHeader withAnimation:node.animation withDeleteSection:deleteSection];
-                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionTypeFooter withAnimation:node.animation withDeleteSection:deleteSection];
+                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionHeader withAnimation:node.animation withDeleteSection:deleteSection];
+                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionFooter withAnimation:node.animation withDeleteSection:deleteSection];
             }
             
             [self _executeInsertionsForSection:insertSection andNode:node];
@@ -542,8 +542,8 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
                     [self.tableView _updateDeleteCellInSection:node.lastIndex atRow:k withAnimation:node.animation inSectionPosition:deleteSection];
                 }
                 
-                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionTypeHeader withAnimation:node.animation withDeleteSection:deleteSection];
-                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionTypeFooter withAnimation:node.animation withDeleteSection:deleteSection];
+                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionHeader withAnimation:node.animation withDeleteSection:deleteSection];
+                [self.tableView _updateDeleteSectionViewInSection:node.lastIndex withType:MPSectionFooter withAnimation:node.animation withDeleteSection:deleteSection];
             }
             
             index = node.index;
@@ -611,8 +611,8 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
             [self.tableView _updateInsertCellToSection:node.index atRow:k withAnimation:node.animation inSectionPosition:insertSection withLastInsertionOriginY:updateLastInsertionOriginY];
         }
         
-        [self.tableView _updateInsertSectionViewToSection:node.index withType:MPSectionTypeHeader withAnimation:node.animation withInsertSection:insertSection withLastInsertionOriginY:updateLastInsertionOriginY];
-        [self.tableView _updateInsertSectionViewToSection:node.index withType:MPSectionTypeFooter withAnimation:node.animation withInsertSection:insertSection withLastInsertionOriginY:updateLastInsertionOriginY];
+        [self.tableView _updateInsertSectionViewToSection:node.index withType:MPSectionHeader withAnimation:node.animation withInsertSection:insertSection withLastInsertionOriginY:updateLastInsertionOriginY];
+        [self.tableView _updateInsertSectionViewToSection:node.index withType:MPSectionFooter withAnimation:node.animation withInsertSection:insertSection withLastInsertionOriginY:updateLastInsertionOriginY];
     };
     
     [self.tableView._updateExecutionActions addObject:updateAction];
@@ -633,8 +633,8 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
             [self.tableView _updateMoveCellToSection:node.index atRow:k fromLastIndexPath:[MPIndexPath indexPathForRow:k inSection:lastSection.section] withLastHeight:[lastSection heightAtRow:k] withDistance:distance];
         }
         
-        [self.tableView _updateMoveSectionViewToSection:node.index fromLastSection:lastSection.section withType:MPSectionTypeHeader withLastHeight:lastSection.headerHeight withDistance:distance];
-        [self.tableView _updateMoveSectionViewToSection:node.index fromLastSection:lastSection.section withType:MPSectionTypeFooter withLastHeight:lastSection.footerHeight withDistance:distance];
+        [self.tableView _updateMoveSectionViewToSection:node.index fromLastSection:lastSection.section withType:MPSectionHeader withLastHeight:lastSection.headerHeight withDistance:distance];
+        [self.tableView _updateMoveSectionViewToSection:node.index fromLastSection:lastSection.section withType:MPSectionFooter withLastHeight:lastSection.footerHeight withDistance:distance];
     };
     
     [self.tableView._updateExecutionActions addObject:updateAction];
@@ -769,7 +769,7 @@ public:
 
 @implementation MPTableViewEstimatedManager
 
-- (CGFloat)startEstimatedForTableView:(MPTableView *)tableView atFirstIndexPath:(MPIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections {
+- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstIndexPath:(MPIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections {
     CGFloat offset = 0;
     NSUInteger sectionsCount = sections.count;
     
@@ -782,14 +782,14 @@ public:
         }
         NSUInteger firstRow = 0;
         if (j == firstIndexPath.section) {
-            if (firstIndexPath.row == MPSectionTypeHeader) {
+            if (firstIndexPath.row == MPSectionHeader) {
                 firstRow = 0;
             } else {
                 firstRow = firstIndexPath.row;
             }
         }
         
-        offset = [section startEstimatedForTableView:tableView atFirstRow:firstRow withOffset:offset needToDisplay:needToDisplay];
+        offset = [section startEstimateForTableView:tableView atFirstRow:firstRow withOffset:offset needToDisplay:needToDisplay];
     }
     
     return offset;
@@ -858,10 +858,10 @@ public:
 
 - (NSInteger)rowAtContentOffsetY:(CGFloat)contentOffsetY {
     if (contentOffsetY <= self.startPos + self.headerHeight) {
-        return MPSectionTypeHeader;
+        return MPSectionHeader;
     }
     if (contentOffsetY >= self.endPos - self.footerHeight) {
-        return MPSectionTypeFooter;
+        return MPSectionFooter;
     }
     
     NSInteger start = 0;
@@ -991,8 +991,8 @@ public:
 }
 
 - (void)_adjustSectionViewsForTableView:(MPTableView *)tableView toNewSection:(NSInteger)newSection fromLastSection:(NSInteger)lastSection withHeaderOffset:(CGFloat)headerOffset andFooterOffset:(CGFloat)footerOffset withLastHeaderHeight:(CGFloat)lastHeaderHeight andLastFooterHeight:(CGFloat)lastFooterHeight needToDisplay:(BOOL)needToDisplay {
-    BOOL needToAdjustHeader = [tableView _updateNeedToAdjustSectionViewInLastSection:lastSection withType:MPSectionTypeHeader] || needToDisplay; // can't put this "needToDisplay" on left
-    BOOL needToAdjustFooter = [tableView _updateNeedToAdjustSectionViewInLastSection:lastSection withType:MPSectionTypeFooter] || needToDisplay;
+    BOOL needToAdjustHeader = [tableView _updateNeedToAdjustSectionViewInLastSection:lastSection withType:MPSectionHeader] || needToDisplay; // can't put this "needToDisplay" on left
+    BOOL needToAdjustFooter = [tableView _updateNeedToAdjustSectionViewInLastSection:lastSection withType:MPSectionFooter] || needToDisplay;
     
     if (needToAdjustHeader) {
         void (^updateAction)(void) = ^{
@@ -1000,7 +1000,7 @@ public:
                 return;
             }
             
-            [tableView _updateAdjustSectionViewFromSection:lastSection toSection:newSection withType:MPSectionTypeHeader withLastHeight:lastHeaderHeight withSectionOffset:headerOffset];
+            [tableView _updateAdjustSectionViewFromSection:lastSection toSection:newSection withType:MPSectionHeader withLastHeight:lastHeaderHeight withSectionOffset:headerOffset];
         };
         [tableView._updateExecutionActions addObject:updateAction];
     }
@@ -1011,7 +1011,7 @@ public:
                 return;
             }
             
-            [tableView _updateAdjustSectionViewFromSection:lastSection toSection:newSection withType:MPSectionTypeFooter withLastHeight:lastFooterHeight withSectionOffset:footerOffset];
+            [tableView _updateAdjustSectionViewFromSection:lastSection toSection:newSection withType:MPSectionFooter withLastHeight:lastFooterHeight withSectionOffset:footerOffset];
         };
         [tableView._updateExecutionActions addObject:updateAction];
     }
@@ -1363,7 +1363,7 @@ public:
 }
 
 // called only when needToDisplay is YES or offset isn't equal to 0
-- (CGFloat)startEstimatedForTableView:(MPTableView *)tableView atFirstRow:(NSInteger)firstRow withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay {
+- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstRow:(NSInteger)firstRow withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay {
     self.startPos += offset;
     
     CGFloat lastSection = self.section;
@@ -1371,7 +1371,7 @@ public:
     CGFloat newHeaderHeight = 0;
     if (needToDisplay && [tableView _hasEstimatedHeightForHeader]) {
         self.endPos += offset;
-        newHeaderHeight = [tableView _estimatedGetSectionViewHeightWithType:MPSectionTypeHeader inSection:self];
+        newHeaderHeight = [tableView _estimatedGetSectionViewHeightWithType:MPSectionHeader inSection:self];
         self.endPos -= offset;
         if (newHeaderHeight >= 0) {
             offset += newHeaderHeight - self.headerHeight;
@@ -1408,7 +1408,7 @@ public:
     self.endPos += offset;
     
     if (needToDisplay && [tableView _hasEstimatedHeightForFooter]) {
-        CGFloat footerHeight = [tableView _estimatedGetSectionViewHeightWithType:MPSectionTypeFooter inSection:self];
+        CGFloat footerHeight = [tableView _estimatedGetSectionViewHeightWithType:MPSectionFooter inSection:self];
         if (footerHeight >= 0) {
             CGFloat newOffset = footerHeight - self.footerHeight;
             offset += newOffset;
@@ -1418,8 +1418,8 @@ public:
     }
     
     if (needToDisplay) {
-        [tableView _estimatedDisplaySectionViewInSection:lastSection withType:MPSectionTypeHeader];
-        [tableView _estimatedDisplaySectionViewInSection:lastSection withType:MPSectionTypeFooter];
+        [tableView _estimatedDisplaySectionViewInSection:lastSection withType:MPSectionHeader];
+        [tableView _estimatedDisplaySectionViewInSection:lastSection withType:MPSectionFooter];
     }
     
     return offset;
