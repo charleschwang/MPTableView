@@ -8,8 +8,6 @@
 
 #import <UIKit/UIKit.h>
 
-#import "MPIndexPath.h"
-
 @interface MPTableReusableView : UIView
 
 @property (nonatomic, copy, readonly) NSString *reuseIdentifier;

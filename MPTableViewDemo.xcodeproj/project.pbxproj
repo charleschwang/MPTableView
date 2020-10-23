@@ -20,7 +20,6 @@
 		188776011CA533320073A24C /* MPTableViewDemoUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 188776001CA533320073A24C /* MPTableViewDemoUITests.m */; };
 		65B6D1472185FC5E00C100F7 /* MPTableViewCell.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1402185FC5E00C100F7 /* MPTableViewCell.mm */; };
 		65B6D1482185FC5E00C100F7 /* MPTableViewSection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1422185FC5E00C100F7 /* MPTableViewSection.mm */; };
-		65B6D1492185FC5E00C100F7 /* MPIndexPath.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1442185FC5E00C100F7 /* MPIndexPath.m */; };
 		65B6D14A2185FC5E00C100F7 /* MPTableView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65B6D1452185FC5E00C100F7 /* MPTableView.m */; };
 /* End PBXBuildFile section */
 
@@ -64,11 +63,9 @@
 		188776001CA533320073A24C /* MPTableViewDemoUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MPTableViewDemoUITests.m; sourceTree = "<group>"; };
 		188776021CA533320073A24C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		65B6D13E2185FC5E00C100F7 /* MPTableView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableView.h; sourceTree = "<group>"; };
-		65B6D13F2185FC5E00C100F7 /* MPIndexPath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPIndexPath.h; sourceTree = "<group>"; };
 		65B6D1402185FC5E00C100F7 /* MPTableViewCell.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MPTableViewCell.mm; sourceTree = "<group>"; };
 		65B6D1422185FC5E00C100F7 /* MPTableViewSection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MPTableViewSection.mm; sourceTree = "<group>"; };
 		65B6D1432185FC5E00C100F7 /* MPTableViewSection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableViewSection.h; sourceTree = "<group>"; };
-		65B6D1442185FC5E00C100F7 /* MPIndexPath.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MPIndexPath.m; sourceTree = "<group>"; };
 		65B6D1452185FC5E00C100F7 /* MPTableView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MPTableView.m; sourceTree = "<group>"; };
 		65B6D1462185FC5E00C100F7 /* MPTableViewCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MPTableViewCell.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -173,8 +170,6 @@
 				65B6D1452185FC5E00C100F7 /* MPTableView.m */,
 				65B6D1462185FC5E00C100F7 /* MPTableViewCell.h */,
 				65B6D1402185FC5E00C100F7 /* MPTableViewCell.mm */,
-				65B6D13F2185FC5E00C100F7 /* MPIndexPath.h */,
-				65B6D1442185FC5E00C100F7 /* MPIndexPath.m */,
 				65B6D1412185FC5E00C100F7 /* Private */,
 			);
 			path = MPTableView;
@@ -272,6 +267,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -322,7 +318,6 @@
 			files = (
 				65B6D1482185FC5E00C100F7 /* MPTableViewSection.mm in Sources */,
 				183F88531CA914B800D0A903 /* MySectionView.m in Sources */,
-				65B6D1492185FC5E00C100F7 /* MPIndexPath.m in Sources */,
 				188775E31CA533320073A24C /* ViewController.m in Sources */,
 				188775E01CA533320073A24C /* AppDelegate.m in Sources */,
 				65B6D14A2185FC5E00C100F7 /* MPTableView.m in Sources */,

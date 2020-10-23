@@ -64,21 +64,20 @@ class MPTableViewUpdateNode {
 public:
     MPTableViewUpdateType updateType;
     MPTableViewRowAnimation animation;
-    NSInteger index, lastIndex;
+    NSUInteger index, lastIndex;
 };
 
 typedef vector<MPTableViewUpdateNode> MPTableViewUpdateNodesVec;
 
 NS_INLINE bool
-MPUpdateSort(const MPTableViewUpdateNode node1, const MPTableViewUpdateNode node2) {
+MPUpdateNodeSort(const MPTableViewUpdateNode &node1, const MPTableViewUpdateNode &node2) {
     return node1.index < node2.index;
 }
 
-template <class MPUpdateNode>
-void
-MPUpdateMove(vector<MPUpdateNode> *updateNodesVec, NSInteger lastIndex, NSInteger index) {
+static void
+MPUpdateNodeMove(MPTableViewUpdateNodesVec &updateNodesVec, NSInteger lastIndex, NSInteger index) {
 #if DEBUG
-    assert(lastIndex < updateNodesVec->size() && index < updateNodesVec->size());
+    assert(lastIndex < updateNodesVec.size() && index < updateNodesVec.size());
 #endif
     
     NSInteger start;
@@ -95,72 +94,86 @@ MPUpdateMove(vector<MPUpdateNode> *updateNodesVec, NSInteger lastIndex, NSIntege
     } else {
         return;
     }
-    rotate(updateNodesVec->begin() + start, updateNodesVec->begin() + middle, updateNodesVec->begin() + end);
+    
+    rotate(updateNodesVec.begin() + start, updateNodesVec.begin() + middle, updateNodesVec.begin() + end);
 }
 
-template <class MPUpdateNode>
-void
-MPUpdateConverge(vector<MPUpdateNode> *updateNodesVec) {
-    sort(updateNodesVec->begin(), updateNodesVec->end(), MPUpdateSort);
+static void
+MPUpdateNodesConverge(MPTableViewUpdateNodesVec &updateNodesVec) {
+    sort(updateNodesVec.begin(), updateNodesVec.end(), MPUpdateNodeSort);
     
     NSInteger backTrackIndex = 0;
     NSInteger step = 0;
-    NSUInteger count = updateNodesVec->size();
+    NSInteger backTrackStep = 0;
+    NSUInteger count = updateNodesVec.size();
     
     // make nodes not duplicate
     for (NSInteger i = 0; i < count; ++i) {
-        MPUpdateNode *node = &(*updateNodesVec)[i];
-        if (node->updateType == MPTableViewUpdateAdjust) {
-            continue;
-        }
+        MPTableViewUpdateNode *node = &updateNodesVec[i];
+//        if (node->updateType == MPTableViewUpdateAdjust) {
+//            continue;
+//        }
+        
         if (MPTableViewUpdateTypeUnstable(node->updateType)) { // unstable
             node->index += step;
             if (node->updateType != MPTableViewUpdateReload) {
                 --step;
             }
             while (backTrackIndex < i) {
-                MPUpdateNode *backTrackNode = &(*updateNodesVec)[backTrackIndex];
-                if (MPTableViewUpdateTypeStable(backTrackNode->updateType)) {
-                    if (node->index >= backTrackNode->index) { // unstable >= stable
-                        ++node->index;
-                        ++step;
-                    } else {
-                        MPUpdateMove(updateNodesVec, i, backTrackIndex);
-                        ++backTrackIndex;
-                        break;
-                    }
+                MPTableViewUpdateNode *backTrackNode = &updateNodesVec[backTrackIndex];
+                if (MPTableViewUpdateTypeUnstable(backTrackNode->updateType)) {
+                    break;
+                }
+                if (node->index >= backTrackNode->index) { // unstable >= stable
+                    ++node->index;
+                    ++step;
                     ++backTrackIndex;
                 } else {
+                    MPUpdateNodeMove(updateNodesVec, i, backTrackIndex);
+                    ++backTrackIndex;
                     break;
                 }
             }
         } else { // stable
             while (backTrackIndex < i) {
-                MPUpdateNode *backTrackNode = &(*updateNodesVec)[backTrackIndex];
-                if (MPTableViewUpdateTypeUnstable(backTrackNode->updateType)) {
-                    if (node->index <= backTrackNode->index) { // stable <= unstable
-                        MPUpdateMove(updateNodesVec, i, backTrackIndex);
-                        ++step;
-                        NSInteger tracking = ++backTrackIndex;
-                        do {
-                            node = &(*updateNodesVec)[tracking++];
-                            ++node->index;
-                        } while (tracking <= i);
-                        break;
-                    }
-                    ++backTrackIndex;
-                } else {
+                MPTableViewUpdateNode *backTrackNode = &updateNodesVec[backTrackIndex];
+                if (MPTableViewUpdateTypeStable(backTrackNode->updateType)) {
                     break;
+                }
+                if (node->index <= (backTrackNode->index + backTrackStep)) { // stable <= unstable
+                    MPUpdateNodeMove(updateNodesVec, i, backTrackIndex);
+                    ++backTrackStep;
+                    ++backTrackIndex;
+                    break;
+                } else if (backTrackStep != 0) {
+                    NSInteger tracking = backTrackIndex;
+                    while (true) {
+                        backTrackNode->index += backTrackStep;
+                        if (tracking + 1 >= i) {
+                            break;
+                        } else {
+                            backTrackNode = &updateNodesVec[++tracking];
+                        }
+                    }
+                    step += backTrackStep;
+                    backTrackStep = 0;
+                } else {
+                    ++backTrackIndex;
                 }
             }
         }
     }
+    if (backTrackStep != 0) {
+        do {
+            MPTableViewUpdateNode *backTrackNode = &updateNodesVec[backTrackIndex++];
+            backTrackNode->index += backTrackStep;
+        } while (backTrackIndex < count);
+    }
 }
 
 static bool
-MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteger count, bool isStable) {
-    MPTableViewUpdateNodesVec::reverse_iterator rlast = updateNodesVec->rend();
-    for (MPTableViewUpdateNodesVec::reverse_iterator rfirst = updateNodesVec->rbegin(); rfirst != rlast; ++rfirst) {
+MPUpdateNodesBoundaryCheckReverse(const MPTableViewUpdateNodesVec &updateNodesVec, NSUInteger count, bool isStable) {
+    for (auto rfirst = updateNodesVec.rbegin(), rlast = updateNodesVec.rend(); rfirst != rlast; ++rfirst) {
         if (isStable) {
             if (MPTableViewUpdateTypeStable(rfirst->updateType)) {
                 return rfirst->index < count;
@@ -171,12 +184,13 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
             }
         }
     }
+    
     return YES;
 }
 
 @implementation MPTableViewUpdateBase {
 @public
-    MPTableViewUpdateNodesVec *_updateNodesVec;
+    MPTableViewUpdateNodesVec _updateNodesVec;
 }
 
 - (instancetype)init {
@@ -186,13 +200,12 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         _differ = 0;
         _newCount = NSNotFound;
         _lastCount = NSNotFound;
-        _updateNodesVec = new MPTableViewUpdateNodesVec();
     }
     return self;
 }
 
 - (BOOL)prepareAndIgnoreCheck:(BOOL)ignoreCheck {
-    MPUpdateConverge(_updateNodesVec);
+    MPUpdateNodesConverge(_updateNodesVec);
     
     if (ignoreCheck) {
         return YES;
@@ -201,17 +214,15 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     if (self.lastCount + _differ != self.newCount) {
         return NO;
     } else {
-        if (_updateNodesVec->size() == 0) {
+        if (_updateNodesVec.size() == 0) {
             return YES;
         } else {
-            return MPUpdateBoundaryCheckReverse(_updateNodesVec, self.lastCount, NO) && MPUpdateBoundaryCheckReverse(_updateNodesVec, self.newCount, YES);
+            return MPUpdateNodesBoundaryCheckReverse(_updateNodesVec, self.lastCount, false) && MPUpdateNodesBoundaryCheckReverse(_updateNodesVec, self.newCount, true);
         }
     }
 }
 
 - (void)dealloc {
-    delete _updateNodesVec;
-    _updateNodesVec = NULL;
     _existingUnstableIndexes = _existingStableIndexes = nil;
 }
 
@@ -221,13 +232,12 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
 
 @implementation MPTableViewUpdateManager {
     NSMutableIndexSet *_existingUpdatePartsIndexes;
-    map<NSInteger, MPTableViewSection *> _movedSectionsMap;
+    map<NSUInteger, MPTableViewSection *> _movedSectionsMap;
 }
 
 - (instancetype)init {
     if (self = [super init]) {
         _existingUpdatePartsIndexes = [[NSMutableIndexSet alloc] init];
-        _movedSectionsMap = map<NSInteger, MPTableViewSection *>();
     }
     return self;
 }
@@ -254,7 +264,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
 }
 
 - (BOOL)hasUpdateNodes {
-    if (_updateNodesVec->size() != 0 || _existingUpdatePartsIndexes.count != 0) {
+    if (_updateNodesVec.size() != 0 || _existingUpdatePartsIndexes.count != 0) {
         return YES;
     } else {
         return NO;
@@ -262,7 +272,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
 }
 
 - (void)reset {
-    _updateNodesVec->clear();
+    _updateNodesVec.clear();
     _movedSectionsMap.clear();
     
     [_existingStableIndexes removeAllIndexes];
@@ -276,7 +286,6 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
 - (void)dealloc {
     [_existingUpdatePartsIndexes removeAllIndexes];
     _existingUpdatePartsIndexes = nil;
-    _movedSectionsMap.clear();
 }
 
 #pragma mark -
@@ -289,13 +298,13 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         --_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = section;
     node.updateType = MPTableViewUpdateDelete;
     node.animation = animation;
     node.lastIndex = section;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
@@ -307,13 +316,13 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         ++_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = section;
     node.updateType = MPTableViewUpdateInsert;
     node.animation = animation;
     node.lastIndex = section;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
@@ -324,13 +333,13 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         [_existingUnstableIndexes addIndex:section];
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = section;
     node.updateType = MPTableViewUpdateReload;
     node.animation = animation;
     node.lastIndex = section;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
@@ -342,12 +351,12 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         --_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = section;
     node.updateType = MPTableViewUpdateMoveOut;
     node.lastIndex = section;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
@@ -359,13 +368,13 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         ++_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = section;
     node.updateType = MPTableViewUpdateMoveIn;
     node.lastIndex = section;
     
-    _updateNodesVec->push_back(node);
-    _movedSectionsMap.insert(pair<NSInteger, MPTableViewSection *>(section, _sections[lastSection]));
+    _updateNodesVec.push_back(node);
+    _movedSectionsMap.insert(pair<NSUInteger, MPTableViewSection *>(section, _sections[lastSection]));
     return YES;
 }
 
@@ -383,7 +392,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     return part;
 }
 
-- (BOOL)addDeleteIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
+- (BOOL)addDeleteIndexPath:(NSIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
     if ([_existingUnstableIndexes containsIndex:indexPath.section]) {
         return NO;
     }
@@ -392,7 +401,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     return [part addDeleteRow:indexPath.row withAnimation:animation];
 }
 
-- (BOOL)addInsertIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
+- (BOOL)addInsertIndexPath:(NSIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
     if ([_existingUnstableIndexes containsIndex:indexPath.section]) {
         return NO;
     }
@@ -401,7 +410,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     return [part addInsertRow:indexPath.row withAnimation:animation];
 }
 
-- (BOOL)addReloadIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
+- (BOOL)addReloadIndexPath:(NSIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation {
     if ([_existingUnstableIndexes containsIndex:indexPath.section]) {
         return NO;
     }
@@ -410,7 +419,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     return [part addReloadRow:indexPath.row withAnimation:animation];
 }
 
-- (BOOL)addMoveOutIndexPath:(MPIndexPath *)indexPath {
+- (BOOL)addMoveOutIndexPath:(NSIndexPath *)indexPath {
     if ([_existingUnstableIndexes containsIndex:indexPath.section]) {
         return NO;
     }
@@ -419,7 +428,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     return [part addMoveOutRow:indexPath.row];
 }
 
-- (BOOL)addMoveInIndexPath:(MPIndexPath *)indexPath withFrame:(CGRect)frame withLastIndexPath:(MPIndexPath *)lastIndexPath {
+- (BOOL)addMoveInIndexPath:(NSIndexPath *)indexPath withFrame:(CGRect)frame withLastIndexPath:(NSIndexPath *)lastIndexPath {
     if ([_existingUnstableIndexes containsIndex:indexPath.section]) {
         return NO;
     }
@@ -432,18 +441,17 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     CGFloat offset = 0;
     NSUInteger sectionsCount = self.lastCount;
     
-    MPTableViewUpdateNodesVec *nodes = _updateNodesVec;
     NSInteger index = 0, step = 0;
-    NSUInteger nodesCount = nodes->size();
+    NSUInteger nodesCount = _updateNodesVec.size();
     
     BOOL hasDragCell = [self.tableView _hasDragCell];
     
     for (NSInteger i = 0; i < nodesCount; ++i) {
-        MPTableViewUpdateNode node = (*nodes)[i];
+        const MPTableViewUpdateNode &node = _updateNodesVec[i];
         
         for (NSInteger j = index; j < node.index; ++j) {
             MPTableViewSection *section = _sections[j];
-            BOOL needToDisplay = [self.tableView _updateNeedToDisplaySection:section updateType:MPTableViewUpdateAdjust withOffset:offset];
+            BOOL needToDisplay = [self.tableView _updateNeedToDisplaySection:section withUpdateType:MPTableViewUpdateAdjust withOffset:offset];
             if (MPTableViewUpdateTypeUnstable(node.updateType)) {
                 needToDisplay = needToDisplay && section.section < node.lastIndex;
             }
@@ -506,7 +514,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
             CGFloat height = insertSection.endPos - insertSection.startPos;
             offset += height - (deleteSection.endPos - deleteSection.startPos);
             
-            if ([self.tableView _updateNeedToDisplaySection:deleteSection updateType:MPTableViewUpdateDelete withOffset:0]) {
+            if ([self.tableView _updateNeedToDisplaySection:deleteSection withUpdateType:MPTableViewUpdateDelete withOffset:0]) {
                 for (NSInteger k = 0; k < deleteSection.numberOfRows; ++k) {
                     [self.tableView _updateDeleteCellInSection:node.lastIndex atRow:k withAnimation:node.animation inSectionPosition:deleteSection];
                 }
@@ -537,7 +545,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
             [_sections removeObjectAtIndex:node.index];
             
             // node.index - step - 1 == node.lastIndex
-            if (node.updateType == MPTableViewUpdateDelete && [self.tableView _updateNeedToDisplaySection:deleteSection updateType:MPTableViewUpdateDelete withOffset:0]) {
+            if (node.updateType == MPTableViewUpdateDelete && [self.tableView _updateNeedToDisplaySection:deleteSection withUpdateType:MPTableViewUpdateDelete withOffset:0]) {
                 for (NSInteger k = 0; k < deleteSection.numberOfRows; ++k) {
                     [self.tableView _updateDeleteCellInSection:node.lastIndex atRow:k withAnimation:node.animation inSectionPosition:deleteSection];
                 }
@@ -554,12 +562,12 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
     NSInteger j = index;
     
     if (hasDragCell) {
-        if (self.moveToSection > self.moveFromSection) {
-            j = self.moveFromSection;
-            sectionsCount = self.moveToSection + 1;
+        if (self.dragToSection > self.dragFromSection) {
+            j = self.dragFromSection;
+            sectionsCount = self.dragToSection + 1;
         } else {
-            j = self.moveToSection;
-            sectionsCount = self.moveFromSection + 1;
+            j = self.dragToSection;
+            sectionsCount = self.dragFromSection + 1;
         }
     }
     
@@ -567,7 +575,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         MPTableViewSection *section = _sections[j];
         NSAssert(section.section == j - step, @"An unexpected bug, please contact the author");
         
-        BOOL needToDisplay = [self.tableView _updateNeedToDisplaySection:section updateType:MPTableViewUpdateAdjust withOffset:offset];
+        BOOL needToDisplay = [self.tableView _updateNeedToDisplaySection:section withUpdateType:MPTableViewUpdateAdjust withOffset:offset];
         
         offset = [self _updateAdjustSection:j inSectionPosition:section needToDisplay:needToDisplay hasDragCell:hasDragCell withOffset:offset];
     }
@@ -581,13 +589,13 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
         sectionPosition.updatePart.newCount = numberOfRows;
         
         if (![sectionPosition.updatePart prepareAndIgnoreCheck:hasDragCell]) {
-            MPTableViewThrowUpdateException(@"check the number of rows after insert or delete")
+            MPTV_UPDATE_EXCEPTION(@"check the number of rows after insert or delete")
         }
         
         offset = [sectionPosition startUpdateUsingPartForTableView:self.tableView toNewSection:section withOffset:offset needToDisplay:needToDisplay];
     } else {
         if (numberOfRows != sectionPosition.numberOfRows) {
-            MPTableViewThrowUpdateException(@"check the number of rows from data source")
+            MPTV_UPDATE_EXCEPTION(@"check the number of rows from data source")
         }
         
         offset = [sectionPosition startUpdateForTableView:self.tableView toNewSection:section withOffset:offset needToDisplay:needToDisplay];
@@ -603,7 +611,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
             return;
         }
         
-        if (![self.tableView _updateNeedToDisplaySection:insertSection updateType:MPTableViewUpdateInsert withOffset:0]) {
+        if (![self.tableView _updateNeedToDisplaySection:insertSection withUpdateType:MPTableViewUpdateInsert withOffset:0]) {
             return;
         }
         
@@ -619,18 +627,18 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
 }
 
 - (void)_executeMovementsForSection:(MPTableViewSection *)insertSection fromLastSection:(MPTableViewSection *)lastSection andNode:(MPTableViewUpdateNode)node withDistance:(CGFloat)distance {
-    BOOL onscreen = [self.tableView _updateNeedToDisplaySection:lastSection updateType:MPTableViewUpdateMoveOut withOffset:0];
+    BOOL onscreen = [self.tableView _updateNeedToDisplaySection:lastSection withUpdateType:MPTableViewUpdateMoveOut withOffset:0];
     void (^updateAction)(void) = ^{
         if (!self.tableView) {
             return;
         }
         
-        if (!onscreen && ![self.tableView _updateNeedToDisplaySection:insertSection updateType:MPTableViewUpdateMoveIn withOffset:distance]) {
+        if (!onscreen && ![self.tableView _updateNeedToDisplaySection:insertSection withUpdateType:MPTableViewUpdateMoveIn withOffset:distance]) {
             return;
         }
         
         for (NSInteger k = 0; k < insertSection.numberOfRows; ++k) {
-            [self.tableView _updateMoveCellToSection:node.index atRow:k fromLastIndexPath:[MPIndexPath indexPathForRow:k inSection:lastSection.section] withLastHeight:[lastSection heightAtRow:k] withDistance:distance];
+            [self.tableView _updateMoveCellToSection:node.index atRow:k fromLastIndexPath:_NSIndexPathPrivateForRowSection(k, lastSection.section) withLastHeight:[lastSection heightAtRow:k] withDistance:distance];
         }
         
         [self.tableView _updateMoveSectionViewToSection:node.index fromLastSection:lastSection.section withType:MPSectionHeader withLastHeight:lastSection.headerHeight withDistance:distance];
@@ -646,7 +654,7 @@ MPUpdateBoundaryCheckReverse(MPTableViewUpdateNodesVec *updateNodesVec, NSUInteg
 
 class MPTableViewUpdateRowInfo {
 public:
-    MPIndexPath *indexPath;
+    NSIndexPath *indexPath;
     CGFloat originY, height;
     
     ~MPTableViewUpdateRowInfo() {
@@ -659,17 +667,6 @@ public:
     map<NSUInteger, MPTableViewUpdateRowInfo> _moveOutRowInfosMap;
 }
 
-- (instancetype)init {
-    if (self = [super init]) {
-        _moveOutRowInfosMap = map<NSUInteger, MPTableViewUpdateRowInfo>();
-    }
-    return self;
-}
-
-- (void)dealloc {
-    _moveOutRowInfosMap.clear();
-}
-
 - (BOOL)addDeleteRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation {
     if ([_existingUnstableIndexes containsIndex:row]) {
         return NO;
@@ -678,13 +675,13 @@ public:
         --_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = row;
     node.updateType = MPTableViewUpdateDelete;
     node.animation = animation;
     node.lastIndex = row;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
@@ -696,13 +693,13 @@ public:
         ++_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = row;
     node.updateType = MPTableViewUpdateInsert;
     node.animation = animation;
     node.lastIndex = row;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
@@ -713,13 +710,13 @@ public:
         [_existingUnstableIndexes addIndex:row];
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = row;
     node.updateType = MPTableViewUpdateReload;
     node.animation = animation;
     node.lastIndex = row;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
@@ -731,16 +728,16 @@ public:
         --_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.index = row;
     node.updateType = MPTableViewUpdateMoveOut;
     node.lastIndex = row;
     
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     return YES;
 }
 
-- (BOOL)addMoveInRow:(NSUInteger)row withFrame:(CGRect)frame withLastIndexPath:(MPIndexPath *)lastIndexPath {
+- (BOOL)addMoveInRow:(NSUInteger)row withFrame:(CGRect)frame withLastIndexPath:(NSIndexPath *)lastIndexPath {
     if ([_existingStableIndexes containsIndex:row]) {
         return NO;
     } else {
@@ -748,13 +745,13 @@ public:
         ++_differ;
     }
     
-    MPTableViewUpdateNode node = MPTableViewUpdateNode();
+    MPTableViewUpdateNode node;
     node.lastIndex = node.index = row;
     
     node.updateType = MPTableViewUpdateMoveIn;
-    _updateNodesVec->push_back(node);
+    _updateNodesVec.push_back(node);
     
-    MPTableViewUpdateRowInfo rowInfo = MPTableViewUpdateRowInfo();
+    MPTableViewUpdateRowInfo rowInfo;
     rowInfo.indexPath = lastIndexPath;
     rowInfo.originY = frame.origin.y;
     rowInfo.height = frame.size.height;
@@ -769,7 +766,7 @@ public:
 
 @implementation MPTableViewEstimatedManager
 
-- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstIndexPath:(MPIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections {
+- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstIndexPath:(NSIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections {
     CGFloat offset = 0;
     NSUInteger sectionsCount = sections.count;
     
@@ -780,9 +777,9 @@ public:
         if (!needToDisplay && offset == 0) {
             continue;
         }
-        NSUInteger firstRow = 0;
+        NSInteger firstRow = 0;
         if (j == firstIndexPath.section) {
-            if (firstIndexPath.row == MPSectionHeader) {
+            if (MPTV_IS_HEADER(firstIndexPath.row)) {
                 firstRow = 0;
             } else {
                 firstRow = firstIndexPath.row;
@@ -800,7 +797,7 @@ public:
 #pragma mark -
 
 @implementation MPTableViewSection {
-    deque<CGFloat> *_rowPositionDeque;
+    deque<CGFloat> _rowPositionDeque;
 }
 
 + (instancetype)section {
@@ -815,17 +812,14 @@ public:
 }
 
 - (void)reset {
-    if (!_rowPositionDeque) {
-        _rowPositionDeque = new deque<CGFloat>();
+    if (_rowPositionDeque.size() > 0) {
+        _rowPositionDeque.clear();
     }
-    if (_rowPositionDeque->size() > 0) {
-        _rowPositionDeque->clear();
-    }
+    _rowPositionDeque.push_back(0);
     
-    _rowPositionDeque->push_back(0);
-    _headerHeight = _footerHeight = 0;
     _numberOfRows = 0;
     self.startPos = self.endPos = 0;
+    self.headerHeight = self.footerHeight = 0;
     self.section = NSNotFound;
     self.moveOutHeight = -1;
     
@@ -833,39 +827,38 @@ public:
 }
 
 - (void)setNumberOfRows:(NSUInteger)numberOfRows {
-    NSAssert(numberOfRows <= MPTableViewMaxCount, @"the number of rows in section is too many");
+    NSAssert(numberOfRows <= MPTV_MAXCOUNT, @"the number of rows in section is too many");
     
     _numberOfRows = numberOfRows;
-    //_rowPositionVec->resize(numberOfRows + 1);
-    _rowPositionDeque->at(0) = self.startPos + _headerHeight;
+    _rowPositionDeque[0] = self.startPos + _headerHeight;
 }
 
 - (void)addRowPosition:(CGFloat)end {
-    _rowPositionDeque->push_back(end);
+    _rowPositionDeque.push_back(end);
 }
 
 - (CGFloat)positionStartAtRow:(NSInteger)row {
-    return (*_rowPositionDeque)[row];
+    return _rowPositionDeque[row];
 }
 
 - (CGFloat)heightAtRow:(NSInteger)row {
-    return (*_rowPositionDeque)[row + 1] - (*_rowPositionDeque)[row];
+    return _rowPositionDeque[row + 1] - _rowPositionDeque[row];
 }
 
 - (CGFloat)positionEndAtRow:(NSInteger)row {
-    return (*_rowPositionDeque)[row + 1];
+    return _rowPositionDeque[row + 1];
 }
 
 - (NSInteger)rowAtContentOffsetY:(CGFloat)contentOffsetY {
-    if (contentOffsetY <= self.startPos + self.headerHeight) {
+    if (self.headerHeight > 0 && (contentOffsetY <= self.startPos + self.headerHeight)) {
         return MPSectionHeader;
     }
-    if (contentOffsetY >= self.endPos - self.footerHeight) {
+    if (self.footerHeight > 0 && (contentOffsetY >= self.endPos - self.footerHeight)) {
         return MPSectionFooter;
     }
     
     NSInteger start = 0;
-    NSInteger end = _numberOfRows;
+    NSInteger end = _numberOfRows - 1;
     NSInteger middle = 0;
     while (start <= end) {
         middle = (start + end) / 2;
@@ -879,7 +872,8 @@ public:
             return middle;
         }
     }
-    return NSNotFound;
+    
+    return middle; // floating-point precision
 }
 
 - (id)copyWithZone:(NSZone *)zone {
@@ -887,7 +881,7 @@ public:
     section.section = self.section;
     section.headerHeight = self.headerHeight;
     section.footerHeight = self.footerHeight;
-    section->_rowPositionDeque = new deque<CGFloat>(*_rowPositionDeque);
+    section->_rowPositionDeque = _rowPositionDeque;
     section.numberOfRows = self.numberOfRows;
     section.moveOutHeight = self.moveOutHeight;
     
@@ -898,26 +892,21 @@ public:
     return [NSString stringWithFormat:@"%@, section:%zd, numberOfRows:%zd, headerHeight:%.2f, footerHeight:%.2f", [super description], self.section, _numberOfRows, _headerHeight, _footerHeight];
 }
 
-- (void)dealloc {
-    delete _rowPositionDeque;
-    _rowPositionDeque = NULL;
-}
-
 #pragma mark -
 
 - (void)_removeRowPositionAtIndex:(NSInteger)index {
-    deque<CGFloat>::iterator it = _rowPositionDeque->begin() + index + 1;
-    _rowPositionDeque->erase(it);
+    auto it = _rowPositionDeque.begin() + index + 1;
+    _rowPositionDeque.erase(it);
 }
 
 - (void)_insertRow:(NSInteger)row withHeight:(CGFloat)height {
-    deque<CGFloat>::iterator it = _rowPositionDeque->begin() + row + 1;
-    CGFloat endPos = height + (*_rowPositionDeque)[row];
-    _rowPositionDeque->insert(it, endPos);
+    auto it = _rowPositionDeque.begin() + row + 1;
+    CGFloat endPos = height + _rowPositionDeque[row];
+    _rowPositionDeque.insert(it, endPos);
 }
 
 - (void)_reloadRow:(NSInteger)row withHeight:(CGFloat)height {
-    (*_rowPositionDeque)[row + 1] = (*_rowPositionDeque)[row] + height;
+    _rowPositionDeque[row + 1] = _rowPositionDeque[row] + height;
 }
 
 - (void)makeOffset:(CGFloat)offset {
@@ -928,7 +917,7 @@ public:
     self.startPos += offset;
     self.endPos += offset;
     for (NSInteger i = 0; i <= _numberOfRows; ++i) {
-        (*_rowPositionDeque)[i] += offset;
+        _rowPositionDeque[i] += offset;
     }
 }
 
@@ -937,13 +926,13 @@ public:
     CGFloat lastHeight = [self heightAtRow:row];
     
     if (*needToLoadHeight == YES) {
-        CGFloat newOffset = [tableView _updateGetAdjustCellOffsetAtIndexPath:[MPIndexPath indexPathForRow:row inSection:newSection] fromLastIndexPath:[MPIndexPath indexPathForRow:lastRow inSection:lastSection] withOffset:offset];
+        CGFloat newOffset = [tableView _updateGetAdjustCellOffsetAtIndexPath:_NSIndexPathPrivateForRowSection(row, newSection) fromLastIndexPath:_NSIndexPathPrivateForRowSection(lastRow, lastSection) withOffset:offset];
         if (newOffset != 0) {
-            if (newOffset > MPTableViewMaxSize) {
+            if (newOffset > MPTV_MAXSIZE) {
                 *needToLoadHeight = NO;
             } else {
                 offset += newOffset;
-                (*_rowPositionDeque)[row + 1] += newOffset;
+                _rowPositionDeque[row + 1] += newOffset;
             }
         }
     }
@@ -968,7 +957,7 @@ public:
     }
 }
 
-- (CGFloat)_updateHeaderForTableView:(MPTableView *)tableView fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset  isMovement:(BOOL)isMovement {
+- (CGFloat)_updateHeaderForTableView:(MPTableView *)tableView fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset isMovement:(BOOL)isMovement {
     CGFloat headerHeight = [tableView _updateGetHeaderHeightInSection:self fromLastSection:lastSection withOffset:offset isMovement:isMovement];
     if (headerHeight >= 0) {
         offset += headerHeight - self.headerHeight;
@@ -978,7 +967,7 @@ public:
     return offset;
 }
 
-- (CGFloat)_updateFooterForTableView:(MPTableView *)tableView fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset  isMovement:(BOOL)isMovement {
+- (CGFloat)_updateFooterForTableView:(MPTableView *)tableView fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset isMovement:(BOOL)isMovement {
     CGFloat footerHeight = [tableView _updateGetFooterHeightInSection:self fromLastSection:lastSection withOffset:offset isMovement:isMovement];
     if (footerHeight >= 0) {
         CGFloat newOffset = footerHeight - self.footerHeight;
@@ -1038,11 +1027,10 @@ public:
     
     [tableView _setUpdateLastDeletionOriginY:self.startPos + self.headerHeight];
     
-    (*_rowPositionDeque)[0] += offset; // the deque may be empty, but this seems to be safe...
+    _rowPositionDeque[0] += offset;
     
-    MPTableViewUpdateNodesVec *nodes = part->_updateNodesVec;
     NSInteger index = 1, step = 0;
-    NSUInteger nodesCount = nodes->size();
+    NSUInteger nodesCount = part->_updateNodesVec.size();
     BOOL isBeginSection = (lastSection == [tableView _beginIndexPath].section);
     BOOL isEndSection = (lastSection == [tableView _endIndexPath].section);
     NSInteger beginSectionRow = [tableView _beginIndexPath].row;
@@ -1050,7 +1038,7 @@ public:
     BOOL hasCells = [tableView _updateNeedToAdjustCellsFromLastSection:lastSection];
     
     for (NSInteger i = 0; i < nodesCount; ++i) {
-        MPTableViewUpdateNode node = (*nodes)[i];
+        const MPTableViewUpdateNode &node = part->_updateNodesVec[i];
         NSUInteger idx;
         BOOL isInsert;
         
@@ -1067,10 +1055,10 @@ public:
         if (needCallback) {
             BOOL needToLoadHeight = !hasDragCell;
             for (NSInteger j = index; j <= idx; ++j) {
-                [tableView _setUpdateLastInsertionOriginY:(*_rowPositionDeque)[j]];
+                [tableView _setUpdateLastInsertionOriginY:_rowPositionDeque[j]];
                 
                 if (offset != 0) {
-                    (*_rowPositionDeque)[j] += offset;
+                    _rowPositionDeque[j] += offset;
                 }
                 
                 NSInteger row = j - 1;
@@ -1085,14 +1073,14 @@ public:
                     }
                 }
                 
-                if (hasDragCell && ((isBeginSection && lastRow < beginSectionRow) || (isEndSection && lastRow > endSectionRow))) {
+                if (hasDragCell && ((isBeginSection && MPTV_ROW_LESS(lastRow, beginSectionRow)) || (isEndSection && MPTV_ROW_MORE(lastRow, endSectionRow)))) {
                     continue;
                 }
                 
                 if (needToAdjust) {
                     offset = [self _updateRowForTableView:tableView toNewSection:newSection atRow:row fromLastSection:lastSection andLastRow:lastRow withOffset:offset hasDragCell:hasDragCell needToLoadHeight:&needToLoadHeight];
                     
-                    [tableView _setUpdateLastDeletionOriginY:(*_rowPositionDeque)[j]];
+                    [tableView _setUpdateLastDeletionOriginY:_rowPositionDeque[j]];
                 } else if (offset == 0 && !hasCells) {
                     break;
                 }
@@ -1104,22 +1092,24 @@ public:
             CGFloat cellHeight;
             
             if (node.updateType == MPTableViewUpdateInsert) {
-                cellHeight = [tableView _updateGetInsertCellHeightAtIndexPath:[MPIndexPath indexPathForRow:node.index inSection:newSection]];
+                cellHeight = [tableView _updateGetInsertCellHeightAtIndexPath:_NSIndexPathPrivateForRowSection(node.index, newSection)];
                 [self _insertRow:node.index withHeight:cellHeight];
                 offset += cellHeight;
                 
                 if (needToDisplay) {
                     CGFloat updateLastInsertionOriginY = [tableView _updateLastInsertionOriginY];
+                    NSInteger row = node.index; // A C++ reference will be released in an Objective-C block in release mode
+                    MPTableViewRowAnimation animation = node.animation;
                     void (^updateAction)(void) = ^{
                         if (!tableView) { // necessary
                             return;
                         }
-                        [tableView _updateInsertCellToSection:newSection atRow:node.index withAnimation:node.animation inSectionPosition:nil withLastInsertionOriginY:updateLastInsertionOriginY];
+                        [tableView _updateInsertCellToSection:newSection atRow:row withAnimation:animation inSectionPosition:nil withLastInsertionOriginY:updateLastInsertionOriginY];
                     };
                     [tableView._updateExecutionActions addObject:updateAction];
                 }
             } else {
-                MPTableViewUpdateRowInfo rowInfo = part->_moveOutRowInfosMap.at(node.index);
+                const MPTableViewUpdateRowInfo &rowInfo = part->_moveOutRowInfosMap.at(node.index);
                 cellHeight = rowInfo.height;
                 [self _insertRow:node.index withHeight:cellHeight];
                 offset += cellHeight;
@@ -1129,17 +1119,19 @@ public:
                 if (hasDragCell) {
                     [tableView _updateMoveCellToSection:newSection atRow:node.index fromLastIndexPath:rowInfo.indexPath withLastHeight:cellHeight withDistance:distance];
                 } else {
-                    CGFloat newOffset = [tableView _updateGetMoveInCellOffsetAtIndexPath:[MPIndexPath indexPathForRow:node.index inSection:newSection] fromLastIndexPath:rowInfo.indexPath lastHeight:cellHeight withDistance:distance];
+                    CGFloat newOffset = [tableView _updateGetMoveInCellOffsetAtIndexPath:_NSIndexPathPrivateForRowSection(node.index, newSection) fromLastIndexPath:rowInfo.indexPath lastHeight:cellHeight withDistance:distance];
                     if (newOffset != 0) {
                         offset += newOffset;
-                        (*_rowPositionDeque)[node.index + 1] += newOffset;
+                        _rowPositionDeque[node.index + 1] += newOffset;
                     }
                     
+                    NSInteger row = node.index;
+                    NSIndexPath *indexPath = rowInfo.indexPath;
                     void (^updateAction)(void) = ^{
                         if (!tableView) {
                             return;
                         }
-                        [tableView _updateMoveCellToSection:newSection atRow:node.index fromLastIndexPath:rowInfo.indexPath withLastHeight:cellHeight withDistance:distance];
+                        [tableView _updateMoveCellToSection:newSection atRow:row fromLastIndexPath:indexPath withLastHeight:cellHeight withDistance:distance];
                     };
                     [tableView._updateExecutionActions addObject:updateAction];
                 }
@@ -1147,7 +1139,7 @@ public:
             
             index = node.index + 2;
         } else if (node.updateType == MPTableViewUpdateReload) {
-            CGFloat cellHeight = [tableView _updateGetInsertCellHeightAtIndexPath:[MPIndexPath indexPathForRow:node.index inSection:newSection]];
+            CGFloat cellHeight = [tableView _updateGetInsertCellHeightAtIndexPath:_NSIndexPathPrivateForRowSection(node.index, newSection)];
             offset += cellHeight - [self heightAtRow:node.index];
             [self _reloadRow:node.index withHeight:cellHeight];
             
@@ -1155,11 +1147,13 @@ public:
             [tableView _updateDeleteCellInSection:lastSection atRow:node.lastIndex withAnimation:node.animation inSectionPosition:nil];
             if (needToDisplay) {
                 CGFloat updateLastInsertionOriginY = [tableView _updateLastInsertionOriginY];
+                NSInteger row = node.index;
+                MPTableViewRowAnimation animation = node.animation;
                 void (^updateAction)(void) = ^{
                     if (!tableView) { // necessary
                         return;
                     }
-                    [tableView _updateInsertCellToSection:newSection atRow:node.index withAnimation:node.animation inSectionPosition:nil withLastInsertionOriginY:updateLastInsertionOriginY];
+                    [tableView _updateInsertCellToSection:newSection atRow:row withAnimation:animation inSectionPosition:nil withLastInsertionOriginY:updateLastInsertionOriginY];
                 };
                 [tableView._updateExecutionActions addObject:updateAction];
             }
@@ -1189,7 +1183,7 @@ public:
         BOOL needToLoadHeight = !hasDragCell;
         for (NSInteger j = index; j <= _numberOfRows; ++j) {
             if (offset != 0) {
-                (*_rowPositionDeque)[j] += offset;
+                _rowPositionDeque[j] += offset;
             }
             
             NSInteger row = j - 1;
@@ -1202,7 +1196,7 @@ public:
                 needToAdjust = needToDisplay;
             }
             
-            if (hasDragCell && ((isBeginSection && lastRow < beginSectionRow) || (isEndSection && lastRow > endSectionRow))) {
+            if (hasDragCell && ((isBeginSection && MPTV_ROW_LESS(lastRow, beginSectionRow)) || (isEndSection && MPTV_ROW_MORE(lastRow, endSectionRow)))) {
                 continue;
             }
             
@@ -1249,14 +1243,14 @@ public:
         self.endPos -= lastOffset; // reset the reference
     }
     
-    (*_rowPositionDeque)[0] += offset;
+    _rowPositionDeque[0] += offset;
     
     BOOL hasCells = [tableView _updateNeedToAdjustCellsFromLastSection:lastSection];
     if (offset != 0 || needToDisplay || hasCells) {
         BOOL needToLoadHeight = !hasDragCell;
-        for (NSUInteger i = 0; i < _numberOfRows; ++i) {
+        for (NSInteger i = 0; i < _numberOfRows; ++i) {
             if (offset != 0) {
-                (*_rowPositionDeque)[i + 1] += offset;
+                _rowPositionDeque[i + 1] += offset;
             }
             
             BOOL needToAdjust;
@@ -1302,16 +1296,14 @@ public:
             if (isMovement) {
                 NSInteger section = self.section;
                 self.section = lastSection;
-                BOOL onscreen = [tableView _updateNeedToDisplaySection:self updateType:MPTableViewUpdateMoveIn withOffset:distance] || [tableView _hasDisplayedSection:self];
+                BOOL onscreen = [tableView _updateNeedToDisplaySection:self withUpdateType:MPTableViewUpdateMoveIn withOffset:distance] || [tableView _hasDisplayedSection:self];
                 self.section = section;
                 
                 if (!onscreen) {
                     return;
                 }
-            } else {
-                if (![tableView _updateNeedToDisplaySection:self updateType:MPTableViewUpdateInsert withOffset:0]) {
-                    return;
-                }
+            } else if (![tableView _updateNeedToDisplaySection:self withUpdateType:MPTableViewUpdateInsert withOffset:0]) {
+                return;
             }
         }
     } else {
@@ -1320,7 +1312,7 @@ public:
         }
     }
     
-    // estimated movement and insertion, non-estimated movement
+    // for estimated movement and insertion, non-estimated movement
     CGFloat offset = 0;
     
     if (isMovement || [tableView _hasEstimatedHeightForHeader]) {
@@ -1328,13 +1320,13 @@ public:
         offset -= distance;
     }
     
-    (*_rowPositionDeque)[0] += offset;
+    _rowPositionDeque[0] += offset;
     
     BOOL needToLoadHeight = isMovement || [tableView _hasEstimatedHeightForRow];
     if (needToLoadHeight || offset != 0) {
-        for (NSUInteger i = 0; i < _numberOfRows; ++i) {
+        for (NSInteger i = 0; i < _numberOfRows; ++i) {
             if (offset != 0) {
-                (*_rowPositionDeque)[i + 1] += offset;
+                _rowPositionDeque[i + 1] += offset;
             }
             
             if (!needToLoadHeight) {
@@ -1346,11 +1338,11 @@ public:
             }
             CGFloat newOffset = [tableView _updateGetRebuildCellOffsetInSection:self.section atRow:i fromLastSection:lastSection withDistance:distance];
             if (newOffset != 0) {
-                if (newOffset > MPTableViewMaxSize) {
+                if (newOffset > MPTV_MAXSIZE) {
                     needToLoadHeight = NO;
                 } else {
                     offset += newOffset;
-                    (*_rowPositionDeque)[i + 1] += newOffset;
+                    _rowPositionDeque[i + 1] += newOffset;
                 }
             }
         }
@@ -1366,7 +1358,7 @@ public:
 - (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstRow:(NSInteger)firstRow withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay {
     self.startPos += offset;
     
-    CGFloat lastSection = self.section;
+    NSUInteger lastSection = self.section;
     
     CGFloat newHeaderHeight = 0;
     if (needToDisplay && [tableView _hasEstimatedHeightForHeader]) {
@@ -1379,12 +1371,12 @@ public:
         }
     }
     
-    (*_rowPositionDeque)[0] += offset;
+    _rowPositionDeque[0] += offset;
     
     BOOL needCallback = needToDisplay;
-    for (NSUInteger i = (newHeaderHeight < 0 ? firstRow : 0); i < _numberOfRows; ++i) {
+    for (NSInteger i = (newHeaderHeight < 0 ? firstRow : 0); i < _numberOfRows; ++i) {
         if (offset != 0) {
-            (*_rowPositionDeque)[i + 1] += offset;
+            _rowPositionDeque[i + 1] += offset;
         }
         
         if (!needCallback) {
@@ -1396,11 +1388,11 @@ public:
         }
         CGFloat newOffset = [tableView _estimatedDisplayCellInSection:lastSection atRow:i withOffset:offset];
         if (newOffset != 0) {
-            if (newOffset > MPTableViewMaxSize) {
+            if (newOffset > MPTV_MAXSIZE) {
                 needCallback = NO;
             } else {
                 offset += newOffset;
-                (*_rowPositionDeque)[i + 1] += newOffset;
+                _rowPositionDeque[i + 1] += newOffset;
             }
         }
     }

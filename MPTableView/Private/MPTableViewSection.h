@@ -8,17 +8,50 @@
 
 #import "MPTableView.h"
 
-#define MPTableViewMaxCount 7883507
-#define MPTableViewMaxSize 7883507.0
-
-#define MPTableViewUpdateTypeStable(_type_) (_type_ == MPTableViewUpdateInsert || _type_ == MPTableViewUpdateMoveIn)
-#define MPTableViewUpdateTypeUnstable(_type_) (_type_ == MPTableViewUpdateDelete || _type_ == MPTableViewUpdateMoveOut || _type_ == MPTableViewUpdateReload)
+#ifndef __MPTV_DEFINE
+#define __MPTV_DEFINE
 
 UIKIT_EXTERN NSExceptionName const MPTableViewException;
 UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 
-#define MPTableViewThrowException(_reason_) @throw [NSException exceptionWithName:MPTableViewException reason:_reason_ userInfo:nil];
-#define MPTableViewThrowUpdateException(_reason_) @throw [NSException exceptionWithName:MPTableViewUpdateException reason:_reason_ userInfo:nil];
+#define MPTV_EXCEPTION(_reason_) @throw [NSException exceptionWithName:MPTableViewException reason:_reason_ userInfo:nil];
+#define MPTV_UPDATE_EXCEPTION(_reason_) @throw [NSException exceptionWithName:MPTableViewUpdateException reason:_reason_ userInfo:nil];
+
+#define MPTV_MAXCOUNT 7883507
+#define MPTV_MAXSIZE 7883507.0
+
+typedef struct _NSIndexPathStruct {
+    NSInteger section, row;
+} NSIndexPathStruct;
+
+NS_INLINE NSIndexPath *
+_NSIndexPathPrivateForRowSection(NSUInteger row, NSUInteger section) {
+    NSUInteger indexes[2] = {section, row};
+    return [[NSIndexPath alloc] initWithIndexes:indexes length:2];
+}
+
+typedef NS_ENUM(NSInteger, MPSectionViewType) {
+    MPSectionHeader = NSIntegerMax - 64, MPSectionFooter = NSIntegerMax - 32
+};
+
+#define MPTV_IS_HEADER(_row_) ((_row_) == MPSectionHeader)
+#define MPTV_IS_FOOTER(_row_) ((_row_) == MPSectionFooter)
+#define MPTV_ROW_LESS(_row1_, _row2_) (((_row1_) == (_row2_)) ? NO : (MPTV_IS_HEADER(_row1_) ? YES : MPTV_IS_HEADER(_row2_) ? NO : (_row1_) < (_row2_)))
+#define MPTV_ROW_MORE(_row1_, _row2_) (((_row1_) == (_row2_)) ? NO : (MPTV_IS_HEADER(_row1_) ? NO : MPTV_IS_HEADER(_row2_) ? YES : (_row1_) > (_row2_)))
+
+typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
+    MPTableViewUpdateDelete,
+    MPTableViewUpdateInsert,
+    MPTableViewUpdateReload,
+    MPTableViewUpdateMoveOut,
+    MPTableViewUpdateMoveIn,
+    MPTableViewUpdateAdjust
+};
+
+#define MPTableViewUpdateTypeStable(_type_) (_type_ == MPTableViewUpdateInsert || _type_ == MPTableViewUpdateMoveIn)
+#define MPTableViewUpdateTypeUnstable(_type_) (_type_ == MPTableViewUpdateDelete || _type_ == MPTableViewUpdateMoveOut || _type_ == MPTableViewUpdateReload)
+
+#endif
 
 #pragma mark -
 
@@ -30,23 +63,6 @@ UIKIT_EXTERN NSExceptionName const MPTableViewUpdateException;
 @end
 
 #pragma mark -
-
-typedef struct struct_MPIndexPath {
-    NSInteger section, row;
-} MPIndexPathStruct;
-
-typedef NS_ENUM(NSInteger, MPSectionViewType) {
-    MPSectionHeader = NSIntegerMin + 32, MPSectionFooter = NSIntegerMax - 32
-};
-
-typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
-    MPTableViewUpdateDelete,
-    MPTableViewUpdateInsert,
-    MPTableViewUpdateReload,
-    MPTableViewUpdateMoveOut,
-    MPTableViewUpdateMoveIn,
-    MPTableViewUpdateAdjust
-};
 
 @class MPTableViewSection;
 
@@ -70,8 +86,8 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 - (NSMutableArray *)_updateExecutionActions; // for insertion and movement
 
-- (MPIndexPathStruct)_beginIndexPath;
-- (MPIndexPathStruct)_endIndexPath;
+- (NSIndexPathStruct)_beginIndexPath;
+- (NSIndexPathStruct)_endIndexPath;
 
 - (CGFloat)_updateLastDeletionOriginY;
 - (void)_setUpdateLastDeletionOriginY:(CGFloat)updateLastDeletionOriginY;
@@ -82,15 +98,15 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 - (MPTableViewSection *)_updateGetSection:(NSInteger)section;
 
-- (CGFloat)_updateGetInsertCellHeightAtIndexPath:(MPIndexPath *)indexPath;
-- (CGFloat)_updateGetMoveInCellOffsetAtIndexPath:(MPIndexPath *)indexPath fromLastIndexPath:(MPIndexPath *)lastIndexPath lastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
-- (CGFloat)_updateGetAdjustCellOffsetAtIndexPath:(MPIndexPath *)indexPath fromLastIndexPath:(MPIndexPath *)lastIndexPath withOffset:(CGFloat)cellOffset;
+- (CGFloat)_updateGetInsertCellHeightAtIndexPath:(NSIndexPath *)indexPath;
+- (CGFloat)_updateGetMoveInCellOffsetAtIndexPath:(NSIndexPath *)indexPath fromLastIndexPath:(NSIndexPath *)lastIndexPath lastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
+- (CGFloat)_updateGetAdjustCellOffsetAtIndexPath:(NSIndexPath *)indexPath fromLastIndexPath:(NSIndexPath *)lastIndexPath withOffset:(CGFloat)cellOffset;
 - (CGFloat)_updateGetHeaderHeightInSection:(MPTableViewSection *)section fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset isMovement:(BOOL)isMovement;
 - (CGFloat)_updateGetFooterHeightInSection:(MPTableViewSection *)section fromLastSection:(NSInteger)lastSection withOffset:(CGFloat)offset isMovement:(BOOL)isMovement;
 
 - (CGFloat)_updateGetRebuildCellOffsetInSection:(NSInteger)section atRow:(NSInteger)row fromLastSection:(NSInteger)lastSection withDistance:(CGFloat)distance;
 
-- (BOOL)_updateNeedToDisplaySection:(MPTableViewSection *)section updateType:(MPTableViewUpdateType)type withOffset:(CGFloat)offset;
+- (BOOL)_updateNeedToDisplaySection:(MPTableViewSection *)section withUpdateType:(MPTableViewUpdateType)type withOffset:(CGFloat)offset;
 - (BOOL)_updateNeedToAdjustCellsFromLastSection:(NSInteger)lastSection;
 - (BOOL)_updateNecessaryToAdjustSection:(MPTableViewSection *)section withOffset:(CGFloat)offset;
 
@@ -98,7 +114,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 - (void)_updateDeleteCellInSection:(NSInteger)lastSection atRow:(NSInteger)row withAnimation:(MPTableViewRowAnimation)animation inSectionPosition:(MPTableViewSection *)sectionPosition;
 - (void)_updateInsertCellToSection:(NSInteger)section atRow:(NSInteger)row withAnimation:(MPTableViewRowAnimation)animation inSectionPosition:(MPTableViewSection *)sectionPosition withLastInsertionOriginY:(CGFloat)updateLastInsertionOriginY;
 
-- (void)_updateMoveCellToSection:(NSInteger)section atRow:(NSInteger)row fromLastIndexPath:(MPIndexPath *)lastIndexPath withLastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
+- (void)_updateMoveCellToSection:(NSInteger)section atRow:(NSInteger)row fromLastIndexPath:(NSIndexPath *)lastIndexPath withLastHeight:(CGFloat)lastHeight withDistance:(CGFloat)distance;
 
 - (BOOL)_updateNeedToAdjustCellToSection:(NSInteger)section atRow:(NSInteger)row fromLastSection:(NSInteger)lastSection andLastRow:(NSInteger)lastRow;
 
@@ -145,8 +161,8 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 @property (nonatomic, weak) NSMutableArray *sections;
 @property (weak, readonly) MPTableView *tableView;
 
-@property (nonatomic, assign) NSUInteger moveFromSection;
-@property (nonatomic, assign) NSUInteger moveToSection; // for optimize
+@property (nonatomic, assign) NSUInteger dragFromSection;
+@property (nonatomic, assign) NSUInteger dragToSection; // for optimization
 
 - (BOOL)hasUpdateNodes;
 
@@ -160,12 +176,12 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 - (BOOL)addMoveOutSection:(NSUInteger)section;
 - (BOOL)addMoveInSection:(NSUInteger)section withLastSection:(NSInteger)lastSection;
 
-- (BOOL)addDeleteIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
-- (BOOL)addInsertIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
-- (BOOL)addReloadIndexPath:(MPIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
+- (BOOL)addDeleteIndexPath:(NSIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
+- (BOOL)addInsertIndexPath:(NSIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
+- (BOOL)addReloadIndexPath:(NSIndexPath *)indexPath withAnimation:(MPTableViewRowAnimation)animation;
 
-- (BOOL)addMoveOutIndexPath:(MPIndexPath *)indexPath;
-- (BOOL)addMoveInIndexPath:(MPIndexPath *)indexPath withFrame:(CGRect)frame withLastIndexPath:(MPIndexPath *)lastIndexPath;
+- (BOOL)addMoveOutIndexPath:(NSIndexPath *)indexPath;
+- (BOOL)addMoveInIndexPath:(NSIndexPath *)indexPath withFrame:(CGRect)frame withLastIndexPath:(NSIndexPath *)lastIndexPath;
 
 - (CGFloat)startUpdate;
 
@@ -180,7 +196,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 - (BOOL)addReloadRow:(NSUInteger)row withAnimation:(MPTableViewRowAnimation)animation;
 
 - (BOOL)addMoveOutRow:(NSUInteger)row;
-- (BOOL)addMoveInRow:(NSUInteger)row withFrame:(CGRect)frame withLastIndexPath:(MPIndexPath *)lastIndexPath;
+- (BOOL)addMoveInRow:(NSUInteger)row withFrame:(CGRect)frame withLastIndexPath:(NSIndexPath *)lastIndexPath;
 
 @end
 
@@ -188,7 +204,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 @interface MPTableViewEstimatedManager : NSObject
 
-- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstIndexPath:(MPIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections; // the firstIndexPath is not always be [tableView _beginIndexPath]
+- (CGFloat)startEstimateForTableView:(MPTableView *)tableView atFirstIndexPath:(NSIndexPathStruct)firstIndexPath andSections:(NSMutableArray *)sections; // the firstIndexPath is not always be [tableView _beginIndexPath]
 
 @end
 
@@ -215,7 +231,7 @@ typedef NS_ENUM(NSInteger, MPTableViewUpdateType) {
 
 - (void)makeOffset:(CGFloat)offset;
 
-- (void)rebuildForTableView:(MPTableView *)tableView withLastSection:(NSInteger)lastSection withDistance:(CGFloat)distance; // return a backup
+- (void)rebuildForTableView:(MPTableView *)tableView withLastSection:(NSInteger)lastSection withDistance:(CGFloat)distance;
 
 - (CGFloat)startUpdateUsingPartForTableView:(MPTableView *)tableView toNewSection:(NSInteger)newSection withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;
 - (CGFloat)startUpdateForTableView:(MPTableView *)tableView toNewSection:(NSInteger)newSection withOffset:(CGFloat)offset needToDisplay:(BOOL)needToDisplay;

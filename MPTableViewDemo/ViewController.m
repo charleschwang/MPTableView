@@ -154,13 +154,12 @@
     
     // these animations start together with step 1, but their duration is 3 seconds.
     [self.tableView performBatchUpdates:^{
-        [self.tableView deleteRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
-        [self.tableView insertRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
-        [self.tableView reloadRowsAtIndexPaths:@[[MPIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
-        [self.tableView moveRowAtIndexPath:[MPIndexPath indexPathForRow:3 inSection:5] toIndexPath:[MPIndexPath indexPathForRow:4 inSection:5]];
+        [self.tableView deleteRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
+        [self.tableView moveRowAtIndexPath:[NSIndexPath indexPathForRow:3 inSection:5] toIndexPath:[NSIndexPath indexPathForRow:4 inSection:5]];
     } duration:3 delay:0 completion:^(BOOL finished) {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"An update group is completed" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
-        [alert show];
+        NSLog(@"An update group is completed");
     }];
 }
 
@@ -207,7 +206,7 @@
     return self.cellsCount;
 }
 
-- (CGFloat)MPTableView:(MPTableView *)tableView heightForRowAtIndexPath:(MPIndexPath *)indexPath {
+- (CGFloat)MPTableView:(MPTableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     // useless calculation, for simulating real project condition.
     CGSize labelSize = [@"Goliath online. Acknowledged HQ." boundingRectWithSize:CGSizeMake(375, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
     labelSize.height = [@"Battlecruiser operational. Receiving transmission. Good day, commander." boundingRectWithSize:CGSizeMake(375, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size.height;
@@ -217,13 +216,13 @@
     return MPTableViewDefaultCellHeight + (temp - labelSize.height);
 }
 
-- (MPTableViewCell *)MPTableView:(MPTableView *)tableView cellForRowAtIndexPath:(MPIndexPath *)indexPath {
+- (MPTableViewCell *)MPTableView:(MPTableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     MyDemoCell *cell = [tableView dequeueReusableCellWithIdentifier:NSStringFromClass([MyDemoCell class])];
     cell.label_title.text = [NSString stringWithFormat:@"two one cell: %zd", indexPath.row];
     return cell;
 }
 
-- (CGRect)MPTableView:(MPTableView *)tableView rectForCellToMoveRowAtIndexPath:(MPIndexPath *)indexPath {
+- (CGRect)MPTableView:(MPTableView *)tableView rectForCellToMoveRowAtIndexPath:(NSIndexPath *)indexPath {
     MyDemoCell *cell = (MyDemoCell *)[tableView cellForRowAtIndexPath:indexPath];
     
     return [cell rectForDrag];
@@ -231,7 +230,7 @@
 
 #pragma mark - delegate
 
-- (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath {
+- (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
     if ([indexPath compare:tableView.beginIndexPath] != NSOrderedDescending || [tableView isUpdating]) {
         return;
     }
@@ -242,13 +241,13 @@
     } completion:nil];
 }
 
-- (void)MPTableView:(MPTableView *)tableView didSelectRowForCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath {
+- (void)MPTableView:(MPTableView *)tableView didSelectRowForCell:(MPTableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath {
     [tableView scrollToHeaderInSection:indexPath.section atScrollPosition:MPTableViewScrollPositionTop animated:YES];
 }
 
 // like Teambition
 // start dragging cell
-- (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath {
+- (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(NSIndexPath *)sourceIndexPath {
     MyDemoCell *cell = (MyDemoCell *)[tableView cellForRowAtIndexPath:sourceIndexPath];
     cell.layer.shadowColor = [UIColor blackColor].CGColor;
     cell.layer.shadowOpacity = 0.8;
@@ -261,7 +260,7 @@
 }
 
 // stop dragging cell
-- (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath {
+- (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath {
     MPTableViewCell *cell = [tableView cellForRowAtIndexPath:destinationIndexPath];
     
     [UIView animateWithDuration:0.25 animations:^{
@@ -272,7 +271,7 @@
 }
 
 // cell is in position
-- (void)MPTableView:(MPTableView *)tableView didEndMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath {
+- (void)MPTableView:(MPTableView *)tableView didEndMoveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath {
     MyDemoCell *cell = (MyDemoCell *)[tableView cellForRowAtIndexPath:destinationIndexPath];
     cell.btn_movement.highlighted = NO;
     
@@ -289,11 +288,11 @@ void _deleteAnimation(UIView *view) {
         view.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(-view.frame.size.width, view.frame.size.height), 0.5 * M_PI);
         view.alpha = 0;
     } completion:^(BOOL finished) {
-        [view removeFromSuperview]; // necessary
+        [view removeFromSuperview]; // or you can cache it for reuse
     }];
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withLastDeletionOriginY:(CGFloat)lastDeletionOriginY {
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withLastDeletionOriginY:(CGFloat)lastDeletionOriginY {
     _deleteAnimation(cell);
 }
 
@@ -320,7 +319,7 @@ void _insertAnimation(UIView *view, CGFloat lastInsertionOriginY) {
     }];
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withLastInsertionOriginY:(CGFloat)lastInsertionOriginY {
+- (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withLastInsertionOriginY:(CGFloat)lastInsertionOriginY {
     _insertAnimation(cell, lastInsertionOriginY);
 }
 

@@ -15,22 +15,22 @@
 
 - (NSUInteger)MPTableView:(MPTableView *)tableView numberOfRowsInSection:(NSUInteger)section;
 
-- (MPTableViewCell *)MPTableView:(MPTableView *)tableView cellForRowAtIndexPath:(MPIndexPath *)indexPath;
+- (MPTableViewCell *)MPTableView:(MPTableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath;
 
 @optional
 - (NSUInteger)numberOfSectionsInMPTableView:(MPTableView *)tableView;
 
 // Variable height support
-- (CGFloat)MPTableView:(MPTableView *)tableView heightForRowAtIndexPath:(MPIndexPath *)indexPath;
+- (CGFloat)MPTableView:(MPTableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath;
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForHeaderInSection:(NSUInteger)section;
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForFooterInSection:(NSUInteger)section;
 
 // Use the estimatedHeight methods to quickly calcuate guessed values which will allow for fast load times of the table.
 // If these methods are implemented, the above -MPTableView:heightForXXX calls will be deferred until views are ready to be displayed, so more expensive logic can be placed there.
 
-// MPTableView has no estimatedRowHeight、estimatedSectionHeaderHeight and estimatedSectionFooterHeight, because these properties can be modified at any time, and that may cause some trouble.
+// MPTableView has no estimatedRowHeight, estimatedSectionHeaderHeight and estimatedSectionFooterHeight, because these properties can be modified at any time, and that may cause some trouble.
 
-- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForRowAtIndexPath:(MPIndexPath *)indexPath;
+- (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForRowAtIndexPath:(NSIndexPath *)indexPath;
 - (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForHeaderInSection:(NSUInteger)section;
 - (CGFloat)MPTableView:(MPTableView *)tableView estimatedHeightForFooterInSection:(NSUInteger)section;
 
@@ -41,14 +41,14 @@
 
 // Drag mode
 // Like -tableView:targetIndexPathForMoveFromRowAtIndexPath:toProposedIndexPath: in the UITableView
-- (BOOL)MPTableView:(MPTableView *)tableView canMoveRowAtIndexPath:(MPIndexPath *)indexPath;
-- (BOOL)MPTableView:(MPTableView *)tableView canMoveRowToIndexPath:(MPIndexPath *)indexPath;
+- (BOOL)MPTableView:(MPTableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath;
+- (BOOL)MPTableView:(MPTableView *)tableView canMoveRowToIndexPath:(NSIndexPath *)indexPath;
 
 // If not implemented, the rect is [cell bounds], means that touch any position in cell will make it begin to drag.
-- (CGRect)MPTableView:(MPTableView *)tableView rectForCellToMoveRowAtIndexPath:(MPIndexPath *)indexPath;
+- (CGRect)MPTableView:(MPTableView *)tableView rectForCellToMoveRowAtIndexPath:(NSIndexPath *)indexPath;
 
 // Called when the dragging action is stopping.
-- (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath;
+- (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath;
 
 @end
 
@@ -59,8 +59,8 @@
 
 // Display customization
 
-- (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
-- (void)MPTableView:(MPTableView *)tableView didEndDisplayingCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didEndDisplayingCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath;
 
 - (void)MPTableView:(MPTableView *)tableView willDisplayHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section;
 - (void)MPTableView:(MPTableView *)tableView willDisplayFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section;
@@ -71,12 +71,12 @@
 // Called when table view is updating.
 
 // The lastInsertionOriginY is the origin.y of those animating views which in front of the insert cell. For those built-in animation types, the lastInsertionOriginY is the cell's start position.
-// ※※※※※※※※※※ If the table view should be scrolled during the update, we had better put the insertion functions in a performBatchUpdates, that will stop these cells (and section views) into the reusable queue and keep our custom animations uninterrupted. ※※※※※※※※※※
-- (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withLastInsertionOriginY:(CGFloat)lastInsertionOriginY;
+// ※※※※※※※※※※ If the table view should be scrolled during the update, we had better put the insertion functions (like -insertSections:withRowAnimation:) in a -performBatchUpdates:duration:delay:completion: and set the same animation duration, that will stop these cells (and section views) into the reusable queue and keep our custom animations uninterrupted. ※※※※※※※※※※
+- (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withLastInsertionOriginY:(CGFloat)lastInsertionOriginY;
 
 // The lastDeletionOriginY in delete functions is a target position that deleted views will move to. For those built-in animation types, the lastDeletionOriginY is a cell's target position that make it looks like always follow the font one.
-// ※※※※※※※※※※ WARNING: These deleted views need to be manually removed. ※※※※※※※※※※
-- (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(MPIndexPath *)indexPath withLastDeletionOriginY:(CGFloat)lastDeletionOriginY;
+// ※※※※※※※※※※ WARNING: You need to call -removeFromSuperview manually to remove these deleted views, and then you can drop them immediately or cache them for reuse. ※※※※※※※※※※
+- (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withLastDeletionOriginY:(CGFloat)lastDeletionOriginY;
 
 - (void)MPTableView:(MPTableView *)tableView beginToInsertHeaderView:(MPTableReusableView *)view forSection:(NSUInteger)section withLastInsertionOriginY:(CGFloat)lastInsertionOriginY;
 - (void)MPTableView:(MPTableView *)tableView beginToInsertFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withLastInsertionOriginY:(CGFloat)lastInsertionOriginY;
@@ -85,24 +85,24 @@
 - (void)MPTableView:(MPTableView *)tableView beginToDeleteFooterView:(MPTableReusableView *)view forSection:(NSUInteger)section withLastDeletionOriginY:(CGFloat)lastDeletionOriginY;
 
 // Called before the user changes the selection. Return a new indexPath, or nil, to change the proposed selection.
-- (MPIndexPath *)MPTableView:(MPTableView *)tableView willSelectRowForCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
-- (MPIndexPath *)MPTableView:(MPTableView *)tableView willDeselectRowAtIndexPath:(MPIndexPath *)indexPath;
+- (NSIndexPath *)MPTableView:(MPTableView *)tableView willSelectRowAtIndexPath:(NSIndexPath *)indexPath;
+- (NSIndexPath *)MPTableView:(MPTableView *)tableView willDeselectRowAtIndexPath:(NSIndexPath *)indexPath;
 
 // Called after the user changes the selection.
 
-- (void)MPTableView:(MPTableView *)tableView didSelectRowForCell:(MPTableViewCell *)cell atIndexPath:(MPIndexPath *)indexPath;
-- (void)MPTableView:(MPTableView *)tableView didDeselectRowAtIndexPath:(MPIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didSelectRowForCell:(MPTableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath;
 
 // -MPTableView:shouldHighlightRowAtIndexPath: is called when a touch comes down on a row.
 // Returning NO to that message halts the selection process and does not cause the currently selected row to lose its selected look while the touch is down.
-- (BOOL)MPTableView:(MPTableView *)tableView shouldHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
-- (void)MPTableView:(MPTableView *)tableView didHighlightRowAtIndexPath:(MPIndexPath *)indexPath;
-- (void)MPTableView:(MPTableView *)tableView didUnhighlightRowAtIndexPath:(MPIndexPath *)indexPath;
+- (BOOL)MPTableView:(MPTableView *)tableView shouldHighlightRowAtIndexPath:(NSIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didHighlightRowAtIndexPath:(NSIndexPath *)indexPath;
+- (void)MPTableView:(MPTableView *)tableView didUnhighlightRowAtIndexPath:(NSIndexPath *)indexPath;
 
 // Called before table view enter drag mode
-- (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath;
+- (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(NSIndexPath *)sourceIndexPath;
 // Called when the dragging action is finished.
-- (void)MPTableView:(MPTableView *)tableView didEndMoveRowAtIndexPath:(MPIndexPath *)sourceIndexPath toIndexPath:(MPIndexPath *)destinationIndexPath;
+- (void)MPTableView:(MPTableView *)tableView didEndMoveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath;
 
 @end
 
@@ -139,7 +139,7 @@ typedef NS_ENUM(NSInteger, MPTableViewScrollPosition) {
     MPTableViewScrollPositionBottom
 };
 
-// Animation top, bottom and middle should change subview's height to 0. So if you use these three animation types, you had better put the layout codes in -setFrame: instead of -layoutSubviews for cells and section views.
+// Use MPTableViewRowAnimationTop, MPTableViewRowAnimationBottom and MPTableViewRowAnimationMiddle should change subview's height to 0. So if you use these three animation types, you had better put the layout codes in -setFrame: instead of -layoutSubviews for cells and section views.
 
 typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationFade,
@@ -149,7 +149,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
     MPTableViewRowAnimationBottom,
     MPTableViewRowAnimationMiddle,
     MPTableViewRowAnimationNone,
-    MPTableViewRowAnimationCustom, // require to use those protocol functions of MPTableViewDelegate to customize cells and section views animations
+    MPTableViewRowAnimationCustom, // require to use those protocol functions of MPTableViewDelegate to customize the animations of cells and section views
     MPTableViewRowAnimationRandom = 100
 };
 
@@ -171,24 +171,24 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (NSUInteger)numberOfSections;
 - (NSUInteger)numberOfRowsInSection:(NSUInteger)section;
 
-@property (nonatomic, readonly) MPIndexPath *beginIndexPath; // if the first is a section view, the row will be NSNotFound.
-@property (nonatomic, readonly) MPIndexPath *endIndexPath;
+@property (nonatomic, readonly) NSIndexPath *beginIndexPath; // if the first is a section view, the row will be NSNotFound.
+@property (nonatomic, readonly) NSIndexPath *endIndexPath;
 
 - (CGRect)rectForSection:(NSUInteger)section; // includes header, footer and all rows, return CGRectNull if section is not found.
 - (CGRect)rectForHeaderInSection:(NSUInteger)section;
 - (CGRect)rectForFooterInSection:(NSUInteger)section;
-- (CGRect)rectForRowAtIndexPath:(MPIndexPath *)indexPath;
+- (CGRect)rectForRowAtIndexPath:(NSIndexPath *)indexPath;
 
 - (NSUInteger)indexForSectionAtPoint:(CGPoint)point; // returns NSNotFound if point is outside of any section in the table view
 - (NSUInteger)indexForSectionHeaderAtPoint:(CGPoint)point; // returns NSNotFound if point is outside of any section header in the table view
 - (NSUInteger)indexForSectionFooterAtPoint:(CGPoint)point;
-- (MPIndexPath *)indexPathForRowAtPoint:(CGPoint)point; // returns nil if point is outside of any row in the table view
+- (NSIndexPath *)indexPathForRowAtPoint:(CGPoint)point; // returns nil if point is outside of any row in the table view
 
 - (MPTableReusableView *)sectionHeaderInSection:(NSUInteger)section;
 - (MPTableReusableView *)sectionFooterInSection:(NSUInteger)section;
-- (MPTableViewCell *)cellForRowAtIndexPath:(MPIndexPath *)indexPath; // returns nil if cell is not visible or index path is out of range
+- (MPTableViewCell *)cellForRowAtIndexPath:(NSIndexPath *)indexPath; // returns nil if cell is not visible or index path is out of range
 
-- (MPIndexPath *)indexPathForCell:(MPTableViewCell *)cell; // returns nil if cell is not visible
+- (NSIndexPath *)indexPathForCell:(MPTableViewCell *)cell; // returns nil if cell is not visible
 
 - (NSArray *)visibleCells;
 
@@ -217,18 +217,18 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 @property (nonatomic) BOOL allowsSelection;  // default is YES
 @property (nonatomic) BOOL allowsMultipleSelection; // default is NO
 
-@property (nonatomic, readonly) MPIndexPath *indexPathForSelectedRow; // returns nil or index path representing section and row of selection
+@property (nonatomic, readonly) NSIndexPath *indexPathForSelectedRow; // returns nil or index path representing section and row of selection
 @property (nonatomic, readonly) NSArray *indexPathsForSelectedRows; // returns nil or a set of index paths representing the sections and rows of the selection
 
-- (void)scrollToRowAtIndexPath:(MPIndexPath *)indexPath atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated;
+- (void)scrollToRowAtIndexPath:(NSIndexPath *)indexPath atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated;
 - (void)scrollToNearestSelectedRowAtScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated; // scroll to a selected row which closest to the top
 
 - (void)scrollToHeaderInSection:(NSUInteger)section atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated; // like scrollToRowAtIndexPath:atScrollPosition:animated:, just for section header
 - (void)scrollToFooterInSection:(NSUInteger)section atScrollPosition:(MPTableViewScrollPosition)scrollPosition animated:(BOOL)animated;
 
-- (void)selectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated scrollPosition:(MPTableViewScrollPosition)scrollPosition;
+- (void)selectRowAtIndexPath:(NSIndexPath *)indexPath animated:(BOOL)animated scrollPosition:(MPTableViewScrollPosition)scrollPosition;
 
-- (void)deselectRowAtIndexPath:(MPIndexPath *)indexPath animated:(BOOL)animated;
+- (void)deselectRowAtIndexPath:(NSIndexPath *)indexPath animated:(BOOL)animated;
 
 /**
  Default is YES.
@@ -241,7 +241,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 /**
  Default is NO.
- By default, table view will create some subviews(cells and section views) to display update animations, even though most of subviews are outside the screen, or in other words these subviews have not be added to table view before update and they will be hidden when update is finished.
+ By default, table view will create some subviews (cells and section views) to display update animations, even though most of subviews are outside the screen, or in other words these subviews have not be added to table view before update and they will be hidden when update is finished.
  That is good for animation effect but should make many subviews to join reusable queues, then we must release them manually (call -clearReusableCellsAndViews).
  
  If YES, table view will not create this kind of subviews when it is updating, that will improve performance. But table view still may create too many reusable subviews if updateForceReload is YES and we start too many updates at the same time in the estimated-height mode.
@@ -261,7 +261,7 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 
 @property (nonatomic) BOOL updateLayoutSubviewsOptionEnabled; // default is YES, table view will use the UIViewAnimationOptionLayoutSubviews as an option in update animations. If NO, the animation effects may look unnatural when you using the Autolayout and those built-in table view animations.
 
-@property (nonatomic) BOOL updateAllowUserInteraction; // default is YES, table view can be scrolled when it is updating (use the UIViewAnimationOptionAllowUserInteraction for update animations), and all subviews can be selected, or you can turn it off and set the userInteractionEnabled of those animated cells to NO.
+@property (nonatomic) BOOL updateAllowUserInteraction; // default is YES, table view can be scrolled and cells can be selected when table view is updating (use the UIViewAnimationOptionAllowUserInteraction for update animations).
 
 - (BOOL)isUpdating;
 
@@ -285,13 +285,13 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 - (void)deleteRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
 - (void)insertRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
 - (void)reloadRowsAtIndexPaths:(NSArray *)indexPaths withRowAnimation:(MPTableViewRowAnimation)animation;
-- (void)moveRowAtIndexPath:(MPIndexPath *)indexPath toIndexPath:(MPIndexPath *)newIndexPath;
+- (void)moveRowAtIndexPath:(NSIndexPath *)indexPath toIndexPath:(NSIndexPath *)newIndexPath;
 
 @property (nonatomic, getter=isDragModeEnabled) BOOL dragModeEnabled; // default is NO. If enable it, use the protocol functions of MPTableViewDataSource and MPTableViewDelegate to control and track the drag state of cells.
 @property (nonatomic) CFTimeInterval minimumPressDurationForDrag; // default is 0.1
 @property (nonatomic, assign) BOOL dragCellFloating; // default is NO. If YES, the movement path for drag cell will not fix its x-axis.
 @property (nonatomic) BOOL allowsSelectionForDragMode; // default is NO. Controls whether rows can be selected when in drag mode.
-- (MPIndexPath *)indexPathForDragCell; // default is nil.
+- (NSIndexPath *)indexPathForDragCell; // default is nil.
 
 - (id)dequeueReusableCellWithIdentifier:(NSString *)identifier;
 // like dequeueReusableCellWithIdentifier:, but for headers/footers
@@ -305,12 +305,3 @@ typedef NS_ENUM(NSInteger, MPTableViewRowAnimation) {
 @end
 
 #pragma mark -
-
-@interface MPIndexPath (MPTableView)
-
-- (NSInteger)section;
-- (NSInteger)row;
-+ (MPIndexPath *)indexPathForRow:(NSInteger)row inSection:(NSInteger)section;
-- (NSComparisonResult)compareRowSection:(MPIndexPath *)indexPath;
-
-@end
