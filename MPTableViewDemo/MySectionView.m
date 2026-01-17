@@ -10,7 +10,7 @@
 
 @implementation MySectionView
 
-// By default, the nextResponder is nil in MPTableReusableView, but if we want to touch a cell which below in this view by through this view, we should do this.
+// The nextResponder is nil in MPTableViewReusableView, forward touch events to the underlying cell by redirecting the responder chain.
 - (UIResponder *)nextResponder {
     return self.superview;
 }

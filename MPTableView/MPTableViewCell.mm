@@ -10,7 +10,7 @@
 
 using namespace std;
 
-@implementation MPTableReusableView
+@implementation MPTableViewReusableView
 
 - (instancetype)initWithReuseIdentifier:(NSString *)reuseIdentifier {
     if (self = [super initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, MPTableViewDefaultCellHeight)]) {
@@ -47,7 +47,7 @@ using namespace std;
     return nil;
 }
 
-- (UIResponder *)_mp_superNextResponder {
+- (UIResponder *)_defaultNextResponder {
     return [super nextResponder];
 }
 
@@ -65,6 +65,17 @@ using namespace std;
 
 - (void)prepareForReuse {
     
+}
+
+- (CGFloat)heightAfterLayoutWithFittingWidth:(CGFloat)width {
+    CGRect frame = self.frame;
+    if (frame.size.width != width) {
+        frame.size.width = width;
+        self.frame = frame;
+    }
+    
+    [self layoutIfNeeded];
+    return [self systemLayoutSizeFittingSize:CGSizeMake(width, UILayoutFittingCompressedSize.height)].height;
 }
 
 @end
@@ -113,84 +124,84 @@ MPTableViewCellClearCGColor() {
 }
 
 struct MPSubviewStatus {
-    BOOL opaqueRetain;
-    BOOL highlightedRetain;
-    BOOL backgroundColorRetain; // necessary
+    BOOL isOpaqueRetained;
+    BOOL isHighlightedRetained;
+    BOOL isBackgroundColorRetained; // necessary
     UIColor *backgroundColor;
 };
 
-typedef unordered_map<uintptr_t, MPSubviewStatus> MPSubviewStatusesMap;
+typedef unordered_map<uintptr_t, MPSubviewStatus> MPSubviewStatusMap;
 
 NS_INLINE bool
-MPNeedToCacheSubviewStatus(const MPSubviewStatus &status) {
-    return status.opaqueRetain || status.highlightedRetain || status.backgroundColorRetain;
+MPNeedsCacheSubviewStatus(const MPSubviewStatus &status) {
+    return status.isOpaqueRetained || status.isHighlightedRetained || status.isBackgroundColorRetained;
 }
 
 static void
-MPSetSubviewsHighlighted(NSArray *, bool, MPSubviewStatusesMap &);
+MPSetSubviewsHighlighted(NSArray *, bool, MPSubviewStatusMap &);
 
 static void
-MPSetSubviewHighlighted(UIView *subview, MPSubviewStatusesMap &subviewStatusesMap, bool highlighted, bool removeStatusIfUnhighlighted) {
+MPSetSubviewHighlighted(UIView *subview, MPSubviewStatusMap &subviewStatusMap, bool highlighted, bool shouldRemoveStatusIfUnhighlighted) {
     static Class _UIButtonClass = [UIButton class];
     
     if (highlighted) {
         MPSubviewStatus status = MPSubviewStatus();
         
-        if (subview.backgroundColor != [UIColor clearColor]) { // this '!=' was verified
+        if (subview.backgroundColor != [UIColor clearColor]) { // safe here
             status.backgroundColor = [subview backgroundColor]; // may be nil
-            status.backgroundColorRetain = YES;
+            status.isBackgroundColorRetained = YES;
             [subview setBackgroundColor:[UIColor clearColor]];
         }
         
         if ([subview isOpaque]) {
-            status.opaqueRetain = YES;
+            status.isOpaqueRetained = YES;
             subview.opaque = NO;
         }
         
         if (![subview isKindOfClass:_UIButtonClass]) {
             if ([subview respondsToSelector:@selector(isHighlighted)] && [subview respondsToSelector:@selector(setHighlighted:)] && ![(id)subview isHighlighted]) {
-                status.highlightedRetain = YES;
+                status.isHighlightedRetained = YES;
                 [(id)subview setHighlighted:YES];
             }
             
-            MPSetSubviewsHighlighted([subview subviews], highlighted, subviewStatusesMap);
+            MPSetSubviewsHighlighted([subview subviews], highlighted, subviewStatusMap);
         }
         
-        if (MPNeedToCacheSubviewStatus(status)) {
-            subviewStatusesMap.insert(pair<uintptr_t, MPSubviewStatus>((uintptr_t)subview, status));
+        if (MPNeedsCacheSubviewStatus(status)) {
+            subviewStatusMap.insert(pair<uintptr_t, MPSubviewStatus>((uintptr_t)subview, status));
         }
     } else {
-        auto iter = subviewStatusesMap.find((uintptr_t)subview);
-        if (iter != subviewStatusesMap.end()) {
+        auto iter = subviewStatusMap.find((uintptr_t)subview);
+        if (iter != subviewStatusMap.end()) {
             const MPSubviewStatus &status = iter->second;
             
-            if (status.backgroundColorRetain && subview.backgroundColor == [UIColor clearColor]) {
+            if (status.isBackgroundColorRetained && subview.backgroundColor == [UIColor clearColor]) {
                 [subview setBackgroundColor:status.backgroundColor];
             }
             
-            if (status.opaqueRetain && ![subview isOpaque]) {
+            if (status.isOpaqueRetained && ![subview isOpaque]) {
                 subview.opaque = YES;
             }
             
             if (![subview isKindOfClass:_UIButtonClass]) {
-                if (status.highlightedRetain && [(id)subview isHighlighted]) {
+                if (status.isHighlightedRetained && [(id)subview isHighlighted]) {
                     [(id)subview setHighlighted:NO];
                 }
                 
-                MPSetSubviewsHighlighted([subview subviews], highlighted, subviewStatusesMap);
+                MPSetSubviewsHighlighted([subview subviews], highlighted, subviewStatusMap);
             }
             
-            if (removeStatusIfUnhighlighted) {
-                subviewStatusesMap.erase(iter);
+            if (shouldRemoveStatusIfUnhighlighted) {
+                subviewStatusMap.erase(iter);
             }
         }
     }
 }
 
 static void
-MPSetSubviewsHighlighted(NSArray *subviews, bool highlighted, MPSubviewStatusesMap &subviewStatusesMap) {
+MPSetSubviewsHighlighted(NSArray *subviews, bool highlighted, MPSubviewStatusMap &subviewStatusMap) {
     for (UIView *subview in subviews) {
-        MPSetSubviewHighlighted(subview, subviewStatusesMap, highlighted, NO);
+        MPSetSubviewHighlighted(subview, subviewStatusMap, highlighted, NO);
     }
 }
 
@@ -198,12 +209,12 @@ MPSetSubviewsHighlighted(NSArray *subviews, bool highlighted, MPSubviewStatusesM
 
 @implementation MPTableViewCell {
     CALayer *_selectionLayer;
-    MPSubviewStatusesMap _subviewStatusesMap;
+    MPSubviewStatusMap _subviewStatusMap;
 }
 
 - (instancetype)initWithReuseIdentifier:(NSString *)reuseIdentifier {
     if (self = [super initWithReuseIdentifier:reuseIdentifier]) {
-        [self _initializeData];
+        [self _setupComponents];
     }
     
     return self;
@@ -212,7 +223,7 @@ MPSetSubviewsHighlighted(NSArray *subviews, bool highlighted, MPSubviewStatusesM
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     if (self = [super initWithCoder:aDecoder]) {
         _selectionColor = [aDecoder decodeObjectForKey:@"_selectionColor"];
-        [self _initializeData];
+        [self _setupComponents];
     }
     
     return self;
@@ -227,7 +238,7 @@ MPSetSubviewsHighlighted(NSArray *subviews, bool highlighted, MPSubviewStatusesM
     [self.layer insertSublayer:_selectionLayer atIndex:0];
 }
 
-- (void)_initializeData {
+- (void)_setupComponents {
     _highlighted = NO;
     _selected = NO;
     
@@ -276,17 +287,17 @@ MPSetSubviewsHighlighted(NSArray *subviews, bool highlighted, MPSubviewStatusesM
     }
 }
 
-// This can only affect the subviews of MPTableViewCell, but not the other lower-level descendents. The UITableViewCell uses a private API named -[UIView _descendent:willMoveFromSuperview:toSuperview:] to solve it.
+// willRemoveSubview only affects direct subviews, manually removing deeper descendants relies on a UIView private API -[UIView _descendant:willMoveFromSuperview:toSuperview:], not accessible here, and may cause incorrect selection appearance.
 - (void)willRemoveSubview:(UIView *)subview {
     if (_selected || _highlighted) {
-        MPSetSubviewHighlighted(subview, _subviewStatusesMap, NO, YES);
+        MPSetSubviewHighlighted(subview, _subviewStatusMap, NO, YES);
     }
     
     [super willRemoveSubview:subview];
 }
 
 - (UIResponder *)nextResponder {
-    return [super _mp_superNextResponder];
+    return [super _defaultNextResponder];
 }
 
 - (NSString *)description {
@@ -403,13 +414,13 @@ MPSetSubviewsHighlighted(NSArray *subviews, bool highlighted, MPSubviewStatusesM
 }
 
 - (void)_setSubviewsHighlighted:(BOOL)highlighted {
-    if (!highlighted && _subviewStatusesMap.size() == 0) {
+    if (!highlighted && _subviewStatusMap.size() == 0) {
         return;
     }
     
-    MPSetSubviewsHighlighted(self.subviews, highlighted, _subviewStatusesMap);
+    MPSetSubviewsHighlighted(self.subviews, highlighted, _subviewStatusMap);
     if (!highlighted) {
-        _subviewStatusesMap.clear(); // unordered_map has checked its size inside the clear function
+        _subviewStatusMap.clear(); // unordered_map::clear checks size internally
     }
 }
 

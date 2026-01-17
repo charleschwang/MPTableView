@@ -34,7 +34,7 @@
         self.btn_movement.backgroundColor = [UIColor whiteColor];
         
         // =========================================================
-        self.btn_movement.userInteractionEnabled = NO; // we don't use this button to start dragging the cell actually.
+        self.btn_movement.userInteractionEnabled = NO; // this button is not used to start dragging the cell.
         // =========================================================
         
         [self addSubview:self.btn_movement];
@@ -47,7 +47,7 @@
     [super setFrame:frame];
     self.label_title.frame = self.bounds;
     self.btn_movement.frame = [self rectForDrag];
-    [self.btn_movement layoutSubviews]; // The label of UIButton doesn't layout immediately after set a new frame to this UIButton, that may cause the label layout in an animation block when the table view is updating, and the animation effect will look unnatural.
+    [self.btn_movement layoutSubviews]; // UIButton label may not layout immediately after setFrame, force it here to avoid animated layout during table view updates.
 }
 
 - (void)prepareForRecycle {

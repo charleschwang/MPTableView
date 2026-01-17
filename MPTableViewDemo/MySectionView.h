@@ -8,7 +8,7 @@
 
 #import "MPTableViewCell.h"
 
-@interface MySectionView : MPTableReusableView
+@interface MySectionView : MPTableViewReusableView
 
 @property (nonatomic, weak) IBOutlet UILabel *label_title;
 
