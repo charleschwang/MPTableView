@@ -17,6 +17,7 @@
 @property (nonatomic, strong) MPTableView *tableView;
 @property (nonatomic, assign) NSInteger sectionCount;
 @property (nonatomic, assign) NSInteger cellCount;
+@property (nonatomic, strong) NSMutableDictionary *deletingViews;
 
 @end
 
@@ -42,7 +43,7 @@
     self.tableView.sectionFooterHeight = 30;
     
     self.tableView.dragModeEnabled = YES;
-    self.tableView.allowsSelectionForDragMode = YES;
+    self.tableView.allowsSelectionInDragMode = YES;
     self.tableView.allowsDraggedCellToFloat = YES;
     
     UILabel *header = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 111, 111)];
@@ -53,6 +54,8 @@
     self.tableView.tableHeaderView = header;
     
     [self setupSubviews];
+    
+    self.deletingViews = [NSMutableDictionary new];
 }
 
 #pragma mark -
@@ -95,10 +98,27 @@
     
     self.sectionCount--;
     if (self.sectionCount % 2) { // custom animation
-        // set the animation duration to 1.5 because the animation duration inside _deleteAnimation() is 1.5
+        CGFloat duration = 1.5;
         [self.tableView performBatchUpdates:^{
             [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
-        } duration:1.5 delay:0 completion:nil];
+        } duration:duration delay:0 completion:nil];
+        
+        // This is an optimization example for running custom animations on a large number of views during update.
+        // There are only a few views here, and in practice this optimization is not necessary and does not cause performance issues.
+        // Use `self.deletingViews` to store all views being deleted, then apply animations to them in batch through a single `+animateWithDuration:delay:options:animations:completion:` call to avoid multiple transaction commits.
+        // Note that this is a custom animation for delete, so each view needs to be manually removed at the end.
+        NSDictionary *deletingViews = [NSDictionary dictionaryWithDictionary:self.deletingViews];
+        [self.deletingViews removeAllObjects];
+        [UIView animateWithDuration:duration delay:0 options:UIViewAnimationOptionBeginFromCurrentState animations:^{
+            [deletingViews enumerateKeysAndObjectsUsingBlock:^(NSIndexPath *indexPath, MPTableViewReusableView *view, BOOL *stop) {
+                view.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(-view.frame.size.width, view.frame.size.height), 0.5 * M_PI);
+                view.alpha = 0;
+            }];
+        } completion:^(BOOL finished) {
+            [deletingViews enumerateKeysAndObjectsUsingBlock:^(NSIndexPath *indexPath, MPTableViewReusableView *view, BOOL *stop) {
+                [view removeFromSuperview]; // alternatively cache it for reuse
+            }];
+        }];
     } else { // built-in animation
         [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationLeft];
     }
@@ -114,6 +134,8 @@
     
     self.sectionCount++;
     if (self.sectionCount % 2) { // custom animation
+        // No optimization is applied here for custom animations on multiple views.
+        // Each view’s custom animation is started with a separate `+animateWithDuration:animations:` call inside the delegate method.
         [self.tableView performBatchUpdates:^{
             [self.tableView insertSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationCustom];
         } duration:1.5 delay:0 completion:nil];
@@ -124,55 +146,55 @@
 
 - (void)tableViewUpdate {
     if (self.sectionCount < 7) {
-        NSLog(@"this update needs at least 7 sections");
+        NSLog(@"this update requires at least 7 sections");
         return;
     }
     
     if (self.cellCount < 7) {
-        NSLog(@"this update needs at least 7 rows in every section");
+        NSLog(@"this update requires at least 7 rows in every section");
         return;
     }
     
     for (NSInteger i = 1, rows = [self.tableView numberOfRowsInSection:0]; i < self.tableView.numberOfSections; i++) {
         if (rows != [self.tableView numberOfRowsInSection:i]) {
-            NSLog(@"need the same number of rows in every section");
+            NSLog(@"this update requires all sections to have the same number of rows");
             return;
         }
     }
     
-    // step 1, delete section 0 and insert a section at 1.
+    // step 1: delete section 0 and insert a new section at index 1.
     [self.tableView performBatchUpdates:^{
         [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView insertSections:[NSIndexSet indexSetWithIndex:1] withRowAnimation:MPTableViewRowAnimationRandom];
     } duration:1.5 delay:0 completion:nil];
     
-    // step 2, start after step 1 is finished.
+    // step 2: starts after step 1 finishes (delayed by step 1's duration).
     [self.tableView performBatchUpdates:^{
         [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:2] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView moveSection:3 toSection:4];
     } duration:1.5 delay:1.5 completion:nil];
     
-    // these updates start together with step 1, but their duration is 3 seconds.
+    // step 3: starts together with step 1, but runs longer (3s total duration).
     [self.tableView performBatchUpdates:^{
         [self.tableView deleteRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:1 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:2 inSection:5]] withRowAnimation:MPTableViewRowAnimationRandom];
         [self.tableView moveRowAtIndexPath:[NSIndexPath indexPathForRow:3 inSection:5] toIndexPath:[NSIndexPath indexPathForRow:4 inSection:5]];
     } duration:3 delay:0 completion:^(BOOL finished) {
-        NSLog(@"An update group is completed");
+        NSLog(@"an update group completed");
     }];
 }
 
 - (void)tableViewReload {
     self.cellCount = 150;
     self.sectionCount = 150;
-    self.tableView.reloadsAllDataDuringUpdate = NO;
-    [self.tableView reloadDataAsyncWithQueue:NULL completion:^(BOOL finished) {
+    self.tableView.shouldReloadAllDataDuringUpdate = NO;
+    [self.tableView reloadDataAsynchronouslyWithQueue:NULL completion:^(BOOL finished) {
         if (!finished) {
             return;
         }
         
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"Data reload is completed" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil message:@"data reload completed" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
         [alert show];
     }];
 }
@@ -195,13 +217,13 @@
     return 20;
 }
 
-- (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSInteger)section {
+- (MPTableViewReusableView *)MPTableView:(MPTableView *)tableView viewForHeaderInSection:(NSInteger)section {
     MySectionView *sectionView = [tableView dequeueReusableViewWithIdentifier:@"MySectionView"];
     sectionView.label_title.text = [NSString stringWithFormat:@"section: %zd", section];
     return sectionView;
 }
 
-- (MPTableReusableView *)MPTableView:(MPTableView *)tableView viewForFooterInSection:(NSInteger)section {
+- (MPTableViewReusableView *)MPTableView:(MPTableView *)tableView viewForFooterInSection:(NSInteger)section {
     MySectionView *sectionView = [tableView dequeueReusableViewWithIdentifier:@"MySectionView"];
     sectionView.label_title.text = [NSString stringWithFormat:@"...end...%zd", section];
     return sectionView;
@@ -212,7 +234,7 @@
 }
 
 - (CGFloat)MPTableView:(MPTableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    // useless calculation, for simulating real project condition.
+    // extra calculation to simulate real-world project overhead
     CGSize labelSize = [@"Goliath online. Acknowledged HQ." boundingRectWithSize:CGSizeMake(375, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size;
     labelSize.height = [@"Battlecruiser operational. Receiving transmission. Good day, commander." boundingRectWithSize:CGSizeMake(375, 20) options:(NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading) attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:15]} context:nil].size.height;
     
@@ -235,7 +257,7 @@
 #pragma mark - delegate
 
 - (void)MPTableView:(MPTableView *)tableView willDisplayCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if ([indexPath compare:tableView.beginIndexPath] != NSOrderedDescending || [tableView isUpdating]) {
+    if ([indexPath compare:tableView.firstVisibleIndexPath] != NSOrderedDescending || [tableView isUpdating]) {
         return;
     }
     
@@ -245,12 +267,11 @@
     } completion:nil];
 }
 
-- (void)MPTableView:(MPTableView *)tableView didSelectRowForCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+- (void)MPTableView:(MPTableView *)tableView didSelectCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView scrollToHeaderInSection:indexPath.section atScrollPosition:MPTableViewScrollPositionTop animated:YES];
 }
 
-// like Teambition
-// start dragging cell
+// begin dragging a cell
 - (void)MPTableView:(MPTableView *)tableView shouldMoveRowAtIndexPath:(NSIndexPath *)sourceIndexPath {
     MyDemoCell *cell = (MyDemoCell *)[tableView cellForRowAtIndexPath:sourceIndexPath];
     cell.layer.shadowColor = [UIColor blackColor].CGColor;
@@ -263,7 +284,7 @@
     }];
 }
 
-// stop dragging cell
+// end dragging a cell
 - (void)MPTableView:(MPTableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath {
     MPTableViewCell *cell = [tableView cellForRowAtIndexPath:destinationIndexPath];
     
@@ -272,7 +293,7 @@
     }];
 }
 
-// the cell is in position
+// the cell is back in place
 - (void)MPTableView:(MPTableView *)tableView didEndMovingCell:(MPTableViewCell *)cell fromRowAtIndexPath:(NSIndexPath *)sourceIndexPath {
     ((MyDemoCell *)cell).btn_movement.highlighted = NO;
     
@@ -284,28 +305,23 @@
 #pragma mark - custom update animations
 
 // delete
-void _deleteAnimation(UIView *view) {
-    [UIView animateWithDuration:1.5 animations:^{
-        view.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(-view.frame.size.width, view.frame.size.height), 0.5 * M_PI);
-        view.alpha = 0;
-    } completion:^(BOOL finished) {
-        [view removeFromSuperview]; // or you can cache it for reuse
-    }];
+- (void)MPTableView:(MPTableView *)tableView startToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withProposedPosition:(CGPoint)proposedPosition {
+    [self.deletingViews setObject:cell forKey:indexPath];
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginToDeleteCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withProposedPosition:(CGPoint)proposedPosition {
-    _deleteAnimation(cell);
+- (void)MPTableView:(MPTableView *)tableView startToDeleteHeaderView:(MPTableViewReusableView *)view forSection:(NSInteger)section withProposedPosition:(CGPoint)proposedPosition {
+    [self.deletingViews setObject:view forKey:[NSIndexPath indexPathForRow:NSIntegerMin inSection:section]];
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginToDeleteHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withProposedPosition:(CGPoint)proposedPosition {
-    _deleteAnimation(view);
-}
-
-- (void)MPTableView:(MPTableView *)tableView beginToDeleteFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withProposedPosition:(CGPoint)proposedPosition {
-    _deleteAnimation(view);
+- (void)MPTableView:(MPTableView *)tableView startToDeleteFooterView:(MPTableViewReusableView *)view forSection:(NSInteger)section withProposedPosition:(CGPoint)proposedPosition {
+    [self.deletingViews setObject:view forKey:[NSIndexPath indexPathForRow:NSIntegerMax inSection:section]];
 }
 
 // insert
+
+// In the following insert-related delegate methods, each callback starts an animation with a `+animateWithDuration:animations:` call.
+// In real-world development, this is sufficient, because update scenarios involving a large number of views are rare.
+// For best performance optimization, each delegate callback can manually configure `CAAnimation` for each view.
 void _insertAnimation(UIView *view, CGFloat y) {
     CGRect frame = view.frame;
     
@@ -320,26 +336,26 @@ void _insertAnimation(UIView *view, CGFloat y) {
     }];
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withProposedLocation:(CGPoint)proposedLocation {
+- (void)MPTableView:(MPTableView *)tableView startToInsertCell:(MPTableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath withProposedLocation:(CGPoint)proposedLocation {
     _insertAnimation(cell, proposedLocation.y);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginToInsertHeaderView:(MPTableReusableView *)view forSection:(NSInteger)section withProposedLocation:(CGPoint)proposedLocation {
+- (void)MPTableView:(MPTableView *)tableView startToInsertHeaderView:(MPTableViewReusableView *)view forSection:(NSInteger)section withProposedLocation:(CGPoint)proposedLocation {
     _insertAnimation(view, proposedLocation.y);
 }
 
-- (void)MPTableView:(MPTableView *)tableView beginToInsertFooterView:(MPTableReusableView *)view forSection:(NSInteger)section withProposedLocation:(CGPoint)proposedLocation {
+- (void)MPTableView:(MPTableView *)tableView startToInsertFooterView:(MPTableViewReusableView *)view forSection:(NSInteger)section withProposedLocation:(CGPoint)proposedLocation {
     _insertAnimation(view, proposedLocation.y);
 }
 
 #pragma mark - prefetchDataSource
 
 - (void)MPTableView:(MPTableView *)tableView prefetchRowsAtIndexPaths:(NSArray *)indexPaths {
-    //NSLog(@"prefetch %@", indexPaths);
+    //    NSLog(@"prefetch %@", indexPaths);
 }
 
 - (void)MPTableView:(MPTableView *)tableView cancelPrefetchingForRowsAtIndexPaths:(NSArray *)indexPaths {
-    //NSLog(@"cancel prefetching %@", indexPaths);
+    //    NSLog(@"cancel prefetching %@", indexPaths);
 }
 
 - (void)didReceiveMemoryWarning {
