@@ -45,6 +45,7 @@
 
 - (void)setFrame:(CGRect)frame {
     [super setFrame:frame];
+    
     self.label_title.frame = self.bounds;
     self.btn_movement.frame = [self rectForDrag];
     [self.btn_movement layoutSubviews]; // UIButton label may not layout immediately after setFrame, force it here to avoid animated layout during table view updates.

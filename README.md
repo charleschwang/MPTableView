@@ -1,22 +1,50 @@
-## MPTableView
-I haven't worked in software development since 2017, but i still will update this project. For now, MPTableView works well in iOS 7 to iOS 14.
+# MPTableView
 
-- Lower CPU usage than the UITableView when scrolling or updating.
+MPTableView is a UITableView-inspired list view implementation.
 
-- Lightweight subviews (neither MPTableViewCell nor MPTableReusableView has subviews). The UITableViewCell has some useless subviews, they needlessly take up memory and CPU time.
+This project explores how a UITableView-like system can be built from scratch,
+with a strong focus on scrolling performance, update mechanics, and reuse behavior.
 
-- Provide custom animation and group animation APIs for updating.
+Compared to UITableView, this implementation aims to:
 
-- You can manually manage the reuse views.
+- Reduce CPU usage during scrolling and batch updates.
+- Keep reusable views lightweight and avoid implicit view hierarchies.
+- Provide explicit and customizable animation APIs, including grouped update animations.
+- Allow finer control over the reuse lifecycle when needed.
+- Support more advanced list view behavior on older versions of iOS.
 
-- Support more advanced features in lower versions of iOS.
+This project exists primarily as a learning and research effort, and as a playground
+for experimenting with list view internals such as layout, reuse, scrolling,
+and update reconciliation.
 
-## How to use
-The same APIs as the UITableView. For more new features, see the demo.
+---
 
-## Requirements
-Xcode 5+  
-iOS 7+
+### How to Use
 
-## License
-MPTableView is available under the MIT license. See the LICENSE file for more info.
+MPTableView follows the same core APIs as UITableView.  
+For additional features and advanced usage, see the demo project.
+
+---
+
+### Requirements
+
+- Xcode 5 or later
+- iOS 7 or later
+
+---
+
+### License
+
+MPTableView is released under the MIT license.  
+See the LICENSE file for details.
+
+---
+
+### Maintenance Status
+
+This project has not been under active development for many years.
+However, it may still receive updates when necessary to keep compatibility
+with system-level changes in iOS.
+
+At the time of writing, MPTableView works well on iOS versions ranging from
+iOS 7 to iOS 14.
