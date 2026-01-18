@@ -40,7 +40,7 @@ using namespace std;
 }
 
 - (void)setAutoresizingMask:(UIViewAutoresizing)autoresizingMask {
-    // do nothing
+    // do nothing - no autoresizingMask support
 }
 
 - (UIResponder *)nextResponder {

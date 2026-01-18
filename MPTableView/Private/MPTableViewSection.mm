@@ -476,7 +476,7 @@ public:
             MPTableViewSection *section = _sectionArray[j];
             BOOL needsDisplay = [_tableView _needsDisplayAtSection:section withUpdateType:MPTableViewUpdateRelayout withOffset:offset];
             
-            offset = [self _relayoutSectionAtPosition:section toSection:j needsDisplay:needsDisplay hasDraggingCell:hasDraggingCell withOffset:offset];
+            offset = [self _relayoutSectionAtPosition:section toSection:j withOffset:offset hasDraggingCell:hasDraggingCell needsDisplay:needsDisplay];
         }
         
         if (MPTV_IS_STABLE_UPDATE_TYPE(node.type)) {
@@ -618,7 +618,7 @@ public:
             
             BOOL needsDisplay = [_tableView _needsDisplayAtSection:section withUpdateType:MPTableViewUpdateRelayout withOffset:offset];
             
-            offset = [self _relayoutSectionAtPosition:section toSection:i needsDisplay:needsDisplay hasDraggingCell:hasDraggingCell withOffset:offset];
+            offset = [self _relayoutSectionAtPosition:section toSection:i withOffset:offset hasDraggingCell:hasDraggingCell needsDisplay:needsDisplay];
         }
         
         if (!isEstimatedMode) {
@@ -631,14 +631,14 @@ public:
             
             BOOL needsDisplay = [_tableView _needsDisplayAtSection:section withUpdateType:MPTableViewUpdateRelayout withOffset:offset];
             
-            offset = [self _relayoutSectionAtPosition:section toSection:i needsDisplay:needsDisplay hasDraggingCell:hasDraggingCell withOffset:offset];
+            offset = [self _relayoutSectionAtPosition:section toSection:i withOffset:offset hasDraggingCell:hasDraggingCell needsDisplay:needsDisplay];
         }
     }
     
     return offset;
 }
 
-- (CGFloat)_relayoutSectionAtPosition:(MPTableViewSection *)sectionPosition toSection:(NSInteger)newSection needsDisplay:(BOOL)needsDisplay hasDraggingCell:(BOOL)hasDraggingCell withOffset:(CGFloat)offset {
+- (CGFloat)_relayoutSectionAtPosition:(MPTableViewSection *)sectionPosition toSection:(NSInteger)newSection withOffset:(CGFloat)offset hasDraggingCell:(BOOL)hasDraggingCell needsDisplay:(BOOL)needsDisplay {
     NSInteger numberOfRows = hasDraggingCell ? sectionPosition.numberOfRows : [_tableView.dataSource MPTableView:_tableView numberOfRowsInSection:newSection];
     if (numberOfRows < 0) {
         NSAssert(NO, @"the number of rows must not be negative");
@@ -936,7 +936,7 @@ typedef deque<CGFloat>::iterator CGFloatDequeIterator;
     }
 }
 
-- (CGFloat)_updateRowForTableView:(MPTableView *)tableView toSection:(NSInteger)newSection row:(NSInteger)row previousSection:(NSInteger)previousSection previousRow:(NSInteger)previousRow withOffset:(CGFloat)offset previousHeight:(CGFloat)previousHeight endPositionIterator:(CGFloatDequeIterator &)endPositionIterator hasDraggingCell:(BOOL)hasDraggingCell shouldLoadHeight:(BOOL *)shouldLoadHeight {
+- (CGFloat)_updateRowForTableView:(MPTableView *)tableView toSection:(NSInteger)newSection row:(NSInteger)row previousSection:(NSInteger)previousSection previousRow:(NSInteger)previousRow previousHeight:(CGFloat)previousHeight withOffset:(CGFloat)offset endPositionIterator:(CGFloatDequeIterator &)endPositionIterator hasDraggingCell:(BOOL)hasDraggingCell shouldLoadHeight:(BOOL *)shouldLoadHeight {
     CGFloat previousOffset = offset;
     
     if (*shouldLoadHeight) {
@@ -989,7 +989,7 @@ typedef deque<CGFloat>::iterator CGFloatDequeIterator;
     return offset;
 }
 
-- (void)_relayoutSectionViewsForTableView:(MPTableView *)tableView toSection:(NSInteger)newSection previousSection:(NSInteger)previousSection withHeaderOffset:(CGFloat)headerOffset footerOffset:(CGFloat)footerOffset previousHeaderHeight:(CGFloat)previousHeaderHeight previousFooterHeight:(CGFloat)previousFooterHeight hasDraggingCell:(BOOL)hasDraggingCell needsDisplay:(BOOL)needsDisplay {
+- (void)_relayoutSectionViewsForTableView:(MPTableView *)tableView toSection:(NSInteger)newSection previousSection:(NSInteger)previousSection previousHeaderHeight:(CGFloat)previousHeaderHeight previousFooterHeight:(CGFloat)previousFooterHeight withHeaderOffset:(CGFloat)headerOffset footerOffset:(CGFloat)footerOffset hasDraggingCell:(BOOL)hasDraggingCell needsDisplay:(BOOL)needsDisplay {
     BOOL needsRelayoutHeader = needsDisplay || [tableView _hasAnimatingSectionViewInPreviousSection:previousSection viewType:MPTableViewSectionHeader];
     BOOL needsRelayoutFooter = needsDisplay || [tableView _hasAnimatingSectionViewInPreviousSection:previousSection viewType:MPTableViewSectionFooter];
     
@@ -1094,7 +1094,7 @@ typedef deque<CGFloat>::iterator CGFloatDequeIterator;
                 
                 if (needsRelayout) {
                     CGFloat previousHeight = *endPositionIterator - *startPositionIterator;
-                    offset = [self _updateRowForTableView:tableView toSection:newSection row:row previousSection:previousSection previousRow:previousRow withOffset:offset previousHeight:previousHeight endPositionIterator:endPositionIterator hasDraggingCell:hasDraggingCell shouldLoadHeight:&shouldLoadHeight];
+                    offset = [self _updateRowForTableView:tableView toSection:newSection row:row previousSection:previousSection previousRow:previousRow previousHeight:previousHeight withOffset:offset endPositionIterator:endPositionIterator hasDraggingCell:hasDraggingCell shouldLoadHeight:&shouldLoadHeight];
                 } else {
                     if (offset == 0 && !hasRelevantCell) {
                         break;
@@ -1274,7 +1274,7 @@ typedef deque<CGFloat>::iterator CGFloatDequeIterator;
             
             if (needsRelayout) {
                 CGFloat previousHeight = *endPositionIterator - *startPositionIterator;
-                offset = [self _updateRowForTableView:tableView toSection:newSection row:row previousSection:previousSection previousRow:previousRow withOffset:offset previousHeight:previousHeight endPositionIterator:endPositionIterator hasDraggingCell:hasDraggingCell shouldLoadHeight:&shouldLoadHeight];
+                offset = [self _updateRowForTableView:tableView toSection:newSection row:row previousSection:previousSection previousRow:previousRow previousHeight:previousHeight withOffset:offset endPositionIterator:endPositionIterator hasDraggingCell:hasDraggingCell shouldLoadHeight:&shouldLoadHeight];
             } else {
                 if (offset == 0 && !hasRelevantCell) {
                     break;
@@ -1303,7 +1303,7 @@ typedef deque<CGFloat>::iterator CGFloatDequeIterator;
         [tableView _setProposedDeletedPositionY:self.end];
     }
     
-    [self _relayoutSectionViewsForTableView:tableView toSection:newSection previousSection:previousSection withHeaderOffset:headerOffset footerOffset:footerOffset previousHeaderHeight:previousHeaderHeight previousFooterHeight:previousFooterHeight hasDraggingCell:hasDraggingCell needsDisplay:needsDisplay];
+    [self _relayoutSectionViewsForTableView:tableView toSection:newSection previousSection:previousSection previousHeaderHeight:previousHeaderHeight previousFooterHeight:previousFooterHeight withHeaderOffset:headerOffset footerOffset:footerOffset hasDraggingCell:hasDraggingCell needsDisplay:needsDisplay];
     
     _updatePart = nil;
     
@@ -1356,7 +1356,7 @@ typedef deque<CGFloat>::iterator CGFloatDequeIterator;
             
             if (needsRelayout) {
                 CGFloat previousHeight = *endPositionIterator - *startPositionIterator;
-                offset = [self _updateRowForTableView:tableView toSection:newSection row:i previousSection:previousSection previousRow:i withOffset:offset previousHeight:previousHeight endPositionIterator:endPositionIterator hasDraggingCell:hasDraggingCell shouldLoadHeight:&shouldLoadHeight];
+                offset = [self _updateRowForTableView:tableView toSection:newSection row:i previousSection:previousSection previousRow:i previousHeight:previousHeight withOffset:offset endPositionIterator:endPositionIterator hasDraggingCell:hasDraggingCell shouldLoadHeight:&shouldLoadHeight];
             } else {
                 if (offset == 0 && !hasRelevantCell) {
                     break;
@@ -1387,7 +1387,7 @@ typedef deque<CGFloat>::iterator CGFloatDequeIterator;
         [tableView _setProposedDeletedPositionY:self.end];
     }
     
-    [self _relayoutSectionViewsForTableView:tableView toSection:newSection previousSection:previousSection withHeaderOffset:headerOffset footerOffset:footerOffset previousHeaderHeight:previousHeaderHeight previousFooterHeight:previousFooterHeight hasDraggingCell:hasDraggingCell needsDisplay:needsDisplay || needsDisplaySectionViews];
+    [self _relayoutSectionViewsForTableView:tableView toSection:newSection previousSection:previousSection previousHeaderHeight:previousHeaderHeight previousFooterHeight:previousFooterHeight withHeaderOffset:headerOffset footerOffset:footerOffset hasDraggingCell:hasDraggingCell needsDisplay:needsDisplay || needsDisplaySectionViews];
     
     return offset;
 }
